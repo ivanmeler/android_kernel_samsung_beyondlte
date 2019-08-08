@@ -10,6 +10,7 @@
 */
 
 #include <dt-bindings/camera/fimc_is.h>
+#include <dt-bindings/soc/samsung/beyond2_conf.h>
 
 / {
 	fragment@camera {
