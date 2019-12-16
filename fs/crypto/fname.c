@@ -16,6 +16,15 @@
 #include <crypto/skcipher.h>
 #include "fscrypt_private.h"
 
+static inline void init_iv(struct inode *inode, char *iv, int iv_size)
+{
+#ifdef CONFIG_FS_CRYPTO_SEC_EXTENSION
+	memcpy(iv, inode->i_crypt_info->ci_iv_key, iv_size);
+#else
+	memset(iv, 0, iv_size);
+#endif
+}
+
 static inline bool fscrypt_is_dot_dotdot(const struct qstr *str)
 {
 	if (str->len == 1 && str->name[0] == '.')
@@ -40,11 +49,10 @@ int fname_encrypt(struct inode *inode, const struct qstr *iname,
 {
 	struct skcipher_request *req = NULL;
 	DECLARE_CRYPTO_WAIT(wait);
-	struct fscrypt_info *ci = inode->i_crypt_info;
-	struct crypto_skcipher *tfm = ci->ci_ctfm;
-	union fscrypt_iv iv;
+	struct crypto_skcipher *tfm = inode->i_crypt_info->ci_ctfm;
+	int res = 0;
+	char iv[FS_CRYPTO_BLOCK_SIZE];
 	struct scatterlist sg;
-	int res;
 
 	/*
 	 * Copy the filename to the output buffer for encrypting in-place and
@@ -56,7 +64,7 @@ int fname_encrypt(struct inode *inode, const struct qstr *iname,
 	memset(out + iname->len, 0, olen - iname->len);
 
 	/* Initialize the IV */
-	fscrypt_generate_iv(&iv, 0, ci);
+	init_iv(inode, iv, FS_CRYPTO_BLOCK_SIZE);
 
 	/* Set up the encryption request */
 	req = skcipher_request_alloc(tfm, GFP_NOFS);
@@ -66,7 +74,7 @@ int fname_encrypt(struct inode *inode, const struct qstr *iname,
 			CRYPTO_TFM_REQ_MAY_BACKLOG | CRYPTO_TFM_REQ_MAY_SLEEP,
 			crypto_req_done, &wait);
 	sg_init_one(&sg, out, olen);
-	skcipher_request_set_crypt(req, &sg, &sg, olen, &iv);
+	skcipher_request_set_crypt(req, &sg, &sg, olen, iv);
 
 	/* Do the encryption */
 	res = crypto_wait_req(crypto_skcipher_encrypt(req), &wait);
@@ -95,10 +103,9 @@ static int fname_decrypt(struct inode *inode,
 	struct skcipher_request *req = NULL;
 	DECLARE_CRYPTO_WAIT(wait);
 	struct scatterlist src_sg, dst_sg;
-	struct fscrypt_info *ci = inode->i_crypt_info;
-	struct crypto_skcipher *tfm = ci->ci_ctfm;
-	union fscrypt_iv iv;
-	int res;
+	struct crypto_skcipher *tfm = inode->i_crypt_info->ci_ctfm;
+	int res = 0;
+	char iv[FS_CRYPTO_BLOCK_SIZE];
 
 	/* Allocate request */
 	req = skcipher_request_alloc(tfm, GFP_NOFS);
@@ -109,12 +116,12 @@ static int fname_decrypt(struct inode *inode,
 		crypto_req_done, &wait);
 
 	/* Initialize IV */
-	fscrypt_generate_iv(&iv, 0, ci);
+	init_iv(inode, iv, FS_CRYPTO_BLOCK_SIZE);
 
 	/* Create decryption request */
 	sg_init_one(&src_sg, iname->name, iname->len);
 	sg_init_one(&dst_sg, oname->name, oname->len);
-	skcipher_request_set_crypt(req, &src_sg, &dst_sg, iname->len, &iv);
+	skcipher_request_set_crypt(req, &src_sg, &dst_sg, iname->len, iv);
 	res = crypto_wait_req(crypto_skcipher_decrypt(req), &wait);
 	skcipher_request_free(req);
 	if (res < 0) {
