@@ -129,6 +129,15 @@ config ARM64
 config 64BIT
 	def_bool y
 
+config MODEL_BEYOND0LTE
+	bool "Samsung Galaxy S10E"
+
+config MODEL_BEYOND1LTE
+	bool "Samsung Galaxy S10"
+
+config MODEL_BEYOND2LTE
+        bool "Samsung Galaxy S10+"
+
 config ARCH_PHYS_ADDR_T_64BIT
 	def_bool y
 
