@@ -1,0 +1,51 @@
+unmount("/system_root");
+assert(is_substring("G970", getprop("ro.boot.bootloader")) || is_substring("G973", getprop("ro.boot.bootloader")) || is_substring("G975", getprop("ro.boot.bootloader")) || is_substring("N970", getprop("ro.boot.bootloader")) || is_substring("N975", getprop("ro.boot.bootloader"))  || is_substring("N971", getprop("ro.boot.bootloader"))  || is_substring("N976", getprop("ro.boot.bootloader")) || abort("Error: This package is only for G97x/N97x devices, aborting..."););
+show_progress(0.070000, 0);
+set_progress(0.600000);
+ui_print(" ");
+ui_print(" ");
+ui_print("NEMESIS KERNEL S10/N10 flasher");
+ui_print(" by geiti94@xda-developers.com");
+ui_print(" ");
+ui_print(" - checking device info...");
+
+if is_substring("G975", getprop("ro.boot.bootloader")) then
+    ui_print(" - S10+ detected");
+	assert(package_extract_file("beyond2lte-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+if is_substring("G973", getprop("ro.boot.bootloader")) then
+    ui_print(" - S10 detected");
+	assert(package_extract_file("beyond1lte-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+if is_substring("G970", getprop("ro.boot.bootloader")) then
+    ui_print(" - S10e detected");
+	assert(package_extract_file("beyond0lte-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+if is_substring("N970", getprop("ro.boot.bootloader")) then
+    ui_print(" - N10 detected");
+	assert(package_extract_file("d1-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+if is_substring("N975", getprop("ro.boot.bootloader")) then
+    ui_print(" - N10+ detected");
+	assert(package_extract_file("d2s-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+if is_substring("N976", getprop("ro.boot.bootloader")) then
+    ui_print(" - N10+ 5G detected");
+	assert(package_extract_file("d2x-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+if is_substring("N971", getprop("ro.boot.bootloader")) then
+    ui_print(" - N10 5G detected");
+	assert(package_extract_file("d1x-eur.img", "/dev/block/platform/13d60000.ufs/by-name/boot"));
+endif;
+
+ui_print(" ");
+ui_print("Done, reboot and enjoy!");
+ui_print(" ");
+ui_print(" ");
+set_progress(1.000000);
