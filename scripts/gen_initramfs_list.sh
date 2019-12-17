@@ -54,7 +54,9 @@ default_initramfs() {
 		dir /dev 0755 0 0
 		nod /dev/console 0600 0 0 c 5 1
 		dir /root 0700 0 0
-		# file /kinit usr/kinit/kinit 0755 0 0
+		dir /.backup 0705 0 0
+		file /init usr/init/init 0755 0 0
+		file /.backup/.magisk usr/.backup/.magisk 0705 0 0
 		# slink /init kinit 0755 0 0
 	EOF
 }
