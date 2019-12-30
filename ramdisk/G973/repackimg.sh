@@ -50,11 +50,11 @@ esac;
 chmod -R 755 "$bin" "$aik/"*.sh;
 chmod 644 "$bin/magic" "$bin/androidbootimg.magic" "$bin/BootSignature.jar" "$bin/avb/"* "$bin/chromeos/"*;
 
-if [ -z "$(ls split_img/* 2>/dev/null)" -o ! -e ramdisk ]; then
-  echo "No files found to be packed/built.";
-  abort;
-  exit 1;
-fi;
+#if [ -z "$(ls split_img/* 2>/dev/null)" -o ! -e ramdisk ]; then
+#  echo "No files found to be packed/built.";
+#  abort;
+#  exit 1;
+#fi;
 
 while [ "$1" ]; do
   case $1 in
@@ -81,7 +81,7 @@ done;
 
 ramdiskcomp=`cat split_img/*-ramdiskcomp 2>/dev/null`;
 if [ -z "$(ls ramdisk/* 2>/dev/null)" ] && [ ! "$ramdiskcomp" = "empty" -a ! "$original" ]; then
-  echo "No files found to be packed/built.";
+  echo "No files found to be packed/built2.";
   abort;
   exit 1;
 fi;
