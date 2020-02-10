@@ -25,7 +25,7 @@
  *
  * <<Broadcom-WL-IPTag/Open:>>
  *
- * $Id: dhd_linux.c 848794 2019-11-05 02:27:28Z $
+ * $Id: dhd_linux.c 854462 2019-12-09 02:29:44Z $
  */
 
 #include <typedefs.h>
@@ -3097,7 +3097,8 @@ dhd_set_mac_address(struct net_device *dev, void *addr)
 			return ret;
 		}
 #endif /* WL_STATIC_IF */
-		 return _dhd_set_mac_address(dhd, ifidx, dhdif->mac_addr);
+		wl_cfg80211_handle_macaddr_change(dev, dhdif->mac_addr);
+		return _dhd_set_mac_address(dhd, ifidx, dhdif->mac_addr);
 	}
 #endif /* WL_CFG80211 */
 
@@ -6781,9 +6782,6 @@ dhd_stop(struct net_device *net)
 			if ((dhd->dhd_state & DHD_ATTACH_STATE_ADD_IF) &&
 				(dhd->dhd_state & DHD_ATTACH_STATE_CFG80211)) {
 				int i;
-#ifdef WL_CFG80211_P2P_DEV_IF
-				wl_cfg80211_del_p2p_wdev(net);
-#endif /* WL_CFG80211_P2P_DEV_IF */
 #ifdef DHD_4WAYM4_FAIL_DISCONNECT
 				dhd_cleanup_m4_state_work(&dhd->pub, ifidx);
 #endif /* DHD_4WAYM4_FAIL_DISCONNECT */
@@ -15303,6 +15301,9 @@ void dhd_host_recover_link(void)
 EXPORT_SYMBOL(dhd_host_recover_link);
 #endif /* EXYNOS_PCIE_LINKDOWN_RECOVERY */
 
+#ifdef DHD_DETECT_CONSECUTIVE_MFG_HANG
+#define MAX_CONSECUTIVE_MFG_HANG_COUNT 2
+#endif /* DHD_DETECT_CONSECUTIVE_MFG_HANG */
 int dhd_os_send_hang_message(dhd_pub_t *dhdp)
 {
 	int ret = 0;
@@ -15357,6 +15358,16 @@ int dhd_os_send_hang_message(dhd_pub_t *dhdp)
 #endif /* DHD_HANG_SEND_UP_TEST */
 
 	if (!dhdp->hang_was_sent) {
+#ifdef DHD_DETECT_CONSECUTIVE_MFG_HANG
+		if (dhdp->op_mode & DHD_FLAG_MFG_MODE) {
+			dhdp->hang_count++;
+			if (dhdp->hang_count >= MAX_CONSECUTIVE_MFG_HANG_COUNT) {
+				DHD_ERROR(("%s, Consecutive hang from Dongle :%u\n",
+					__FUNCTION__, dhdp->hang_count));
+				BUG_ON(1);
+			}
+		}
+#endif /* DHD_DETECT_CONSECUTIVE_MFG_HANG */
 #ifdef DHD_DEBUG_UART
 		/* If PCIe lane has broken, execute the debug uart application
 		 * to gether a ramdump data from dongle via uart
@@ -17611,7 +17622,12 @@ dhd_print_buf_addr(dhd_pub_t *dhdp, char *name, void *buf, unsigned int size)
 {
 	if ((dhdp->memdump_enabled == DUMP_MEMONLY) ||
 		(dhdp->memdump_enabled == DUMP_MEMFILE_BUGON) ||
-		(dhdp->memdump_type == DUMP_TYPE_SMMU_FAULT)) {
+		(dhdp->memdump_type == DUMP_TYPE_SMMU_FAULT) ||
+#ifdef DHD_DETECT_CONSECUTIVE_MFG_HANG
+		(dhdp->op_mode & DHD_FLAG_MFG_MODE &&
+			(dhdp->hang_count >= MAX_CONSECUTIVE_MFG_HANG_COUNT-1)) ||
+#endif /* DHD_DETECT_CONSECUTIVE_MFG_HANG */
+		FALSE) {
 #if defined(CONFIG_ARM64)
 		DHD_ERROR(("-------- %s: buf(va)=%llx, buf(pa)=%llx, bufsize=%d\n",
 			name, (uint64)buf, (uint64)__virt_to_phys((ulong)buf), size));
@@ -17965,7 +17981,7 @@ dhd_get_dhd_dump_len(void *ndev, dhd_pub_t *dhdp)
 		length += (uint32)(CONCISE_DUMP_BUFLEN - remain_len);
 	}
 
-	length += (strlen(DHD_DUMP_LOG_HDR) + sizeof(sec_hdr));
+	length += (uint32)(strlen(DHD_DUMP_LOG_HDR) + sizeof(sec_hdr));
 	return length;
 }
 
