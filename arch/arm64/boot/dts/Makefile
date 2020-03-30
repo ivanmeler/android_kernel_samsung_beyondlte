@@ -23,13 +23,13 @@ dtbo-$(CONFIG_MODEL_BEYOND1LTE) += samsung/exynos9820-beyond1lte_eur_open_22.dtb
 	samsung/exynos9820-beyond1lte_eur_open_19.dtbo
 
 dtb-$(CONFIG_MODEL_BEYOND2LTE) += s10e/exynos9820.dtb
-dtbo-$(CONFIG_MODEL_BEYOND2LTE) += samsung/exynos9820-beyond0lte_eur_open_17.dtbo \
-	samsung/exynos9820-beyond0lte_eur_open_24.dtbo \
-	samsung/exynos9820-beyond0lte_eur_open_19.dtbo \
-	samsung/exynos9820-beyond0lte_eur_open_25.dtbo \
-	samsung/exynos9820-beyond0lte_eur_open_20.dtbo \
-	samsung/exynos9820-beyond0lte_eur_open_18.dtbo \
-	samsung/exynos9820-beyond0lte_eur_open_22.dtbo
+dtbo-$(CONFIG_MODEL_BEYOND2LTE) += s10e/exynos9820-beyond0lte_eur_open_17.dtbo \
+	s10e/exynos9820-beyond0lte_eur_open_24.dtbo \
+	s10e/exynos9820-beyond0lte_eur_open_19.dtbo \
+	s10e/exynos9820-beyond0lte_eur_open_25.dtbo \
+	s10e/exynos9820-beyond0lte_eur_open_20.dtbo \
+	s10e/exynos9820-beyond0lte_eur_open_18.dtbo \
+	s10e/exynos9820-beyond0lte_eur_open_22.dtbo
 
 targets += dtbs
 DTB_LIST  := $(dtb-y) $(dtbo-y)
