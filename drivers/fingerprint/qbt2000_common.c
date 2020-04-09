@@ -632,6 +632,9 @@ static long fps_qbt2000_ioctl(
 		pr_info("QBT2000_NOISE_REQUEST_STOP. entry\n");
 		drvdata->noise_i2c_result = 1;
 		schedule_work(&drvdata->work_noise_control);
+#if !defined(CONFIG_SENSORS_SSP_BEYOND)
+		msleep(50);
+#endif
 #endif
 		break;
 	case QBT2000_NOISE_I2C_RESULT_GET: // force CBGE I2C
