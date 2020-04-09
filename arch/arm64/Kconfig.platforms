@@ -71,6 +71,27 @@ config ARCH_EXYNOS
 	help
 	  This enables support for ARMv8 based Samsung Exynos SoC family.
 
+config MODEL_BEYOND0LTE
+        bool "Samsung Galaxy S10E"
+
+config MODEL_BEYOND1LTE
+        bool "Samsung Galaxy S10"
+
+config MODEL_BEYOND2LTE
+        bool "Samsung Galaxy S10+"
+
+config MODEL_BEYONDX
+        bool "Samsung Galaxy S10 5G"
+
+config MODEL_D1
+        bool "Samsung Galaxy Note10"
+
+config MODEL_D2S
+        bool "Samsung Galaxy Note10+"
+
+config MODEL_D2X
+        bool "Samsung Galaxy Note10+ 5G"
+
 config ARCH_LAYERSCAPE
 	bool "ARMv8 based Freescale Layerscape SoC family"
 	select EDAC_SUPPORT

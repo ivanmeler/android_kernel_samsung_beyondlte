@@ -1,0 +1,69 @@
+/*
+ * SAMSUNG EXYNOS9820 board device tree source
+ *
+ * Copyright (c) 2018 Samsung Electronics Co., Ltd.
+ *		http://www.samsung.com
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License version 2 as
+ * published by the Free Software Foundation.
+*/
+
+#include "exynos9820-d_input_common.dtsi"
+
+/ {
+	fragment@model {
+		target-path = "/";
+		__overlay__ {
+		};
+	};
+};
+
+&hsi2c_10 {
+	touchscreen@48 {
+		sec,project_name = "DAVINCI", "N975";
+		sec,firmware_name = "tsp_sec/y771_d2.bin";
+		sec,tclm_level = <2>;
+		sec,afe_base = <0x0211>;
+	};
+};
+
+&hsi2c_15 { /* keyless */
+	fsr@49 {
+		stm,firmware_name = "key_stm/fsr1ad04_d2.fw";
+	};
+};
+
+&hsi2c_23 {
+	wacom@56 {
+		wacom,max_coords = <15504 7344>; /* x y */
+		wacom,fw_path = "epen/w9020_d2.fw";
+		wacom,fw_fac_path = "", "epen/w9020_d2_unit.fw";
+
+		wacom_elec {
+			spec_ver = <15000>;
+			max_channel = <24 11>; /* x y */
+			shift_value = <4>;
+
+			xx_ref = /bits/ 64 <3977 3990 3777 3776 3767 3868 3948 3959 3993 4041 4023 4002 4091 4216 4324 4304 4263 4291 4258 4206 4294 4432 5361 5342>;
+			xy_ref = /bits/ 64 <438 708 482 457 449 437 439 440 449 451 451 451 451 453 455 456 466 461 454 443 478 537 794 742>;
+			yx_ref = /bits/ 64 <791 659 499 464 561 578 523 511 537 809 748>;
+			yy_ref = /bits/ 64 <4593 4580 2694 2732 2721 2647 2690 2492 2666 4747 4790>;
+
+			xx_spec = /bits/ 64 <6084 6104 5778 5777 5764 5919 6041 6057 6109 6183 6156 6124 6260 6451 6616 6585 6522 6565 6515 6435 6570 6781 8203 8173>;
+			xy_spec = /bits/ 64 <670 1083 738 699 688 668 671 673 687 689 690 691 690 693 696 697 714 706 695 678 731 822 1214 1136>;
+			yx_spec = /bits/ 64 <1211 1008 764 710 858 885 800 782 822 1237 1145>;
+			yy_spec = /bits/ 64 <7027 7007 4122 4180 4163 4050 4116 3813 4080 7262 7329>;
+
+			rxx_ref = /bits/ 64 <10030 9970 10570 10000 10020 9740 9800 9970 9910 9880 10040 10050 9780 9700 9750 10050 10100 9940 10080 10130 9790 9690 8270 10040>;
+			rxy_ref = /bits/ 64 <16170 6190 14670 10560 10170 10290 9960 9980 9790 9960 9990 10000 10010 9950 9960 9990 9770 10110 10160 10250 9280 8900 6770 10690>;
+			ryx_ref = /bits/ 64 <8320 12020 13200 10760 8280 9700 11060 10230 9510 6650 10810>;
+			ryy_ref = /bits/ 64 <9970 10030 17000 9860 10040 10280 9840 10790 9350 5620 9910>;
+
+			drxx_spec = /bits/ 64 <1500 1500 2500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500 1500>;
+			drxy_spec = /bits/ 64 <2100 800 2700 1600 1800 1700 1600 1400 1400 1300 1300 1300 1400 1400 1400 1400 1600 1300 1400 1500 1800 1100 800 1000>;
+			dryx_spec = /bits/ 64 <800 1200 1590 2000 1590 1200 1400 1300 1200 800 1000>;
+			dryy_spec = /bits/ 64 <4500 4500 5500 4500 4500 4500 4500 4500 4500 4500 4500>;
+		};
+	};
+};
