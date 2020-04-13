@@ -47,6 +47,7 @@
 				qcom,wuhb-gpio = <&gpa1 1 0>;
 				qcom,ldo-gpio = <&gph1 0 0>;
 				qcom,position = "26.50,-0.03,9.00,4.00,14.80,14.80,13.00,13.00,5.00";
+				qcom,modelinfo = "N97X";
 				pinctrl-names = "default", "pins_poweron", "pins_poweroff";
 				pinctrl-0 = <&btp_ipc &btp_wuhb &btp_ldo>;
 				pinctrl-1 = <&spi1_bus &spi1_cs_func_high>;
