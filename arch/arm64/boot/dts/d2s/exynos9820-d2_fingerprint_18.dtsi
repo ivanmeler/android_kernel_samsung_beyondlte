@@ -38,6 +38,7 @@
 				qcom,wuhb-gpio = <&gpa1 1 0>;
 				qcom,btp-regulator = "VDD_BTP_1P8";
 				qcom,position = "29.20,0.00,9.00,4.00,14.80,14.80,13.00,13.00,5.00";
+				qcom,modelinfo = "N97X";
 				pinctrl-names = "default", "pins_poweron", "pins_poweroff";
 				pinctrl-0 = <&btp_ipc &btp_wuhb>;
 				pinctrl-1 = <&spi1_bus &spi1_cs_func_high>;

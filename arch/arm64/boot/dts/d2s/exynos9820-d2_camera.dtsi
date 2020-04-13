@@ -510,6 +510,18 @@
 			front_video_uhd_int = <DVFS_INT_L4>;
 			front_video_uhd_hpg = <1>;
 
+			front_video_fhd_60fps_int_cam = <DVFS_INT_CAM_L3>;
+			front_video_fhd_60fps_cam = <DVFS_CAM_L1>;
+			front_video_fhd_60fps_mif = <DVFS_MIF_L4>;
+			front_video_fhd_60fps_int = <DVFS_INT_L4>;
+			front_video_fhd_60fps_hpg = <1>;
+
+			front_video_uhd_60fps_int_cam = <DVFS_INT_CAM_L3>;
+			front_video_uhd_60fps_cam = <DVFS_CAM_L1>;
+			front_video_uhd_60fps_mif = <DVFS_MIF_L3>;
+			front_video_uhd_60fps_int = <DVFS_INT_L4>;
+			front_video_uhd_60fps_hpg = <1>;
+
 			front_video_capture_int_cam = <DVFS_INT_CAM_L5>;
 			front_video_capture_cam = <DVFS_CAM_L1>;
 			front_video_capture_mif = <DVFS_MIF_L4>;
@@ -527,6 +539,18 @@
 			front_video_uhd_capture_mif = <DVFS_MIF_L4>;
 			front_video_uhd_capture_int = <DVFS_INT_L4>;
 			front_video_uhd_capture_hpg = <1>;
+
+			front_video_uhd_60fps_capture_int_cam = <DVFS_INT_CAM_L4>;
+			front_video_uhd_60fps_capture_cam = <DVFS_CAM_L1>;
+			front_video_uhd_60fps_capture_mif = <DVFS_MIF_L3>;
+			front_video_uhd_60fps_capture_int = <DVFS_INT_L4>;
+			front_video_uhd_60fps_capture_hpg = <1>;
+
+			front_video_fhd_60fps_capture_int_cam = <DVFS_INT_CAM_L3>;
+			front_video_fhd_60fps_capture_cam = <DVFS_CAM_L1>;
+			front_video_fhd_60fps_capture_mif = <DVFS_MIF_L3>;
+			front_video_fhd_60fps_capture_int = <DVFS_INT_L4>;
+			front_video_fhd_60fps_capture_hpg = <1>;
 
 			front_dual_sync_preview_int_cam = <DVFS_INT_CAM_L3>;
 			front_dual_sync_preview_cam = <DVFS_CAM_L1>;
