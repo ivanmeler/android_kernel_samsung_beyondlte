@@ -1555,9 +1555,9 @@ static void sec_ts_read_event(struct sec_ts_data *ts)
 					ts->all_aod_tap_count++;
 				} else if (p_gesture_status->gesture_id == SEC_TS_GESTURE_ID_DOUBLETAP_TO_WAKEUP) {
 					input_info(true, &ts->client->dev, "%s: AOT\n", __func__);
-					input_report_key(ts->input_dev, KEY_POWER, 1);
+					input_report_key(ts->input_dev, KEY_WAKEUP, 1);
 					input_sync(ts->input_dev);
-					input_report_key(ts->input_dev, KEY_POWER, 0);
+					input_report_key(ts->input_dev, KEY_WAKEUP, 0);
 				}
 				break;
 			case SEC_TS_GESTURE_CODE_SINGLE_TAP:
@@ -2517,7 +2517,6 @@ static void sec_ts_set_input_prop(struct sec_ts_data *ts, struct input_dev *dev,
 
 	set_bit(propbit, dev->propbit);
 	set_bit(KEY_WAKEUP, dev->keybit);
-        set_bit(KEY_POWER, dev->keybit);
 
 	input_set_abs_params(dev, ABS_MT_POSITION_X, 0, ts->plat_data->max_x, 0, 0);
 	input_set_abs_params(dev, ABS_MT_POSITION_Y, 0, ts->plat_data->max_y, 0, 0);
