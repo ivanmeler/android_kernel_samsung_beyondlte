@@ -41,13 +41,10 @@ static void remove_flag(char *cmd, const char *flag)
 
 static void remove_safetynet_flags(char *cmd)
 {
-/*	remove_flag(cmd, "androidboot.enable_dm_verity=");
+	remove_flag(cmd, "androidboot.enable_dm_verity=");
 	remove_flag(cmd, "androidboot.secboot=");
 	remove_flag(cmd, "androidboot.verifiedbootstate=");
 	remove_flag(cmd, "androidboot.veritymode=");
-*/
-        remove_flag(cmd, "skip_initramfs");
-        remove_flag(cmd, "root=");
 }
 
 static int __init proc_cmdline_init(void)
