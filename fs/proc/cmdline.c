@@ -41,11 +41,27 @@ static void patch_flag(char *cmd, const char *flag, const char *val)
 	memcpy(start + flag_len, val, val_len);
 }
 
+static void remove_flag(char *cmd, const char *flag)
+{
+	char *start_addr, *end_addr;
+
+	/* Ensure all instances of a flag are removed */
+	while ((start_addr = strstr(cmd, flag))) {
+		end_addr = strchr(start_addr, ' ');
+		if (end_addr)
+			memmove(start_addr, end_addr + 1, strlen(end_addr));
+		else
+			*(start_addr - 1) = '\0';
+	}
+}
+
 static void patch_safetynet_flags(char *cmd)
 {
 	patch_flag(cmd, "androidboot.verifiedbootstate=", "green");
 	patch_flag(cmd, "androidboot.carrierid=", "CRO");
-	patch_flag(cmd, "androidboot.warranty_bit", "0");
+	patch_flag(cmd, "androidboot.warranty_bit=", "0");
+	remove_flag(cmd, "androidboot.wb.hs=");
+	remove_flag(cmd, "androidboot.wb.snapQB=");
 }
 
 static int __init proc_cmdline_init(void)
