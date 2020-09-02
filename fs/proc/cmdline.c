@@ -57,7 +57,7 @@ static void remove_flag(char *cmd, const char *flag)
 
 static void patch_safetynet_flags(char *cmd)
 {
-	patch_flag(cmd, "androidboot.verifiedbootstate=", "green");
+//	patch_flag(cmd, "androidboot.verifiedbootstate=", "green");
 	patch_flag(cmd, "androidboot.carrierid=", "CRO");
 	patch_flag(cmd, "androidboot.warranty_bit=", "0");
 	remove_flag(cmd, "androidboot.wb.hs=");
