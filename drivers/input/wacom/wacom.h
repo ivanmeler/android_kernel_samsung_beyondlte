@@ -304,6 +304,7 @@ struct wacom_i2c {
 	struct mutex update_lock;
 	struct mutex irq_lock;
 	struct mutex mode_lock;
+	struct mutex ble_charge_mode_lock;
 	struct wake_lock fw_wakelock;
 	struct delayed_work nb_reg_work;
 	struct notifier_block kbd_nb;
@@ -373,6 +374,7 @@ struct wacom_i2c {
 	volatile u8 ble_mode;
 	volatile bool is_mode_change;
 	volatile bool ble_block_flag;
+	bool ble_disable_flag;
 	u32 chg_time_stamp;
 	u32 check_elec;
 #ifdef CONFIG_SEC_FACTORY
@@ -421,6 +423,8 @@ int wacom_sec_init(struct wacom_i2c *);
 void wacom_sec_remove(struct wacom_i2c *);
 
 void wacom_print_info(struct wacom_i2c *wac_i2c);
+
+int wacom_ble_charge_mode(struct wacom_i2c *wac_i2c, int mode);
 
 extern int set_scan_mode(int mode);
 #ifdef CONFIG_SEC_FACTORY
