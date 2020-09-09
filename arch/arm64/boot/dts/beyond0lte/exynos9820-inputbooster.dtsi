@@ -33,7 +33,7 @@
 					input_booster,kfc_freqs = <0>;
 					input_booster,mif_freqs = <0>;
 					input_booster,int_freqs = <0>;
-					input_booster,dma_latency = <0>;
+					input_booster,ucc_requested_val = <1>;
 
 					/* Time table */
 					input_booster,head_times = <500>;
@@ -54,7 +54,7 @@
 					input_booster,kfc_freqs = <0>;
 					input_booster,mif_freqs = <0>;
 					input_booster,int_freqs = <0>;
-					input_booster,dma_latency = <0>;
+					input_booster,ucc_requested_val = <1>;
 
 					/* Time table */
 					input_booster,head_times = <0>;
@@ -75,7 +75,7 @@
 					input_booster,kfc_freqs = <806000 806000 806000>;
 					input_booster,mif_freqs = <1014000 1014000 1014000>;
 					input_booster,int_freqs = <0 0 0>;
-					input_booster,dma_latency = <0 0 0>;
+					input_booster,ucc_requested_val = <1 1 1>;
 
 					/* Time table */
 					input_booster,head_times = <130 130 0>;
@@ -96,7 +96,7 @@
 					input_booster,kfc_freqs = <806000 806000>;
 					input_booster,mif_freqs = <1014000 1014000>;
 					input_booster,int_freqs = <0 0>;
-					input_booster,dma_latency = <0 0>;
+					input_booster,ucc_requested_val = <1 1>;
 
 					/* Time table */
 					input_booster,head_times = <1000 0>;
@@ -117,7 +117,7 @@
 					input_booster,kfc_freqs = <806000 806000>;
 					input_booster,mif_freqs = <0 0>;
 					input_booster,int_freqs = <0 0>;
-					input_booster,dma_latency = <0 0>;
+					input_booster,ucc_requested_val = <1 1>;
 
 					/* Time table */
 					input_booster,head_times = <130 130>;
@@ -138,7 +138,7 @@
 					input_booster,kfc_freqs = <806000 806000>;
 					input_booster,mif_freqs = <0 0>;
 					input_booster,int_freqs = <0 0>;
-					input_booster,dma_latency = <0 0>;
+					input_booster,ucc_requested_val = <1 1>;
 
 					/* Time table */
 					input_booster,head_times = <130 0>;
@@ -159,7 +159,7 @@
 					input_booster,kfc_freqs = <806000 0>;
 					input_booster,mif_freqs = <0 0>;
 					input_booster,int_freqs = <0 0>;
-					input_booster,dma_latency = <0 0>;
+					input_booster,ucc_requested_val = <1 1>;
 
 					/* Time table */
 					input_booster,head_times = <130 0>;
@@ -180,7 +180,7 @@
 					input_booster,kfc_freqs = <806000 806000>;
 					input_booster,mif_freqs = <0 0>;
 					input_booster,int_freqs = <0 0>;
-					input_booster,dma_latency = <0 0>;
+					input_booster,ucc_requested_val = <1 1>;
 
 					/* Time table */
 					input_booster,head_times = <130 0>;
@@ -200,7 +200,7 @@
 					input_booster,hmp_boost = <1 1>;
 					input_booster,kfc_freqs = <806000 806000>;
 					input_booster,bimc_freqs = <0 0>;
-					input_booster,dma_latency = <0 0>;
+					input_booster,ucc_requested_val = <1 1>;
 
 					/* Time table */
 					input_booster,head_times = <200 0>;
@@ -220,7 +220,7 @@
 					input_booster,kfc_freqs = <1053000>;
 					input_booster,mif_freqs = <0>;
 					input_booster,int_freqs = <0>;
-					input_booster,dma_latency = <0>;
+					input_booster,ucc_requested_val = <1>;
 
 					/* Time table */
 					input_booster,head_times = <700>;

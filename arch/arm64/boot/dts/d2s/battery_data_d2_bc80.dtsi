@@ -295,7 +295,7 @@
 				battery,cisd_max_voltage_thr = <4400>; /* battery ovp detection voltage */
 
 				battery,cisd_alg_index = <8>;
-				battery,ignore_cisd_index = <0 640>; /* Do not use BUCK_OFF, DROP_SENSOR*/
+				battery,ignore_cisd_index = <0 0>; /* Do not use BUCK_OFF, DROP_SENSOR*/
 				battery,ignore_cisd_index_d = <0 80>; /* Do not use BUCK_OFF_PER_DAY, DROP_SENSOR_PER_DAY */
 
 				battery,tx_stop_capacity = <30>;
