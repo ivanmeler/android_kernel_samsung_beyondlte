@@ -32,7 +32,7 @@ DHDCFLAGS += -Wall -Wstrict-prototypes -Dlinux -DLINUX -DBCMDRIVER      \
         -DDHDTHREAD -DDHD_BCMEVENTS -DSHOW_EVENTS -DBCMDBG -DWLP2P      \
         -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT -DKEEP_ALIVE -DCSCAN     \
         -DPKT_FILTER_SUPPORT -DEMBEDDED_PLATFORM -DPNO_SUPPORT          \
-        -DSEC_ENHANCEMENT
+        -DSEC_ENHANCEMENT -Wno-pointer-compare -Wno-tautological-overlap-compare
 
 #####################
 # Bus Interface Type
