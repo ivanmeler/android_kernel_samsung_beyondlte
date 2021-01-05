@@ -1,0 +1,10 @@
+clang
+clang++
+clang.real
+clang++.real
+../lib64/libc++.so.1
+lld
+ld64.lld
+ld.lld
+../lib64/clang/11.0.2/share
+../lib64/clang/11.0.2/lib/linux
