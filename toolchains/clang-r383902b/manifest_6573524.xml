@@ -1,0 +1,50 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<manifest>
+<!--
+    This branch is a master side branch and is configured to have all project
+    specific rules. When updating this manifest file, please also update the
+    project rule in google3 to ensure new projects get testing.
+    See go/side-branch-testing for details.
+-->
+  <remote fetch=".." name="aosp" review="https://android-review.googlesource.com/" />
+  <default remote="aosp" revision="master" sync-j="4" />
+  <!-- Core LLVM toolchain components -->
+  <project name="platform/bionic" path="bionic" revision="15cbad3f59b822e972e31b06ebaf45e806f165f2" upstream="master" />
+  <project name="toolchain/binutils" path="toolchain/binutils" revision="c19795e958ed532462948fd14b1bdfd4f6e96e03" upstream="master" />
+  <project name="toolchain/llvm-project" path="toolchain/llvm-project" revision="b397f81060ce6d701042b782172ed13bee898b79" upstream="master-legacy" />
+  <project name="toolchain/llvm_android" path="toolchain/llvm_android" revision="3c1a71d2f1f0ae09a3916b85349e9e024d682d48" upstream="master" />
+  <!-- Android/ChromeOS shared toolchain-utils -->
+  <project name="platform/external/toolchain-utils" path="external/toolchain-utils" revision="8ee1427ba83e68402e2cd930b532fe6936c066be" upstream="master" />
+  <!-- Binutils/gcc toolchains -->
+  <project clone-depth="1" groups="pdk,darwin,arm" name="platform/prebuilts/gcc/darwin-x86/aarch64/aarch64-linux-android-4.9" path="prebuilts/gcc/darwin-x86/aarch64/aarch64-linux-android-4.9" revision="e3c9192408e0ad4fa1a7b39f111dac93aef4dca8" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/gcc/darwin-x86/arm/arm-linux-androideabi-4.9" path="prebuilts/gcc/darwin-x86/arm/arm-linux-androideabi-4.9" revision="9081aab4f83e15d4e097b24b4edd6bac33439351" upstream="master" />
+  <project clone-depth="1" groups="pdk,darwin" name="platform/prebuilts/gcc/darwin-x86/host/headers" path="prebuilts/gcc/darwin-x86/host/headers" revision="4ac4f7cc41cf3c9e36fc3d6cf37fd1cfa9587a68" upstream="master" />
+  <project clone-depth="1" groups="pdk,darwin" name="platform/prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1" path="prebuilts/gcc/darwin-x86/host/i686-apple-darwin-4.2.1" revision="b616fc20ee024ace07f39b13a1f5a2bbdb67f8f7" upstream="master" />
+  <project clone-depth="1" groups="pdk,darwin,x86" name="platform/prebuilts/gcc/darwin-x86/x86/x86_64-linux-android-4.9" path="prebuilts/gcc/darwin-x86/x86/x86_64-linux-android-4.9" revision="3eb882505ec463db6ebaae9b2db27fea1dfa888e" upstream="master" />
+  <project clone-depth="1" groups="pdk,linux,arm" name="platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" path="prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9" revision="6db7620069bbcac51474f5e4b0691071273f589a" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9" path="prebuilts/gcc/linux-x86/arm/arm-linux-androideabi-4.9" revision="1d67e7fe709e8f81e91e5f85a5d4c04b27c6b319" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8" path="prebuilts/gcc/linux-x86/host/x86_64-linux-glibc2.17-4.8" revision="90e45fec56fdeac84c9eb174c63fa6e748c6faa9" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8" path="prebuilts/gcc/linux-x86/host/x86_64-w64-mingw32-4.8" revision="4efc2a937f271a766ad1c11eb930d6e150ecb694" upstream="master" />
+  <project clone-depth="1" groups="pdk,linux,x86" name="platform/prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" path="prebuilts/gcc/linux-x86/x86/x86_64-linux-android-4.9" revision="6d6c9c7e26cf86eafd41b9e73840c7f8d50d1027" upstream="master" />
+  <!-- CMake prebuilts -->
+  <project clone-depth="1" name="platform/prebuilts/cmake/darwin-x86" path="prebuilts/cmake/darwin-x86" revision="0a604d875f3b623c786e4a7dc3eb0abc8940b4d7" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/cmake/linux-x86" path="prebuilts/cmake/linux-x86" revision="e934e8c0628ca79de8a8d45dd8869bf750f597e9" upstream="master" />
+  <!-- build-tools prebuilts (includes ninja) -->
+  <project clone-depth="1" name="platform/prebuilts/build-tools" path="prebuilts/build-tools" revision="b6c1d1c0048349c2404bf731b74c27c75d3c2b9d" upstream="master" />
+  <!-- Go prebuilts -->
+  <project clone-depth="1" groups="darwin,pdk,tradefed" name="platform/prebuilts/go/darwin-x86" path="prebuilts/go/darwin-x86" revision="3d0e53b900fd8e721733b7d54a1acef694a47333" upstream="master" />
+  <project clone-depth="1" groups="linux,pdk,tradefed" name="platform/prebuilts/go/linux-x86" path="prebuilts/go/linux-x86" revision="3affa1d2632b48f9589ab4c91ca1b825d7c73a87" upstream="master" />
+  <!-- Dependencies for lldb -->
+  <project name="platform/external/libedit" path="external/libedit" revision="892b8b381ae82ac3184900d989a516854d8b1197" upstream="master" />
+  <project name="platform/external/swig" path="external/swig" revision="80b4251e302efb18c145a4786249d695397ed42a" upstream="master" />
+  <!-- Python prebuilts -->
+  <project clone-depth="1" name="platform/prebuilts/python/linux-x86" path="prebuilts/python/linux-x86" revision="11ba423051d8eb6eb12e7a625cf6a02079834f87" upstream="llvm-toolchain" />
+  <project clone-depth="1" name="platform/prebuilts/python/darwin-x86" path="prebuilts/python/darwin-x86" revision="baf1adea8e432473a643da3a03e6269089773fa3" upstream="llvm-toolchain" />
+  <project clone-depth="1" name="platform/prebuilts/python/windows-x86" path="prebuilts/python/windows-x86" revision="158a218bd1252ec7d23836b0dd2eb222a1078841" upstream="llvm-toolchain" />
+  <!-- Prebuilts (for ease of updating) -->
+  <project clone-depth="1" name="platform/prebuilts/clang/host/darwin-x86" path="prebuilts/clang/host/darwin-x86" revision="9f7b691cc5fdac74a78c84cb3389ac7f30aec994" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/clang/host/linux-x86" path="prebuilts/clang/host/linux-x86" revision="92696b73aa81d262c5fe5bd6d23c052593a109da" upstream="master" />
+  <project clone-depth="1" name="platform/prebuilts/clang/host/windows-x86" path="prebuilts/clang/host/windows-x86" revision="68cbb42f0619b5e4504c32c4439b2c83afda0b24" upstream="master" />
+  <!-- NDK headers/libraries -->
+  <project name="toolchain/prebuilts/ndk/r20" path="toolchain/prebuilts/ndk/r20" revision="090bbcaa361eb158e8bfc5e6950081cb9679e350" upstream="master" />
+</manifest>
