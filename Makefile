@@ -11,6 +11,9 @@ NAME = Petit Gorille
 # Comments in this file are targeted only to the developer, do not
 # expect to learn how to build the kernel reading this file.
 
+export PLATFORM_VERSION = 12
+export ANDROID_MAJOR_VERSION = s
+
 # That's our default target when none is given on the command line
 PHONY := _all
 _all:
