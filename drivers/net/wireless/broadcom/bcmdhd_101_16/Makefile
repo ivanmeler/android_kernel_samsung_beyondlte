@@ -29,7 +29,7 @@ DHDCFLAGS += -Wall -Werror -Wstrict-prototypes -Dlinux -DLINUX -DBCMDRIVER      
         -DDHDTHREAD -DDHD_BCMEVENTS -DSHOW_EVENTS -DWLP2P      \
         -DWIFI_ACT_FRAME -DARP_OFFLOAD_SUPPORT -DKEEP_ALIVE -DCSCAN     \
         -DPKT_FILTER_SUPPORT -DEMBEDDED_PLATFORM -DPNO_SUPPORT          \
-        -DSEC_ENHANCEMENT -Wno-pointer-compare -Wno-tautological-overlap-compare
+        -DSEC_ENHANCEMENT
 
 DHDCFLAGS += -DOEM_ANDROID
 
@@ -687,6 +687,7 @@ endif
   DHDCFLAGS += -DWL_BCNRECV
 # Iface force dev close
   DHDCFLAGS += -DIFACE_HANG_FORCE_DEV_CLOSE
+  DHDCFLAGS += -DHANG_DELAY_BEFORE_DEV_CLOSE
 
 # Basic types and constants relating to 802.11ax
   DHDCFLAGS += -DWL11AX
@@ -961,6 +962,9 @@ endif
   DHDCFLAGS += -DWL_CAC_TS
 # FAKEAP
   DHDCFLAGS += -DWL_BCNRECV
+# Iface force dev close
+  DHDCFLAGS += -DIFACE_HANG_FORCE_DEV_CLOSE
+  DHDCFLAGS += -DHANG_DELAY_BEFORE_DEV_CLOSE
 
 # Basic types and constants relating to 802.11ax
   DHDCFLAGS += -DWL11AX

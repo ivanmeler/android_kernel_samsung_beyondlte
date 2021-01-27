@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 if sys.version_info[0] < 3:
     import __builtin__ as builtins
 else:
