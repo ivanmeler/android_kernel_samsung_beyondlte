@@ -184,7 +184,7 @@ buff_done:
 void abox_debug_string_update(enum abox_debug_err_type type, void *addr)
 {
 	p_debug_data->debug_err_type = type;
-	p_debug_data->abox_dbg_addr = (unsigned int*) addr;
+	p_debug_data->abox_dbg_addr = (unsigned int *) addr;
 
 	queue_work(p_debug_data->debug_string_wq, &p_debug_data->debug_string_work);
 }
@@ -441,7 +441,7 @@ ssize_t make_prefix_msg(char *buff, int level, struct device *dev)
 
 	msg_size = scnprintf(buff, LOG_MSG_BUFF_SZ, "<%d> [%5lu.%06lu] %s %s: ",
 						level, (unsigned long) time, nanosec_t / 1000,
-						(dev)? dev_driver_string(dev): "NULL", (dev)? dev_name(dev): "NULL");
+						(dev) ? dev_driver_string(dev) : "NULL", (dev) ? dev_name(dev) : "NULL");
 	return msg_size;
 }
 

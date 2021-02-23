@@ -59,7 +59,7 @@
 #endif
 #include <soc/samsung/exynos-cpuhp.h>
 
-#ifdef CONFIG_SEC_PM
+#if IS_ENABLED(CONFIG_SEC_PM)
 #include <linux/sec_class.h>
 #endif
 
@@ -747,18 +747,15 @@ void sec_bootstat_get_thermal(int *temp)
 		if (!strncasecmp(data->tmu_name, "BIG", THERMAL_NAME_LENGTH)) {
 			exynos_get_temp(data, &temp[0]);
 			temp[0] /= 1000;
-		} else if (!strncasecmp(data->tmu_name, "MID", THERMAL_NAME_LENGTH)) {
+		} else if (!strncasecmp(data->tmu_name, "LITTLE", THERMAL_NAME_LENGTH)) {
 			exynos_get_temp(data, &temp[1]);
 			temp[1] /= 1000;
-		} else if (!strncasecmp(data->tmu_name, "LITTLE", THERMAL_NAME_LENGTH)) {
+		} else if (!strncasecmp(data->tmu_name, "G3D", THERMAL_NAME_LENGTH)) {
 			exynos_get_temp(data, &temp[2]);
 			temp[2] /= 1000;
-		} else if (!strncasecmp(data->tmu_name, "G3D", THERMAL_NAME_LENGTH)) {
+		} else if (!strncasecmp(data->tmu_name, "ISP", THERMAL_NAME_LENGTH)) {
 			exynos_get_temp(data, &temp[3]);
 			temp[3] /= 1000;
-		} else if (!strncasecmp(data->tmu_name, "ISP", THERMAL_NAME_LENGTH)) {
-			exynos_get_temp(data, &temp[4]);
-			temp[4] /= 1000;
 		} else
 			continue;
 	}
@@ -782,6 +779,80 @@ static int exynos_get_trend(void *p, int trip, enum thermal_trend *trend)
 
 	return 0;
 }
+
+#if IS_ENABLED(CONFIG_SEC_PM)
+
+#define NR_THERMAL_SENSOR_MAX	10
+
+static ssize_t exynos_tmu_curr_temp(struct device *dev,
+			struct device_attribute *attr, char *buf)
+{
+	struct exynos_tmu_data *data;
+	int temp[NR_THERMAL_SENSOR_MAX] = {0, };
+	int i, id_max = 0;
+	ssize_t ret = 0;
+
+	list_for_each_entry(data, &dtm_dev_list, node) {
+		if (data->id < NR_THERMAL_SENSOR_MAX) {
+			exynos_get_temp(data, &temp[data->id]);
+			temp[data->id] /= 1000;
+
+			if (id_max < data->id)
+				id_max = data->id;
+		} else {
+			pr_err("%s: id:%d %s\n", __func__, data->id,
+					data->tmu_name);
+			continue;
+		}
+	}
+
+	for (i = 0; i <= id_max; i++)
+		ret += sprintf(buf + ret, "%d,", temp[i]);
+
+	sprintf(buf + ret - 1, "\n");
+
+	return ret;
+}
+
+static DEVICE_ATTR(curr_temp, 0444, exynos_tmu_curr_temp, NULL);
+
+static struct attribute *exynos_tmu_sec_pm_attributes[] = {
+	&dev_attr_curr_temp.attr,
+	NULL
+};
+
+static const struct attribute_group exynos_tmu_sec_pm_attr_grp = {
+	.attrs = exynos_tmu_sec_pm_attributes,
+};
+
+static int __init exynos_tmu_sec_pm_init(void)
+{
+	int ret = 0;
+	struct device *dev;
+
+	dev = sec_device_create(NULL, "exynos_tmu");
+
+	if (IS_ERR(dev)) {
+		pr_err("%s: failed to create device\n", __func__);
+		return PTR_ERR(dev);
+	}
+
+	ret = sysfs_create_group(&dev->kobj, &exynos_tmu_sec_pm_attr_grp);
+	if (ret) {
+		pr_err("%s: failed to create sysfs group(%d)\n", __func__, ret);
+		goto err_create_sysfs;
+	}
+
+	return ret;
+
+err_create_sysfs:
+	sec_device_destroy(dev->devt);
+
+	return ret;
+}
+
+late_initcall(exynos_tmu_sec_pm_init);
+#endif /* CONFIG_SEC_PM */
 
 #ifdef CONFIG_THERMAL_EMULATION
 static void exynos98X0_tmu_set_emulation(struct exynos_tmu_data *data,
@@ -1843,80 +1914,6 @@ static int exynos_thermal_create_debugfs(void)
 	return 0;
 }
 arch_initcall(exynos_thermal_create_debugfs);
-
-#ifdef CONFIG_SEC_PM
-
-#define NR_THERMAL_SENSOR_MAX	10
-
-static ssize_t exynos_tmu_curr_temp(struct device *dev,
-			struct device_attribute *attr, char *buf)
-{
-	struct exynos_tmu_data *data;
-	int temp[NR_THERMAL_SENSOR_MAX] = {0, };
-	int i, id_max = 0;
-	ssize_t ret = 0;
-
-	list_for_each_entry(data, &dtm_dev_list, node) {
-		if (data->id < NR_THERMAL_SENSOR_MAX) {
-			exynos_get_temp(data, &temp[data->id]);
-			temp[data->id] /= 1000;
-
-			if (id_max < data->id)
-				id_max = data->id;
-		} else {
-			pr_err("%s: id:%d %s\n", __func__, data->id,
-					data->tmu_name);
-			continue;
-		}
-	}
-
-	for (i = 0; i <= id_max; i++)
-		ret += sprintf(buf + ret, "%d,", temp[i]);
-
-	sprintf(buf + ret - 1, "\n");
-
-	return ret;
-}
-
-static DEVICE_ATTR(curr_temp, 0444, exynos_tmu_curr_temp, NULL);
-
-static struct attribute *exynos_tmu_sec_pm_attributes[] = {
-	&dev_attr_curr_temp.attr,
-	NULL
-};
-
-static const struct attribute_group exynos_tmu_sec_pm_attr_grp = {
-	.attrs = exynos_tmu_sec_pm_attributes,
-};
-
-static int __init exynos_tmu_sec_pm_init(void)
-{
-	int ret = 0;
-	struct device *dev;
-
-	dev = sec_device_create(NULL, "exynos_tmu");
-
-	if (IS_ERR(dev)) {
-		pr_err("%s: failed to create device\n", __func__);
-		return PTR_ERR(dev);
-	}
-
-	ret = sysfs_create_group(&dev->kobj, &exynos_tmu_sec_pm_attr_grp);
-	if (ret) {
-		pr_err("%s: failed to create sysfs group(%d)\n", __func__, ret);
-		goto err_create_sysfs;
-	}
-
-	return ret;
-
-err_create_sysfs:
-	sec_device_destroy(dev->devt);
-
-	return ret;
-}
-
-late_initcall(exynos_tmu_sec_pm_init);
-#endif /* CONFIG_SEC_PM */
 
 MODULE_DESCRIPTION("EXYNOS TMU Driver");
 MODULE_AUTHOR("Donggeun Kim <dg77.kim@samsung.com>");

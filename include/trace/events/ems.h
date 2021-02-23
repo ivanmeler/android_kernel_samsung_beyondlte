@@ -359,36 +359,6 @@ TRACE_EVENT(ems_update_band,
 			__entry->playable_cpus)
 );
 
-TRACE_EVENT(ems_band_schedule,
-
-	TP_PROTO(unsigned int play_cpus, int cpu, int ratio,
-		unsigned long capacity, unsigned long util, int type),
-
-	TP_ARGS(play_cpus, cpu, ratio, capacity, util, type),
-
-	TP_STRUCT__entry(
-		__field( unsigned int,	play_cpus	)
-		__field( int,		cpu		)
-		__field( int,		ratio		)
-		__field( unsigned long,	capacity	)
-		__field( unsigned long,	util		)
-		__field( int,		type		)
-	),
-
-	TP_fast_assign(
-		__entry->play_cpus	= play_cpus;
-		__entry->cpu		= cpu;
-		__entry->ratio		= ratio;
-		__entry->capacity	= capacity;
-		__entry->util		= util;
-		__entry->type		= type;
-	),
-
-	TP_printk("play_cpus=%#x cpu=%d ratio=%d total_capcaity=%ld total_util=%ld type=%d",
-		__entry->play_cpus, __entry->cpu, __entry->ratio,
-		__entry->capacity, __entry->util, __entry->type)
-);
-
 TRACE_EVENT(ems_manage_band,
 
 	TP_PROTO(struct task_struct *p, int band_id, char *event),

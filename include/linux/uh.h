@@ -4,22 +4,24 @@
 #ifndef __ASSEMBLY__
 
 /* For uH Command */
-#define	APP_INIT	0
-#define	APP_SAMPLE	1
+#define APP_INIT	0
+#define APP_SAMPLE	1
 #define APP_RKP		2
+#define APP_KDP		2
 
-#define UH_PREFIX  UL(0xc300c000)
-#define UH_APPID(APP_ID)  ((UL(APP_ID) & UL(0xFF)) | UH_PREFIX)
+#define UH_PREFIX			UL(0xc300c000)
+#define UH_APPID(APP_ID)	((UL(APP_ID) & UL(0xFF)) | UH_PREFIX)
 
 enum __UH_APP_ID {
-	UH_APP_INIT 	= UH_APPID(APP_INIT),
-	UH_APP_SAMPLE 	= UH_APPID(APP_SAMPLE),
-	UH_APP_RKP 	= UH_APPID(APP_RKP),
+	UH_APP_INIT     = UH_APPID(APP_INIT),
+	UH_APP_SAMPLE   = UH_APPID(APP_SAMPLE),
+	UH_APP_RKP      = UH_APPID(APP_RKP),
+	UH_APP_KDP      = UH_APPID(APP_KDP),
 };
 
 struct test_case_struct {
-	int (* fn)(void); //test case func
-	char * describe;
+	int (*fn)(void);
+	char *describe;
 };
 
 #define UH_LOG_START	(0x87100000)

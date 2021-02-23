@@ -109,10 +109,10 @@ static struct timeval global_time_end;
  * Returns 0 on success, otherwise < 0 err num
  */
 static int jsqz_compute_buffer_size(struct jsqz_ctx *ctx,
-				    struct jsqz_task *task,
-				    enum dma_data_direction dir,
-				    size_t *bytes_used,
-				    int buf_index)
+					struct jsqz_task *task,
+					enum dma_data_direction dir,
+					size_t *bytes_used,
+					int buf_index)
 {
 	if (!ctx) {
 		pr_err("%s: invalid context!\n", __func__);
@@ -154,7 +154,7 @@ static int jsqz_compute_buffer_size(struct jsqz_ctx *ctx,
 			c_height = y_height;
 		else
 			c_height = (y_height + 1) >> 1;
-		
+
 		if (task->user_task.num_of_buf == 1)
 			*bytes_used = (y_width * y_height) + (c_width * c_height);
 		else if (buf_index)
@@ -194,8 +194,8 @@ static int jsqz_compute_buffer_size(struct jsqz_ctx *ctx,
  * Returns 0 on success, otherwise < 0 err num
  */
 static int jsqz_buffer_map(struct jsqz_ctx *ctx,
-			       struct jsqz_buffer_dma *dma_buffer,
-			       enum dma_data_direction dir)
+				   struct jsqz_buffer_dma *dma_buffer,
+				   enum dma_data_direction dir)
 {
 	int ret = 0;
 
@@ -210,7 +210,7 @@ static int jsqz_buffer_map(struct jsqz_ctx *ctx,
 	//allocated, if it wasn't there before.
 	//It also means the calling driver now owns the buffer
 	ret = jsqz_map_dma_attachment(ctx->jsqz_dev->dev,
-			       &dma_buffer->plane, dir);
+				   &dma_buffer->plane, dir);
 	if (ret)
 		return ret;
 
@@ -220,7 +220,7 @@ static int jsqz_buffer_map(struct jsqz_ctx *ctx,
 	//use iommu to map and get the virtual memory address
 	ret = jsqz_dma_addr_map(ctx->jsqz_dev->dev, dma_buffer, dir);
 	if (ret) {
-		dev_dbg(ctx->jsqz_dev->dev, "%s: mapping FAILED!\n", __func__);
+		dev_info(ctx->jsqz_dev->dev, "%s: mapping FAILED!\n", __func__);
 		jsqz_unmap_dma_attachment(ctx->jsqz_dev->dev,
 				   &dma_buffer->plane, dir);
 		return ret;
@@ -239,8 +239,8 @@ static int jsqz_buffer_map(struct jsqz_ctx *ctx,
  * jsqz_buffer_map was previously called for.
  */
 static void jsqz_buffer_unmap(struct jsqz_ctx *ctx,
-			       struct jsqz_buffer_dma *dma_buffer,
-			       enum dma_data_direction dir)
+				   struct jsqz_buffer_dma *dma_buffer,
+				   enum dma_data_direction dir)
 {
 	dev_dbg(ctx->jsqz_dev->dev, "%s: BEGIN\n", __func__);
 	dev_dbg(ctx->jsqz_dev->dev, "%s: about to unmap the DMA address\n"
@@ -518,7 +518,7 @@ void jsqz_task_schedule(struct jsqz_task *task)
 	else {
 		dev_dbg(jsqz_device->dev, "%s: wait completion\n", __func__);
 		wait_for_completion(&task->complete);
-#ifdef DEBUG		
+#ifdef DEBUG
 		jsqz_print_all_regs(jsqz_device);
 #endif
 		if (jsqz_get_bug_config(jsqz_device->regs) & 0x10000000) {
@@ -526,6 +526,7 @@ void jsqz_task_schedule(struct jsqz_task *task)
 				task->user_task.buf_q[i] = init_q_table[i];
 			}
 			dev_info(jsqz_device->dev, "%s: jsqz device time out!!\n", __func__);
+			jsqz_print_all_regs(jsqz_device);
 		}
 		else {
 			jsqz_get_output_regs(jsqz_device->regs, task->user_task.buf_q);
@@ -542,70 +543,6 @@ err:
 	}
 	dev_dbg(jsqz_device->dev, "%s: END\n", __func__);
 	return;
-
-#if 0
-next_task:
-	spin_lock_irqsave(&jsqz_device->lock_task, flags);
-
-	if (list_empty(&jsqz_device->tasks)) {
-		/* No task to run */
-		dev_dbg(jsqz_device->dev
-			, "%s: no tasks to run! Returning...\n", __func__);
-		goto err;
-	}
-
-	dev_dbg(jsqz_device->dev
-		, "%s: INTERRUPT FIRED AND WAITING TO BE HANDLED? %u\n"
-		, __func__, jsqz_hw_get_int_status(jsqz_device->regs));
-	dev_dbg(jsqz_device->dev, "%s: ENCODING STATUS? %d\n"
-		, __func__, get_hw_enc_status(jsqz_device->regs));
-
-	if (jsqz_device->current_task) {
-		/* H/W is working */
-		dev_dbg(jsqz_device->dev
-			, "%s: hw is already processing a task! Returning...\n"
-			, __func__);
-
-		goto err;
-	}
-
-	if (jsqz_hw_is_enc_running(jsqz_device->regs)) {
-		dev_dbg(jsqz_device->dev
-			, "%s: hw is still processing! Returning...\n"
-			, __func__);
-		goto err;
-	}
-
-	dev_dbg(jsqz_device->dev
-		, "%s: popping first task from queue...\n", __func__);
-
-	task = list_first_entry(&jsqz_device->tasks,
-				struct jsqz_task, task_node);
-	list_del(&task->task_node);
-
-	jsqz_device->current_task = task;
-
-	spin_unlock_irqrestore(&jsqz_device->lock_task, flags);
-
-	task->state = jsqz_BUFSTATE_PROCESSING;
-	dev_dbg(jsqz_device->dev, "%s: about to run the task\n", __func__);
-
-	if (jsqz_device_run(task->ctx, task)) {
-		task->state = jsqz_BUFSTATE_ERROR;
-
-		spin_lock_irqsave(&jsqz_device->lock_task, flags);
-		jsqz_device->current_task = NULL;
-		spin_unlock_irqrestore(&jsqz_device->lock_task, flags);
-
-		complete(&task->complete);
-
-		goto next_task;
-	}
-
-	dev_dbg(jsqz_device->dev, "%s: END\n", __func__);
-	return;
-#endif
-
 }
 
 static void jsqz_task_schedule_work(struct work_struct *work)
@@ -615,7 +552,7 @@ static void jsqz_task_schedule_work(struct work_struct *work)
 
 
 static int jsqz_task_signal_completion(struct jsqz_dev *jsqz_device,
-				       struct jsqz_task *task, bool success)
+					   struct jsqz_task *task, bool success)
 {
 	unsigned long flags;
 
@@ -660,8 +597,8 @@ static int jsqz_task_signal_completion(struct jsqz_dev *jsqz_device,
 
 /*
 static void jsqz_task_cancel(struct jsqz_dev *jsqz_device,
-			     struct jsqz_task *task,
-			     enum jsqz_state reason)
+				 struct jsqz_task *task,
+				 enum jsqz_state reason)
 {
 	unsigned long flags;
 
@@ -753,8 +690,8 @@ finish:
  * don't need to do anything here. We will use IOVMM later to get access to it.
  */
 static int jsqz_buffer_get_and_attach(struct jsqz_dev *jsqz_device,
-				      struct hwSQZ_buffer *buffer,
-				      struct jsqz_buffer_dma *dma_buffer)
+					  struct hwSQZ_buffer *buffer,
+					  struct jsqz_buffer_dma *dma_buffer)
 {
 	struct jsqz_buffer_plane_dma *plane;
 	int ret = 0; //PTR_ERR returns a long
@@ -775,9 +712,9 @@ static int jsqz_buffer_get_and_attach(struct jsqz_dev *jsqz_device,
 		// Check if there's already a dmabuf associated to the
 		// chunk of user memory our client is pointing us to
 		plane->dmabuf = jsqz_get_dmabuf_from_userptr(jsqz_device,
-							     buffer->userptr,
-							     buffer->len,
-							     &offset);
+								 buffer->userptr,
+								 buffer->len,
+								 &offset);
 		dev_dbg(jsqz_device->dev, "%s: dmabuf of userptr %p is %p\n"
 			, __func__, (void *) buffer->userptr, plane->dmabuf);
 	}
@@ -856,7 +793,7 @@ static void jsqz_buffer_put_and_detach(struct jsqz_buffer_dma *dma_buffer)
 	//     preexisting dmabuf (see jsqz_buffer_get_*)
 	if (user_buffer->type == HWSQZ_BUFFER_DMABUF
 			|| (user_buffer->type == HWSQZ_BUFFER_USERPTR
-			    && plane->dmabuf)) {
+				&& plane->dmabuf)) {
 		dma_buf_detach(plane->dmabuf, plane->attachment);
 		dma_buf_put(plane->dmabuf);
 		plane->dmabuf = NULL;
@@ -873,9 +810,9 @@ static void jsqz_buffer_put_and_detach(struct jsqz_buffer_dma *dma_buffer)
  * It unmaps the buffer, detaches the device from it, and releases it.
  */
 static void jsqz_buffer_teardown(struct jsqz_dev *jsqz_device,
-				       struct jsqz_ctx *ctx,
-				       struct jsqz_buffer_dma *dma_buffer,
-				       enum dma_data_direction dir)
+					   struct jsqz_ctx *ctx,
+					   struct jsqz_buffer_dma *dma_buffer,
+					   enum dma_data_direction dir)
 {
 	dev_dbg(jsqz_device->dev, "%s: BEGIN\n", __func__);
 
@@ -899,9 +836,9 @@ static void jsqz_buffer_teardown(struct jsqz_dev *jsqz_device,
  *       needs a DMA address to operate on.
  */
 static int jsqz_buffer_setup(struct jsqz_ctx *ctx,
-			     struct hwSQZ_buffer *buffer,
-			     struct jsqz_buffer_dma *dma_buffer,
-			     enum dma_data_direction dir)
+				 struct hwSQZ_buffer *buffer,
+				 struct jsqz_buffer_dma *dma_buffer,
+				 enum dma_data_direction dir)
 {
 	struct jsqz_dev *jsqz_device = ctx->jsqz_dev;
 	int ret = 0;
@@ -946,7 +883,7 @@ static int jsqz_buffer_setup(struct jsqz_ctx *ctx,
 		, __func__, dma_buffer, dir == DMA_TO_DEVICE);
 
 	/* the callback function should fill 'dma_addr' field */
-	ret = jsqz_buffer_map(ctx, dma_buffer, dir == DMA_TO_DEVICE);
+	ret = jsqz_buffer_map(ctx, dma_buffer, dir);
 	if (ret) {
 		dev_err(jsqz_device->dev, "%s: Failed to prepare plane"
 			, __func__);
@@ -1047,7 +984,7 @@ static int jsqz_prepare_formats(struct jsqz_dev *jsqz_device,
 
 	for (i = 0; i < task->user_task.num_of_buf; i++)
 	{
-	    ret = jsqz_compute_buffer_size(ctx, task, DMA_TO_DEVICE, &out_size, i);
+		ret = jsqz_compute_buffer_size(ctx, task, DMA_TO_DEVICE, &out_size, i);
 		if (ret < 0)
 			return ret;
 
@@ -1072,15 +1009,15 @@ static int jsqz_prepare_formats(struct jsqz_dev *jsqz_device,
  * Checks the validity of requested formats/sizes and sets the buffers up.
  */
 static int jsqz_task_setup(struct jsqz_dev *jsqz_device,
-			     struct jsqz_ctx *ctx,
-			     struct jsqz_task *task)
+				 struct jsqz_ctx *ctx,
+				 struct jsqz_task *task)
 {
 	int ret, i;
 
 	dev_dbg(jsqz_device->dev, "%s: BEGIN\n", __func__);
 
 	HWJSQZ_PROFILE(ret = jsqz_prepare_formats(jsqz_device, ctx, task),
-		       "PREPARE FORMATS TIME", jsqz_device->dev);
+			   "PREPARE FORMATS TIME", jsqz_device->dev);
 	if (ret)
 		return ret;
 
@@ -1091,14 +1028,14 @@ static int jsqz_task_setup(struct jsqz_dev *jsqz_device,
 			, task->dma_buf_out[i].plane.bytes_used);
 
 		HWJSQZ_PROFILE(ret = jsqz_buffer_setup(ctx, &task->user_task.buf_out[i],
-					      &task->dma_buf_out[i], DMA_TO_DEVICE),
-			       "OUT BUFFER SETUP TIME", jsqz_device->dev);
+						  &task->dma_buf_out[i], DMA_FROM_DEVICE),// DMA_TO_DEVICE),
+				   "OUT BUFFER SETUP TIME", jsqz_device->dev);
 		if (ret) {
 			dev_err(jsqz_device->dev, "%s: Failed to get output buffer\n",
 				__func__);
 			if (i > 0) {
 				jsqz_buffer_teardown(jsqz_device, ctx,
-						     &task->dma_buf_out[i-1], DMA_TO_DEVICE);
+							 &task->dma_buf_out[i-1], DMA_FROM_DEVICE);//DMA_TO_DEVICE);
 				dev_err(jsqz_device->dev, "%s: Failed to get capture buffer\n",
 					__func__);
 			}
@@ -1118,8 +1055,8 @@ static int jsqz_task_setup(struct jsqz_dev *jsqz_device,
  * that were used to process the task.
  */
 static void jsqz_task_teardown(struct jsqz_dev *jsqz_dev,
-			     struct jsqz_ctx *ctx,
-			     struct jsqz_task *task)
+				 struct jsqz_ctx *ctx,
+				 struct jsqz_task *task)
 {
 	int i;
 	dev_dbg(jsqz_dev->dev, "%s: BEGIN\n", __func__);
@@ -1127,7 +1064,7 @@ static void jsqz_task_teardown(struct jsqz_dev *jsqz_dev,
 	for (i = 0; i < task->user_task.num_of_buf; i++)
 	{
 		jsqz_buffer_teardown(jsqz_dev, ctx, &task->dma_buf_out[i],
-			     DMA_TO_DEVICE);
+				 DMA_TO_DEVICE);
 	}
 
 	dev_dbg(jsqz_dev->dev, "%s: END\n", __func__);
@@ -1139,7 +1076,7 @@ static void jsqz_destroy_context(struct kref *kreference)
 	//^^ this function is called with ctx->kref as parameter,
 	//so we can use ptr arithmetics to go back to ctx
 	struct jsqz_ctx *ctx = container_of(kreference,
-					    struct jsqz_ctx, kref);
+						struct jsqz_ctx, kref);
 	struct jsqz_dev *jsqz_device = ctx->jsqz_dev;
 
 	dev_dbg(jsqz_device->dev, "%s: BEGIN\n", __func__);
@@ -1217,12 +1154,12 @@ static int jsqz_process(struct jsqz_ctx *ctx,
 
 	jsqz_device = ctx->jsqz_dev;
 	dev_dbg(jsqz_device->dev, "%s: BEGIN\n", __func__);
-	
+
 	if (jsqz_check_image_align(jsqz_device, &task->user_task.info_out)) {
-    	for (i = 0; i < 32; i++) {
-    		task->user_task.buf_q[i] = init_q_table[i];
-    	}
-    	return 0;
+		for (i = 0; i < 32; i++) {
+			task->user_task.buf_q[i] = init_q_table[i];
+		}
+		return 0;
 	}
 
 	init_completion(&task->complete);
@@ -1240,87 +1177,10 @@ static int jsqz_process(struct jsqz_ctx *ctx,
 
 	if (ret)
 		goto err_prepare_task;
-		
+
 	task->ctx = ctx;
 	task->state = JSQZ_BUFSTATE_READY;
 
-#if 0
-	spin_lock_irqsave(&jsqz_device->slock, flags);
-	if (test_bit(DEV_RUN, &jsqz_device->state)) {
-		/* this will happen when multiple processes encode at the same
-		 * time. They all get different contexts because they use
-		 * different FDs, so they can get inside this section which is
-		 * locked by a context-specific mutex, but when they get here
-		 * they discover another process is already using the device.
-		 */
-		dev_dbg(jsqz_device->dev
-			 , "%s: device state is marked as running before a task is run (ctx %p task %p)\n"
-			 , __func__, ctx, task);
-	}
-
-	set_bit(DEV_RUN, &jsqz_device->state);
-	spin_unlock_irqrestore(&jsqz_device->slock, flags);
-
-	ret = enable_jsqz(jsqz_device);
-	if (ret) {
-		spin_lock_irqsave(&jsqz_device->slock, flags);
-		set_bit(DEV_SUSPEND, &jsqz_device->state);
-		spin_unlock_irqrestore(&jsqz_device->slock, flags);
-
-		goto err_power;
-	}
-
-	spin_lock_irqsave(&jsqz_device->lock_task, flags);
-	dev_dbg(jsqz_device->dev, "%s: adding task %p to list (ctx %p)\n"
-		, __func__, task, ctx);
-	list_add_tail(&task->task_node, &jsqz_device->tasks);
-	spin_unlock_irqrestore(&jsqz_device->lock_task, flags);
-
-	HWJSQZ_PROFILE(jsqz_task_schedule(jsqz_device),
-		       "SCHEDULE TIME", jsqz_device->dev);
-
-	if (jsqz_device->timeout_jiffies != -1) {
-		unsigned long elapsed;
-
-		dev_dbg(jsqz_device->dev
-			, "%s: waiting for task to complete before timeout\n"
-			, __func__);
-
-		//perform an uninterruptible wait (i.e. ignore signals)
-		//NOTE: this call can sleep, so it cannot be used in IRQ context
-		elapsed = wait_for_completion_timeout(&task->complete,
-						      jsqz_device->timeout_jiffies);
-		if (!elapsed) { /* timed out */
-			jsqz_task_cancel(jsqz_device, task,
-					 jsqz_BUFSTATE_TIMEDOUT);
-
-			jsqz_task_timeout(ctx, task);
-
-			dev_notice(jsqz_device->dev, "%s: %u msecs timed out\n",
-				   __func__,
-				   jiffies_to_msecs(jsqz_device->timeout_jiffies));
-			ret = -ETIMEDOUT;
-		}
-	} else {
-		dev_dbg(jsqz_device->dev
-			, "%s: waiting for task to complete, no timeout\n"
-			, __func__);
-
-		//perform an uninterruptible wait (i.e. ignore signals)
-		//NOTE: this call can sleep, so it cannot be used in IRQ context
-		wait_for_completion(&task->complete);
-	}
-
-	if (task->state == jsqz_BUFSTATE_READY) {
-		dev_err(jsqz_device->dev
-			, "%s: invalid task state after task completion\n"
-			, __func__);
-	}
-
-	pm_runtime_mark_last_busy(jsqz_device->dev);
-
-	HWJSQZ_PROFILE(disable_jsqz(jsqz_device), "DISABLE jsqz", jsqz_device->dev);
-#else
 	//INIT_WORK(&task->work, jsqz_task_schedule_work);
 	INIT_WORK_ONSTACK(&task->work, jsqz_task_schedule_work);
 
@@ -1344,11 +1204,10 @@ static int jsqz_process(struct jsqz_ctx *ctx,
 			, "%s: invalid task state after task completion\n"
 			, __func__);
 	}
-#endif
 
 	HWJSQZ_PROFILE(jsqz_task_teardown(jsqz_device, ctx, task),
-		       "TASK TEARDOWN TIME",
-		       jsqz_device->dev);
+			   "TASK TEARDOWN TIME",
+			   jsqz_device->dev);
 
 err_prepare_task:
 	HWJSQZ_PROFILE(
@@ -1393,7 +1252,7 @@ static int jsqz_open(struct inode *inode, struct file *filp)
 	//filp->private_data holds jsqz_dev->misc (misc_open sets it)
 	//this uses pointers arithmetics to go back to jsqz_dev
 	struct jsqz_dev *jsqz_device = container_of(filp->private_data,
-						    struct jsqz_dev, misc);
+							struct jsqz_dev, misc);
 	struct jsqz_ctx *ctx;
 
 	dev_dbg(jsqz_device->dev, "%s: BEGIN\n", __func__);
@@ -1461,7 +1320,7 @@ static int jsqz_release(struct inode *inode, struct file *filp)
   *  <0 error codes otherwise
  */
 static long jsqz_ioctl(struct file *filp,
-		       unsigned int cmd, unsigned long arg)
+			   unsigned int cmd, unsigned long arg)
 {
 	struct jsqz_ctx *ctx = filp->private_data;
 	struct jsqz_dev *jsqz_device = ctx->jsqz_dev;
@@ -1486,7 +1345,7 @@ static long jsqz_ioctl(struct file *filp,
 				"%s: Failed to read userdata\n", __func__);
 			return -EFAULT;
 		}
-		
+
 		if ((data.user_task.num_of_buf > MAX_BUF_NUM - 1) || (data.user_task.num_of_buf < 1)) {
 			dev_err(jsqz_device->dev,
 				"%s: number of buffer is wrong, num_of_buf is %d\n",
@@ -1503,8 +1362,8 @@ static long jsqz_ioctl(struct file *filp,
 		 * until the given task finishes
 		 */
 		HWJSQZ_PROFILE(ret = jsqz_process(ctx, &data),
-			       "WHOLE PROCESS TIME",
-			       jsqz_device->dev);
+				   "WHOLE PROCESS TIME",
+				   jsqz_device->dev);
 
 		dev_dbg(jsqz_device->dev
 			, "%s: processing done! Copying data back to user space...\n", __func__);
@@ -1593,32 +1452,32 @@ static long jsqz_compat_ioctl32(struct file *filp,
 				"%s: Failed to read userdata\n", __func__);
 			return -EFAULT;
 		}
-		
+
 		task.user_task.info_out.width = data.info_out.width;
 		task.user_task.info_out.height = data.info_out.height;
 		task.user_task.info_out.stride = data.info_out.stride;
-		
+
 		task.user_task.config.mode = data.config.mode;
 		task.user_task.config.function = data.config.function;
-		
+
 		task.user_task.num_of_buf = data.num_of_buf;
-    	if (task.user_task.num_of_buf > 0 && task.user_task.num_of_buf < MAX_BUF_NUM) {
-    		for (i = 0; i < task.user_task.num_of_buf; i++)
-    		{
-    			task.user_task.buf_out[i].len = data.buf_out[i].len;
-    			if (data.buf_out[i].type == HWSQZ_BUFFER_DMABUF)
-    				task.user_task.buf_out[i].fd = data.buf_out[i].fd;
-    			else
-    				task.user_task.buf_out[i].userptr = data.buf_out[i].userptr;
-    			task.user_task.buf_out[i].type = data.buf_out[i].type;
-    		}
-    	}
-    	else {
-    		dev_err(jsqz_device->dev,
+		if (task.user_task.num_of_buf > 0 && task.user_task.num_of_buf < MAX_BUF_NUM) {
+			for (i = 0; i < task.user_task.num_of_buf; i++)
+			{
+				task.user_task.buf_out[i].len = data.buf_out[i].len;
+				if (data.buf_out[i].type == HWSQZ_BUFFER_DMABUF)
+					task.user_task.buf_out[i].fd = data.buf_out[i].fd;
+				else
+					task.user_task.buf_out[i].userptr = data.buf_out[i].userptr;
+				task.user_task.buf_out[i].type = data.buf_out[i].type;
+			}
+		}
+		else {
+			dev_err(jsqz_device->dev,
 				"%s: number of buffer is wrong, num_of_buf is %d\n",
 				__func__, task.user_task.num_of_buf);
 			return -EINVAL;
-    	}
+		}
 
 		/*
 		 * jsqz_process() does not wake up
@@ -1626,16 +1485,16 @@ static long jsqz_compat_ioctl32(struct file *filp,
 		 */
 		//ret = jsqz_process(ctx, &task);
 		HWJSQZ_PROFILE(ret = jsqz_process(ctx, &task),
-			       "WHOLE PROCESS TIME compat",
-			       jsqz_device->dev);
+				   "WHOLE PROCESS TIME compat",
+				   jsqz_device->dev);
 		if (ret) {
 			dev_err(jsqz_device->dev,
 				"%s: Failed to process hwjsqz_task task\n",
 				__func__);
 			return ret;
 		}
-		
-		
+
+
 		dev_dbg(jsqz_device->dev
 			, "%s: processing done! Copying data back to user space...\n", __func__);
 
@@ -1746,20 +1605,26 @@ static int jsqz_clock_gating(struct jsqz_dev *jsqz, bool on)
 
 
 static int jsqz_sysmmu_fault_handler(struct iommu_domain *domain,
-				     struct device *dev,
-				     unsigned long fault_addr,
-				     int fault_flags, void *p)
+					 struct device *dev,
+					 unsigned long fault_addr,
+					 int fault_flags, void *p)
 {
-	dev_dbg(dev, "%s: sysmmu fault!\n", __func__);
+	struct platform_device *pdev = to_platform_device(dev);
+	struct jsqz_dev *jsqz = platform_get_drvdata(pdev);
 
-	/* Dump BUS errors */
+	dev_info(jsqz->dev, "%s: sysmmu fault!\n", __func__);
+
+	if (test_bit(DEV_RUN, &jsqz->state)) {
+		dev_info(jsqz->dev, "System MMU fault at %#lx\n", fault_addr);
+		jsqz_print_all_regs(jsqz);
+	}
+
 	return 0;
 }
 
-
 static irqreturn_t jsqz_irq_handler(int irq, void *priv)
 {
-	unsigned long flags;
+	unsigned long flags = 0;
 	unsigned int int_status;
 	struct jsqz_dev *jsqz = priv;
 	struct jsqz_task *task;
@@ -1863,8 +1728,8 @@ static int jsqz_probe(struct platform_device *pdev)
 
 	// passing 0 as flags means the flags will be read from DT
 	ret = devm_request_irq(&pdev->dev, irq,
-			       (void *)jsqz_irq_handler, 0,
-			       pdev->name, jsqz);
+				   (void *)jsqz_irq_handler, 0,
+				   pdev->name, jsqz);
 
 	if (ret) {
 		dev_err(&pdev->dev, "failed to install irq\n");
@@ -2048,7 +1913,7 @@ static int jsqz_runtime_suspend(struct device *dev)
 	dev_dbg(dev, "%s: gating clock, suspending\n", __func__);
 
 	HWJSQZ_PROFILE(jsqz_clock_gating(jsqz, false), "SWITCHING OFF CLOCK",
-		       jsqz->dev);
+			   jsqz->dev);
 
 	HWJSQZ_PROFILE(
 	if (jsqz->qos_req_level > 0)
@@ -2070,7 +1935,7 @@ static int jsqz_runtime_resume(struct device *dev)
 	dev_dbg(dev, "%s: ungating clock, resuming\n", __func__);
 
 	HWJSQZ_PROFILE(jsqz_clock_gating(jsqz, true), "SWITCHING ON CLOCK",
-		       jsqz->dev);
+			   jsqz->dev);
 
 //	HWJSQZ_PROFILE(
 //	if (jsqz->qos_req_level > 0)

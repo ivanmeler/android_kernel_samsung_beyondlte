@@ -136,12 +136,6 @@ struct ufs_dev_fix {
  */
 #define UFS_DEVICE_QUIRK_HOST_PA_SAVECONFIGTIME	(1 << 8)
 
-/*
- * Some UFS devices support the FATAL MODE
- * to gether the debug info.
- */
-#define UFS_DEVICE_QUIRK_SUPPORT_QUERY_FATAL_MODE	(1 << 9)
-
 struct ufs_hba;
 void ufs_set_sec_unique_number(struct ufs_hba *hba, u8 *str_desc_buf, u8 *desc_buf);
 

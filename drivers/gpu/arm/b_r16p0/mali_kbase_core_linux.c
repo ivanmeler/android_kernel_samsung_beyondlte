@@ -4033,10 +4033,8 @@ static int kbase_platform_device_probe(struct platform_device *pdev)
 		return err;
 	}
 	kbdev->inited_subsys |= inited_hwcnt_gpu_virt;
-//SRUK-START
-	//err = kbase_vinstr_init(kbdev->hwcnt_gpu_virt, &kbdev->vinstr_ctx);
-	err = kbase_vinstr_init(kbdev, kbdev->hwcnt_gpu_virt, &kbdev->vinstr_ctx);
-//SRUK-END
+
+	err = kbase_vinstr_init(kbdev->hwcnt_gpu_virt, &kbdev->vinstr_ctx);
 	if (err) {
 		dev_err(kbdev->dev,
 			"Virtual instrumentation initialization failed\n");

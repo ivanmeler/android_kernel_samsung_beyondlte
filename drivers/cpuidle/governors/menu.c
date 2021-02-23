@@ -134,10 +134,6 @@ struct menu_device {
 	int		interval_ptr;
 };
 
-
-#define LOAD_INT(x) ((x) >> FSHIFT)
-#define LOAD_FRAC(x) LOAD_INT(((x) & (FIXED_1-1)) * 100)
-
 static inline int get_loadavg(unsigned long load)
 {
 	return LOAD_INT(load) * 10 + LOAD_FRAC(load) / 10;
@@ -309,10 +305,6 @@ static int menu_select(struct cpuidle_driver *drv, struct cpuidle_device *dev,
 		menu_update(drv, dev);
 		data->needs_update = 0;
 	}
-
-	/* enable c2 state on big cpus for temporary */
-	if (dev->cpu >= 6)
-		latency_req = PM_QOS_CPU_DMA_LAT_DEFAULT_VALUE;
 
 	/* resume_latency is 0 means no restriction */
 	if (resume_latency && resume_latency < latency_req)

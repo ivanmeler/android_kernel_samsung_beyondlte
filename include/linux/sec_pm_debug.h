@@ -1,5 +1,5 @@
 /*
- * sec_pm_debug.h - SEC Power Management Debug
+ * sec_pm_debug.h - SEC Power Management Debug Support
  *
  *  Copyright (c) 2018 Samsung Electronics Co., Ltd.
  *      http://www.samsung.com
@@ -12,7 +12,7 @@
 #ifndef __LINUX_SEC_PM_DEBUG_H
 #define __LINUX_SEC_PM_DEBUG_H __FILE__
 
-extern unsigned long long sleep_time_sec;
-extern unsigned int sleep_count;
+extern u8 pmic_onsrc;
+extern u8 pmic_offsrc;
 
 #endif /* __LINUX_SEC_PM_DEBUG_H */

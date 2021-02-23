@@ -1,7 +1,5 @@
 #!/bin/bash
 if [[ ${CC} = *"clang" ]]; then
-CC_DIR=$(dirname "${CC}")
-export PATH=$PATH:${CC_DIR}
 rm -rf lib/libdss.c
 python lib/make_libdss.py &> lib/libdss.c
 ${CC} \

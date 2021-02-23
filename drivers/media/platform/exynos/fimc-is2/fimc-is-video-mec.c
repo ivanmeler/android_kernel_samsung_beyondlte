@@ -609,6 +609,8 @@ static int fimc_is_mexc_queue_setup(struct vb2_queue *vbq,
 	video = GET_VIDEO(vctx);
 	queue = GET_QUEUE(vctx);
 
+	set_bit(IS_QUEUE_NEED_TO_KMAP, &queue->state);
+
 	ret = fimc_is_queue_setup(queue,
 		video->alloc_ctx,
 		num_planes,

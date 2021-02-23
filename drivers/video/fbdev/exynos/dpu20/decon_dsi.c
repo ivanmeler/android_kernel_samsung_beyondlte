@@ -37,6 +37,10 @@
 struct task_struct *devfreq_change_task;
 #endif
 
+#ifdef CONFIG_DYNAMIC_FREQ
+#include "../panel/panel_drv.h"
+#endif
+
 /* DECON irq handler for DSI interface */
 static irqreturn_t decon_irq_handler(int irq, void *dev_data)
 {
@@ -582,7 +586,6 @@ void decon_destroy_vsync_thread(struct decon_device *decon)
 		kthread_stop(decon->vsync.thread);
 }
 
-
 #if defined(CONFIG_EXYNOS_COMMON_PANEL)
 static int decon_fsync_thread(void *data)
 {
@@ -743,7 +746,7 @@ static char *format_to_string(enum decon_pixel_format format)
 	case DECON_PIXEL_FORMAT_ARGB_8888:
 		return "ARGB_8888";
 	case DECON_PIXEL_FORMAT_ABGR_8888:
-		return 
+		return
 "ABGR_8888";
 	case DECON_PIXEL_FORMAT_RGBA_8888:
 		return "RGBA_8888";
@@ -882,7 +885,7 @@ static ssize_t decon_show_last_update(struct device *dev,
 		win_config = &decon->last_regs.dpp_config[i];
 
 		len += sprintf(buf + len, "* Win: %d: State:", i);
-		
+
 		switch (win_config->state) {
 		case DECON_WIN_STATE_DISABLED:
 			len += sprintf(buf + len, "DISABLED\n");
@@ -892,7 +895,7 @@ static ssize_t decon_show_last_update(struct device *dev,
 			break;
 		case DECON_WIN_STATE_BUFFER:
 			len += sprintf(buf + len, "BUFFER, ");
-			len += sprintf(buf + len, "DPP:%12s, format:%14s ", 
+			len += sprintf(buf + len, "DPP:%12s, format:%14s ",
 				idma_to_string(win_config->idma_type),
 				format_to_string(win_config->format));
 
@@ -960,9 +963,6 @@ void decon_destroy_last_info(struct decon_device *decon)
 
 
 #endif
-	
-
-
 
 /* Framebuffer interface related callback functions */
 static u32 fb_visual(u32 bits_per_pixel, unsigned short palette_sz)
@@ -1253,7 +1253,6 @@ int decon_pan_display(struct fb_var_screeninfo *var, struct fb_info *info)
 	 * and new parameters are set to DMA and DPP configuration.
 	 */
 	memcpy(&info->var, var, sizeof(struct fb_var_screeninfo));
-
 	decon_set_par(info);
 
 	set_bit(dpp_id, &decon->cur_using_dpp);
@@ -1468,7 +1467,6 @@ int decon_hiber_block_exit(struct decon_device *decon)
 
 	return ret;
 }
-
 #if defined(CONFIG_EXYNOS_HIBERNATION_THREAD)
 static int decon_hiber_thread(void *data)
 {
@@ -1541,6 +1539,7 @@ void decon_destroy_hiber_thread(struct decon_device *decon)
 		kthread_stop(decon->hiber.thread);
 }
 #else
+
 static void decon_hiber_handler(struct kthread_work *work)
 {
 	struct decon_hiber *hiber =
@@ -1562,7 +1561,6 @@ static void decon_hiber_handler(struct kthread_work *work)
 int decon_register_hiber_work(struct decon_device *decon)
 {
 	struct sched_param param;
-
 	mutex_init(&decon->hiber.lock);
 
 	decon->hiber.enabled = false;
@@ -1571,7 +1569,6 @@ int decon_register_hiber_work(struct decon_device *decon)
 		decon_info("hiber thread is only needed for DSI path\n");
 		return 0;
 	}
-
 	if (!IS_ENABLED(CONFIG_EXYNOS_HIBERNATION)) {
 		decon_info("display doesn't support hibernation mode\n");
 		return 0;
@@ -1767,6 +1764,15 @@ void dpu_update_freq_hop(struct decon_device *decon)
 }
 
 #ifdef CONFIG_DYNAMIC_FREQ
+int decon_panel_ioc_ffc_off(struct decon_device *decon)
+{
+	int ret = 0;
+
+	ret = v4l2_subdev_call(decon->panel_sd, core, ioctl,
+		PANEL_IOC_DYN_FREQ_FFC_OFF, NULL);
+
+	return ret;
+}
 
 int decon_panel_ioc_update_ffc(struct decon_device *decon)
 {
@@ -1837,7 +1843,7 @@ static int dpu_set_pre_df_dsim(struct decon_device *decon)
 	param.pms.k = df_set->dphy_pms.k;
 
 	if (status->context)
-		dsim_info("[DYN_FREQ]:INFO:%s:target hs : %d, m : %d, k:%d\n", 
+		dsim_info("[DYN_FREQ]:INFO:%s:target hs : %d, m : %d, k:%d\n",
 			__func__, df_set->hs, param.pms.m, param.pms.k);
 
 	ret = v4l2_subdev_call(decon->out_sd[0], core, ioctl,
@@ -1856,7 +1862,7 @@ static int dpu_set_post_df_dsim(struct decon_device *decon)
 		sizeof(struct stdphy_pms));
 
 	if (decon->df_status->context)
-		dsim_info("[DYN_FREQ]:INFO:%s:m : %d, k:%d\n", 
+		dsim_info("[DYN_FREQ]:INFO:%s:m : %d, k:%d\n",
 			__func__, param.pms.m, param.pms.k);
 
 	ret = v4l2_subdev_call(decon->out_sd[0], core, ioctl,
@@ -1883,6 +1889,7 @@ void dpu_set_freq_hop(struct decon_device *decon, struct decon_reg_data *regs, b
 			decon_reg_set_pll_wakeup(decon->id, true);
 			decon_reg_set_pll_sleep(decon->id, false);
 #endif
+//			decon_panel_ioc_ffc_off(decon);
 			dpu_set_pre_df_dsim(decon);
 		}
 	} else {
@@ -1900,6 +1907,7 @@ void dpu_set_freq_hop(struct decon_device *decon, struct decon_reg_data *regs, b
 
 #else
 void dpu_set_freq_hop(struct decon_device *decon, struct decon_reg_data *regs, bool en)
+
 {
 #if !defined(CONFIG_SOC_EXYNOS9820_EVT0)
 	struct stdphy_pms *pms;

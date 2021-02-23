@@ -26,23 +26,7 @@
 #include <linux/mfd/samsung/s2mps19-regulator.h>
 #include <linux/soc/samsung/exynos-soc.h>
 
-#ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
-#include <linux/sec_debug.h>
-
-static unsigned long smpl_warn_number = 0;
-#endif
-
 /*#define CONFIG_WEEKDAY_ALARM_ENABLE*/
-
-#ifdef CONFIG_SEC_PM_BIGDATA
-#include <linux/sec_hqm_device.h>
-#endif
-
-#ifdef CONFIG_SEC_PM
-#include <linux/sec_class.h>
-
-static struct device *pmic_rtc_dev;
-#endif /* CONFIG_SEC_PM */
 
 struct s2m_rtc_info {
 	struct device		*dev;
@@ -65,16 +49,9 @@ struct s2m_rtc_info {
 	u8			wudr_mask;
 	u8			audr_mask;
 	int			smpl_warn_info;
-#ifdef CONFIG_SEC_PM_BIGDATA
-	struct delayed_work hqm_spwc_work;
-#endif
 };
 
 static struct wakeup_source *rtc_ws;
-
-#ifdef CONFIG_SEC_PM
-static bool is_rtc_cleared;
-#endif
 
 enum S2M_RTC_OP {
 	S2M_RTC_READ,
@@ -95,6 +72,22 @@ static void s2m_data_to_tm(u8 *data, struct rtc_time *tm)
 	tm->tm_yday = 0;
 	tm->tm_isdst = 0;
 }
+
+#ifdef CONFIG_RTC_HIGH_RES
+static void s2m_data_to_hrtm(u8 *data, struct rtc_hrtime *tm)
+{
+	tm->tm_msec = (data[RTC_HR_MSEC] & 0x7f) * 10;
+	tm->tm_sec = data[RTC_HR_SEC] & 0x7f;
+	tm->tm_min = data[RTC_HR_MIN] & 0x7f;
+	tm->tm_hour = data[RTC_HR_HOUR] & 0x1f;
+	tm->tm_wday = __fls(data[RTC_HR_WEEKDAY] & 0x7f);
+	tm->tm_mday = data[RTC_HR_DATE] & 0x1f;
+	tm->tm_mon = (data[RTC_HR_MONTH] & 0x0f) - 1;
+	tm->tm_year = (data[RTC_HR_YEAR] & 0x7f) + 100;
+	tm->tm_yday = 0;
+	tm->tm_isdst = 0;
+}
+#endif /* CONFIG_RTC_HIGH_RES */
 
 static int s2m_tm_to_data(struct rtc_time *tm, u8 *data)
 {
@@ -189,6 +182,43 @@ out:
 	mutex_unlock(&info->lock);
 	return ret;
 }
+
+#ifdef CONFIG_RTC_HIGH_RES
+static int s2m_rtc_read_hrtime(struct device *dev, struct rtc_hrtime *tm)
+{
+	struct s2m_rtc_info *info = dev_get_drvdata(dev);
+	u8 data[NR_RTC_HR_CNT_REGS];
+	int ret;
+
+	mutex_lock(&info->lock);
+	ret = s2m_rtc_update(info, S2M_RTC_READ);
+	if (ret < 0)
+		goto out;
+
+	ret = s2mps19_bulk_read(info->i2c, S2MP_RTC_REG_MSEC,
+			NR_RTC_HR_CNT_REGS, data);
+	if (ret < 0) {
+		dev_err(info->dev, "%s: fail to read hrtime reg(%d)\n",
+				__func__, ret);
+		goto out;
+	}
+
+	pr_info("%s: RTC_MSEC: 0x%02X\n", __func__, data[RTC_HR_MSEC]);
+
+	dev_info(info->dev, "%s: %d-%02d-%02d %02d:%02d:%02d.%03d(0x%02x)%s\n",
+			__func__, data[RTC_HR_YEAR] + 2000, data[RTC_HR_MONTH],
+			data[RTC_HR_DATE], data[RTC_HR_HOUR] & 0x1f,
+			data[RTC_HR_MIN], data[RTC_HR_SEC],
+			(data[RTC_HR_MSEC] & 0x7f) * 10, data[RTC_HR_WEEKDAY],
+			data[RTC_HR_HOUR] & HOUR_PM_MASK ? "PM" : "AM");
+
+	s2m_data_to_hrtm(data, tm);
+	ret = rtc_valid_hrtm(tm);
+out:
+	mutex_unlock(&info->lock);
+	return ret;
+}
+#endif /* CONFIG_RTC_HIGH_RES */
 
 static int s2m_rtc_set_time(struct device *dev, struct rtc_time *tm)
 {
@@ -446,6 +476,7 @@ static irqreturn_t s2m_rtc_alarm_irq(int irq, void *data)
 
 static const struct rtc_class_ops s2m_rtc_ops = {
 	.read_time = s2m_rtc_read_time,
+	.read_hrtime = s2m_rtc_read_hrtime,
 	.set_time = s2m_rtc_set_time,
 	.read_alarm = s2m_rtc_read_alarm,
 	.set_alarm = s2m_rtc_set_alarm,
@@ -525,17 +556,6 @@ static bool s2m_is_jigonb_low(struct s2m_rtc_info *info)
 	return !(val & mask);
 }
 
-#ifdef CONFIG_SEC_PM_BIGDATA
-void send_hqm_spwc_work(struct work_struct *work)
-{
-	hqm_device_info hqm_info;
-	char feature[HQM_FEATURE_LEN] ="SPWC";
-	 
-	memcpy(hqm_info.feature, feature, HQM_FEATURE_LEN);
-	send_uevent_via_hqm_device(hqm_info);
-}
-#endif /* CONFIG_SEC_PM_BIGDATA */
-
 #ifdef CONFIG_SOC_EXYNOS9820_EVT0
 extern unsigned int get_smpl_irq_num(void);
 
@@ -571,9 +591,6 @@ static irqreturn_t s2m_smpl_warn_irq_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-#ifdef CONFIG_SEC_PM
-atomic_t smpl_warn_cnt = ATOMIC_INIT(0);
-#endif
 static void exynos_smpl_warn_work(struct work_struct *work)
 {
 	struct s2m_rtc_info *info = container_of(work,
@@ -598,17 +615,6 @@ static void exynos_smpl_warn_work(struct work_struct *work)
 #else
 		enable_irq(info->smpl_irq);
 #endif
-#ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
-		smpl_warn_number++;
-		sec_debug_set_extra_info_smpl(smpl_warn_number);
-#endif
-#ifdef CONFIG_SEC_PM
-		atomic_inc(&smpl_warn_cnt);
-#endif
-#ifdef CONFIG_SEC_PM_BIGDATA
-		cancel_delayed_work(&info->hqm_spwc_work);
-		schedule_delayed_work(&info->hqm_spwc_work, 5 * HZ);
-#endif /* CONFIG_SEC_PM_BIGDATA */
 	}
 }
 
@@ -716,10 +722,6 @@ static int s2m_rtc_init_reg(struct s2m_rtc_info *info,
 	if ((ctrl_val & MODEL24_MASK) && ((capsel_val & 0xf0) == 0xf0))
 		return 0;
 
-#ifdef CONFIG_SEC_PM
-	is_rtc_cleared = true;
-#endif
-
 	/* Set RTC control register : Binary mode, 24hour mode */
 	data = MODEL24_MASK;
 	ret = s2mps19_write_reg(info->i2c, S2MP_RTC_REG_CTRL, data);
@@ -752,37 +754,6 @@ static int s2m_rtc_init_reg(struct s2m_rtc_info *info,
 	return ret;
 }
 
-#ifdef CONFIG_SEC_PM
-static ssize_t show_rtc_status(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	return sprintf(buf, "%u\n", is_rtc_cleared);
-}
-
-static DEVICE_ATTR(rtc_status, 0440, show_rtc_status, NULL);
-
-static ssize_t smpl_warn_cnt_show(struct device *dev,
-				struct device_attribute *attr, char *buf)
-{
-	int cnt = atomic_read(&smpl_warn_cnt);
-
-	atomic_set(&smpl_warn_cnt, 0);
-
-	return sprintf(buf, "%d\n", cnt);
-}
-
-static DEVICE_ATTR_RO(smpl_warn_cnt);
-
-static struct attribute *pmic_rtc_attributes[] = {
-	&dev_attr_smpl_warn_cnt.attr,
-	NULL
-};
-
-static const struct attribute_group pmic_rtc_attr_group = {
-	.attrs = pmic_rtc_attributes,
-};
-#endif /* CONFIG_SEC_PM */
 
 static int s2m_rtc_probe(struct platform_device *pdev)
 {
@@ -837,7 +808,7 @@ static int s2m_rtc_probe(struct platform_device *pdev)
 	s2m_rtc_optimize_osc(info, pdata);
 
 	device_init_wakeup(&pdev->dev, true);
-	rtc_ws = wakeup_source_register("rtc-s2mp");
+	rtc_ws = wakeup_source_register(&pdev->dev, "rtc-s2mp");
 
 	ret = devm_request_threaded_irq(&pdev->dev, info->irq, NULL,
 			s2m_rtc_alarm_irq, 0, "rtc-alarm0", info);
@@ -889,9 +860,6 @@ static int s2m_rtc_probe(struct platform_device *pdev)
 		}
 
 		info->smpl_warn_info = pdata->smpl_warn;
-#ifdef CONFIG_SEC_PM_BIGDATA
-		INIT_DELAYED_WORK(&info->hqm_spwc_work, send_hqm_spwc_work);
-#endif
 	}
 
 
@@ -899,20 +867,6 @@ static int s2m_rtc_probe(struct platform_device *pdev)
 	smpl_irq = get_smpl_irq_num();
 #endif
 	enable_irq(info->irq);
-
-#ifdef CONFIG_SEC_PM
-	ret = sysfs_create_file(power_kobj, &dev_attr_rtc_status.attr);
-	if (ret)
-		dev_err(&pdev->dev, "%s: failed to create rtc_status(%d)\n",
-				__func__, ret);
-
-	pmic_rtc_dev = sec_device_create(NULL, "rtc");
-
-	ret = sysfs_create_group(&pmic_rtc_dev->kobj, &pmic_rtc_attr_group);
-	if (ret)
-		dev_err(&pdev->dev, "failed to create pmic_rtc sysfs group\n");
-#endif /* CONFIG_SEC_PM */
-
 	return 0;
 
 err_smpl_warn_irq:
@@ -929,19 +883,11 @@ err_rtc_init_reg:
 static int s2m_rtc_remove(struct platform_device *pdev)
 {
 	struct s2m_rtc_info *info = platform_get_drvdata(pdev);
-#ifdef CONFIG_SEC_PM_BIGDATA
-	struct s2mps19_platform_data *pdata = dev_get_platdata(info->iodev->dev);
-#endif
 
 	if (!info->alarm_enabled)
 		enable_irq(info->irq);
 
 	wakeup_source_unregister(rtc_ws);
-
-#ifdef CONFIG_SEC_PM_BIGDATA
-	if (pdata->smpl_warn_en)
-		cancel_delayed_work(&info->hqm_spwc_work);
-#endif
 
 	return 0;
 }

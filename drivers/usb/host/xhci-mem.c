@@ -35,11 +35,11 @@ static void *dma_pre_alloc_coherent(struct xhci_hcd *xhci, size_t size,
 			 dma_addr_t *dma_handle, gfp_t gfp)
 {
 	struct usb_xhci_pre_alloc *xhci_alloc = xhci->xhci_alloc;
-	u64 align = size % PAGE_SIZE;
-	u64 b_offset = xhci_alloc->offset;
+	u32 align = PAGE_SIZE - (size % PAGE_SIZE);
+	u32 b_offset = xhci_alloc->offset;
 
 	if (align)
-		xhci_alloc->offset = xhci_alloc->offset + size + (PAGE_SIZE - align);
+		xhci_alloc->offset = xhci_alloc->offset + size + align;
 	else
 		xhci_alloc->offset = xhci_alloc->offset + size;
 
@@ -68,7 +68,6 @@ static struct xhci_segment *xhci_segment_alloc(struct xhci_hcd *xhci,
 	if (!seg)
 		return NULL;
 
-	flags |= __GFP_NOWARN;
 	seg->trbs = dma_pool_zalloc(xhci->segment_pool, flags, &dma);
 	if (!seg->trbs) {
 		kfree(seg);
@@ -504,7 +503,6 @@ static struct xhci_container_ctx *xhci_alloc_container_ctx(struct xhci_hcd *xhci
 	if (type == XHCI_CTX_TYPE_INPUT)
 		ctx->size += CTX_SIZE(xhci->hcc_params);
 
-	flags |= __GFP_NOWARN;
 	ctx->bytes = dma_pool_zalloc(xhci->device_pool, flags, &ctx->dma);
 	if (!ctx->bytes) {
 		kfree(ctx);
@@ -1493,9 +1491,15 @@ int xhci_endpoint_init(struct xhci_hcd *xhci,
 	/* Allow 3 retries for everything but isoc, set CErr = 3 */
 	if (!usb_endpoint_xfer_isoc(&ep->desc))
 		err_count = 3;
-	/* Some devices get this wrong */
-	if (usb_endpoint_xfer_bulk(&ep->desc) && udev->speed == USB_SPEED_HIGH)
-		max_packet = 512;
+	/* HS bulk max packet should be 512, FS bulk supports 8, 16, 32 or 64 */
+	if (usb_endpoint_xfer_bulk(&ep->desc)) {
+		if (udev->speed == USB_SPEED_HIGH)
+			max_packet = 512;
+		if (udev->speed == USB_SPEED_FULL) {
+			max_packet = rounddown_pow_of_two(max_packet);
+			max_packet = clamp_val(max_packet, 8, 64);
+		}
+	}
 	/* xHCI 1.0 and 1.1 indicates that ctrl ep avg TRB Length should be 8 */
 	if (usb_endpoint_xfer_control(&ep->desc) && xhci->hci_version >= 0x100)
 		avg_trb_len = 8;
@@ -1784,7 +1788,6 @@ void xhci_mem_cleanup(struct xhci_hcd *xhci)
 	xhci->event_ring = NULL;
 	xhci_dbg_trace(xhci, trace_xhci_dbg_init, "Freed event ring");
 
-	pr_info("%s %d xhci->main_hcd = %pS\n", __func__, __LINE__, xhci->main_hcd);
 #ifdef CONFIG_SND_EXYNOS_USB_AUDIO
 	xhci->erst_audio.entries = NULL;
 	xhci_info(xhci, "%s: Freed ERST for Audio offloading", __func__);
@@ -1794,7 +1797,6 @@ void xhci_mem_cleanup(struct xhci_hcd *xhci)
 	xhci->event_ring_audio = NULL;
 	xhci_info(xhci, "%s: Freed event ring for Audio offloading", __func__);
 #endif
-	pr_info("%s %d xhci->main_hcd = %pS\n", __func__, __LINE__, xhci->main_hcd);
 
 	if (xhci->lpm_command)
 		xhci_free_command(xhci, xhci->lpm_command);
@@ -1804,7 +1806,7 @@ void xhci_mem_cleanup(struct xhci_hcd *xhci)
 	xhci->cmd_ring = NULL;
 	xhci_dbg_trace(xhci, trace_xhci_dbg_init, "Freed command ring");
 	xhci_cleanup_command_queue(xhci);
-	pr_info("%s %d xhci->main_hcd = %pS\n", __func__, __LINE__, xhci->main_hcd);
+
 	num_ports = HCS_MAX_PORTS(xhci->hcs_params1);
 	for (i = 0; i < num_ports && xhci->rh_bw; i++) {
 		struct xhci_interval_bw_table *bwt = &xhci->rh_bw[i].bw_table;
@@ -1864,10 +1866,14 @@ no_bw:
 	kfree(xhci->port_array);
 	kfree(xhci->rh_bw);
 	kfree(xhci->ext_caps);
+	kfree(xhci->usb2_rhub.psi);
+	kfree(xhci->usb3_rhub.psi);
 
 	xhci->usb2_ports = NULL;
 	xhci->usb3_ports = NULL;
 	xhci->port_array = NULL;
+	xhci->usb2_rhub.psi = NULL;
+	xhci->usb3_rhub.psi = NULL;
 	xhci->rh_bw = NULL;
 	xhci->ext_caps = NULL;
 

@@ -784,6 +784,11 @@ static ssize_t camera_afcal_show(char *buf, enum fimc_is_cam_info_index cam_inde
 			return sprintf(buf, "10 N N N N %d N N N %d\n",
 				*((s32*)&cal_buf[finfo->rom_af_cal_d50_addr]),
 				*((s32*)&cal_buf[finfo->rom_af_cal_pan_addr]));
+		} else if (finfo->rom_af_cal_d30_addr != -1) {
+			return sprintf(buf, "10 %d N %d N N N N N %d\n",
+				*((s32*) &cal_buf[finfo->rom_af_cal_macro_addr]),
+				*((s32*) &cal_buf[finfo->rom_af_cal_d30_addr]),
+				*((s32*) &cal_buf[finfo->rom_af_cal_pan_addr]));
 		} else if (finfo->rom_af_cal_d50_addr != -1) {
 			return sprintf(buf, "10 %d N N N %d N N N %d\n",
 				*((s32*)&cal_buf[finfo->rom_af_cal_macro_addr]),
@@ -887,7 +892,7 @@ err_afcal:
 
 	return FIMC_IS_AWB_MODULE_DATA_SIZE;
 }
-
+#if defined (CAMERA_FRONT2_TILT) || defined( CAMERA_REAR2_TILT) ||  defined(CAMERA_REAR3_TILT) || defined(CAMERA_REAR_TOF_TILT) || defined(CAMERA_FRONT_TOF_TILT)
 static ssize_t camera_tilt_show(char *buf, enum fimc_is_cam_info_index cam_index)
 {
 	struct fimc_is_rom_info *finfo;
@@ -1038,7 +1043,7 @@ static ssize_t camera_tilt_show(char *buf, enum fimc_is_cam_info_index cam_index
 err_tilt:
 	return sprintf(buf, "%s\n", "NG");
 }
-
+#endif
 /* PAF offset read */
 static ssize_t camera_paf_offset_show(char *buf, bool is_mid, int f_index)
 {
@@ -1160,7 +1165,7 @@ static ssize_t camera_rear_sensorid_show(struct device *dev,
 	specific = core->vender.private_data;
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->rear_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_REAR]);
 }
 
 static ssize_t camera_rear2_sensorid_show(struct device *dev,
@@ -1173,7 +1178,7 @@ static ssize_t camera_rear2_sensorid_show(struct device *dev,
 	specific = core->vender.private_data;
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->rear2_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_REAR2]);
 }
 
 static ssize_t camera_rear3_sensorid_show(struct device *dev,
@@ -1186,7 +1191,7 @@ static ssize_t camera_rear3_sensorid_show(struct device *dev,
 	specific = core->vender.private_data;
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->rear3_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_REAR3]);
 }
 
 static ssize_t camera_rear_tof_sensorid_show(struct device *dev,
@@ -1199,7 +1204,7 @@ static ssize_t camera_rear_tof_sensorid_show(struct device *dev,
 	specific = core->vender.private_data;
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->rear_tof_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_REAR_TOF]);
 }
 
 static ssize_t camera_front_sensorid_show(struct device *dev,
@@ -1223,7 +1228,7 @@ static ssize_t camera_front_sensorid_show(struct device *dev,
 
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->front_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_FRONT]);
 }
 
 static ssize_t camera_front2_sensorid_show(struct device *dev,
@@ -1236,7 +1241,7 @@ static ssize_t camera_front2_sensorid_show(struct device *dev,
 	specific = core->vender.private_data;
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->front2_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_FRONT2]);
 }
 
 static ssize_t camera_front_tof_sensorid_show(struct device *dev,
@@ -1249,7 +1254,7 @@ static ssize_t camera_front_tof_sensorid_show(struct device *dev,
 	specific = core->vender.private_data;
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->front_tof_sensor_id);
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_FRONT_TOF]);
 }
 
 #ifdef SECURE_CAMERA_IRIS
@@ -1264,7 +1269,7 @@ static ssize_t camera_secure_sensorid_show(struct device *dev,
 
 	dev_info(dev, "%s: E", __func__);
 
-	return sprintf(buf, "%d\n", specific->secure_sensor_id);
+	return sprintf(buf, "%d\n", specific->secure_sensor_id[SENSOR_POSITION_SECURE]);
 }
 #endif
 
@@ -1283,7 +1288,7 @@ static ssize_t camera_ssrm_camera_info_store(struct device *dev,
 	ret_count = sscanf(buf, "%d%d%d%d%d%d%d", &temp.operation, &temp.cameraID, &temp.previewMinFPS,
 		&temp.previewMaxFPS, &temp.previewSizeWidth,  &temp.previewSizeHeight, &temp.sensorOn);
 
-	if (ret_count > sizeof(SsrmCameraInfo)/sizeof(int)) {
+	if (ret_count > (sizeof(SsrmCameraInfo))/sizeof(int)) {
 		return -EINVAL;
 	}
 
@@ -1388,7 +1393,7 @@ static ssize_t camera_front_camfw_show(struct device *dev,
 {
 	return camera_camfw_show(buf, CAM_INFO_FRONT, false);
 }
-
+#if defined(CONFIG_CAMERA_EEPROM_SUPPORT_FRONT)
 static ssize_t camera_front_camfw_full_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -1400,7 +1405,7 @@ static ssize_t camera_front_checkfw_factory_show(struct device *dev,
 {
 	return camera_checkfw_factory_show(buf, CAM_INFO_FRONT);
 }
-
+#endif
 static ssize_t camera_front_info_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -1821,6 +1826,7 @@ static ssize_t camera_rear3_mtf_exif_show(struct device *dev,
 	return camera_mtf_exif_show(buf, CAM_INFO_REAR3, FNUMBER_1ST);
 }
 
+#ifdef ROM_REAR3_PAF_CAL_DATA_START_ADDR
 static ssize_t camera_rear3_paf_cal_check_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -1836,7 +1842,7 @@ static ssize_t camera_rear3_paf_cal_check_show(struct device *dev,
 
 	return sprintf(buf, "%08X\n", paf_err_data_result);
 }
-
+#endif
 #ifdef CAMERA_REAR3_MODULEID
 static ssize_t camera_rear3_moduleid_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
@@ -3556,13 +3562,14 @@ static ssize_t camera_rear_moduleid_show(struct device *dev,
 {
 	return camera_moduleid_show(buf, CAM_INFO_REAR);
 }
-
+#if defined(CONFIG_CAMERA_EEPROM_SUPPORT_FRONT)
+#ifndef CAMERA_FRONT_FIXED_FOCUS
 static ssize_t camera_front_afcal_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
 	return camera_afcal_show(buf, CAM_INFO_FRONT);
 }
-
+#endif
 static ssize_t camera_front_moduleid_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -3574,7 +3581,7 @@ static ssize_t camera_front_mtf_exif_show(struct device *dev,
 {
 	return camera_mtf_exif_show(buf, CAM_INFO_FRONT, FNUMBER_1ST);
 }
-
+#if defined(ROM_PAF_CAL_DATA_START_ADDR_FRONT) && defined(ROM_PAF_CAL_ERR_CHECK_OFFSET) 
 static ssize_t camera_front_paf_cal_check_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -3590,7 +3597,7 @@ static ssize_t camera_front_paf_cal_check_show(struct device *dev,
 
 	return sprintf(buf, "%08X\n", paf_err_data_result);
 }
-
+#endif
 static ssize_t camera_front_sensorid_exif_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -3608,7 +3615,7 @@ static ssize_t camera_front_awb_module_show(struct device *dev,
 {
 	return camera_awb_module_show(buf, CAM_INFO_FRONT);
 }
-
+#endif
 int camera_fw_show_sub(char *path, char *buf, int startPos, int readsize)
 {
 	struct file *fp = NULL;
@@ -4210,7 +4217,9 @@ static DEVICE_ATTR(rear3_checkfw_user, S_IRUGO, camera_rear3_checkfw_user_show, 
 static DEVICE_ATTR(rear3_checkfw_factory, S_IRUGO, camera_rear3_checkfw_factory_show, NULL);
 static DEVICE_ATTR(rear3_sensorid_exif, S_IRUGO, camera_rear3_sensorid_exif_show, NULL);
 static DEVICE_ATTR(rear3_mtf_exif, S_IRUGO, camera_rear3_mtf_exif_show, NULL);
+#ifdef ROM_REAR3_PAF_CAL_DATA_START_ADDR
 static DEVICE_ATTR(rear3_paf_cal_check, S_IRUGO, camera_rear3_paf_cal_check_show, NULL);
+#endif
 #ifdef CAMERA_REAR3_AFCAL
 static DEVICE_ATTR(rear3_afcal, S_IRUGO, camera_rear3_afcal_show, NULL);
 #endif
@@ -4272,9 +4281,13 @@ static DEVICE_ATTR(front_mipi_clock, 0440, camera_front_mipi_clock_show, NULL);
 #if defined(CONFIG_CAMERA_EEPROM_SUPPORT_FRONT)
 static DEVICE_ATTR(front_camfw_full, S_IRUGO, camera_front_camfw_full_show, NULL);
 static DEVICE_ATTR(front_checkfw_factory, S_IRUGO, camera_front_checkfw_factory_show, NULL);
+#ifndef CAMERA_FRONT_FIXED_FOCUS
 static DEVICE_ATTR(front_afcal, S_IRUGO, camera_front_afcal_show, NULL);
+#endif
 static DEVICE_ATTR(front_mtf_exif, S_IRUGO, camera_front_mtf_exif_show, NULL);
+#if defined(ROM_PAF_CAL_DATA_START_ADDR_FRONT) && defined(ROM_PAF_CAL_ERR_CHECK_OFFSET) 
 static DEVICE_ATTR(front_paf_cal_check, S_IRUGO, camera_front_paf_cal_check_show, NULL);
+#endif
 static DEVICE_ATTR(front_sensorid_exif, S_IRUGO, camera_front_sensorid_exif_show, NULL);
 static DEVICE_ATTR(front_awb_master, S_IRUGO, camera_front_awb_master_show, NULL);
 static DEVICE_ATTR(front_awb_module, S_IRUGO, camera_front_awb_module_show, NULL);
@@ -4387,6 +4400,64 @@ static DEVICE_ATTR(iris_checkfw_user, S_IRUGO, camera_iris_checkfw_user_show, NU
 static DEVICE_ATTR(iris_caminfo, S_IRUGO, camera_iris_info_show, NULL);
 #endif
 
+#ifdef CAMERA_REAR4
+static ssize_t rear4_camera_hw_param_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct cam_hw_param *ec_param = NULL;
+	struct fimc_is_rom_info *finfo;
+	struct fimc_is_cam_info *cam_info;
+	int position;
+
+	fimc_is_get_cam_info_from_index(&cam_info, CAM_INFO_REAR4);
+	position = cam_info->internal_id;
+
+	fimc_is_sec_get_sysfs_finfo(&finfo, fimc_is_vendor_get_rom_id_from_position(position));
+
+	fimc_is_sec_get_hw_param(&ec_param, position);
+	if (!ec_param) {
+		err("failed to get hw param");
+		return 0;
+	}
+
+	if (fimc_is_sec_is_valid_moduleid(finfo->rom_module_id)) {
+		return sprintf(buf, "\"CAMIR2_ID\":\"%c%c%c%c%cXX%02X%02X%02X\",\"I2CR2_AF\":\"%d\","
+			"\"I2CR2_COM\":\"%d\",\"I2CR2_OIS\":\"%d\",\"I2CR2_SEN\":\"%d\",\"MIPIR2_COM\":\"%d\",\"MIPIR2_SEN\":\"%d\"\n",
+			finfo->rom_module_id[0], finfo->rom_module_id[1],
+			finfo->rom_module_id[2], finfo->rom_module_id[3],
+			finfo->rom_module_id[4], finfo->rom_module_id[7],
+			finfo->rom_module_id[8], finfo->rom_module_id[9],
+			ec_param->i2c_af_err_cnt, ec_param->i2c_comp_err_cnt, ec_param->i2c_ois_err_cnt,
+			ec_param->i2c_sensor_err_cnt, ec_param->mipi_comp_err_cnt, ec_param->mipi_sensor_err_cnt);
+	} else {
+		return sprintf(buf, "\"CAMIR2_ID\":\"MIR_ERR\",\"I2CR2_AF\":\"%d\","
+			"\"I2CR2_COM\":\"%d\",\"I2CR2_OIS\":\"%d\",\"I2CR2_SEN\":\"%d\",\"MIPIR2_COM\":\"%d\",\"MIPIR2_SEN\":\"%d\"\n",
+			ec_param->i2c_af_err_cnt, ec_param->i2c_comp_err_cnt, ec_param->i2c_ois_err_cnt,
+			ec_param->i2c_sensor_err_cnt, ec_param->mipi_comp_err_cnt, ec_param->mipi_sensor_err_cnt);
+	}
+}
+
+static ssize_t rear4_camera_hw_param_store(struct device *dev,
+				    struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct cam_hw_param *ec_param = NULL;
+	struct fimc_is_cam_info *cam_info;
+	int position;
+
+	fimc_is_get_cam_info_from_index(&cam_info, CAM_INFO_REAR4);
+	position = cam_info->internal_id;
+
+	if (!strncmp(buf, "c", 1)) {
+		fimc_is_sec_get_hw_param(&ec_param, position);
+
+		if (ec_param)
+			fimc_is_sec_init_err_cnt(ec_param);
+	}
+
+	return count;
+}
+#endif //CAMERA_REAR4
+
 #ifdef USE_CAMERA_HW_BIG_DATA
 static DEVICE_ATTR(rear_hwparam, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
 				rear_camera_hw_param_show, rear_camera_hw_param_store);
@@ -4410,7 +4481,161 @@ static DEVICE_ATTR(rear3_hwparam, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
 static DEVICE_ATTR(iris_hwparam, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
 				iris_camera_hw_param_show, iris_camera_hw_param_store);
 #endif
+
+#ifdef CAMERA_REAR4
+static DEVICE_ATTR(rear4_hwparam,  S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH,
+				rear4_camera_hw_param_show, rear4_camera_hw_param_store);
 #endif
+
+#endif
+
+
+/*****                    [ REAR4 SYSFS LIST ]                                     *****
+ *                                                                                 *****
+ * rear4_sensorid            - camera_rear4_sensorid_show                          *****
+ * rear4_moduleid            - camera_rear4_moduleid_show                          *****
+ * rear4_camfw               - camera_rear4_camfw_show                             *****
+ * rear4_camfw_full          - camera_rear4_camfw_full_show                        *****
+ * rear4_caminfo             - camera_rear4_info_show                              *****
+ * rear4_checkfw_user        - camera_rear4_checkfw_user_show                      *****
+ * rear4_checkfw_factory     - camera_rear4_checkfw_factory_show                   *****
+ * rear4_sensorid_exif       - camera_rear4_sensorid_exif_show                     *****
+ * rear4_mtf_exif            - camera_rear4_mtf_exif_show                          *****
+ * rear4_dualcal             - camera_rear4_dualcal_show                           *****
+ * rear4_dualcal_size        - camera_rear4_dualcal_size_show                      *****
+ *                                                                                 *****
+ ***************************************************************************************/
+
+
+#ifdef CAMERA_REAR4
+static ssize_t camera_rear4_sensorid_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct fimc_is_vender_specific *specific = sysfs_core->vender.private_data;
+
+	info("%s: E", __func__);
+
+	return sprintf(buf, "%d\n", specific->sensor_id[SENSOR_POSITION_REAR4]);
+}
+
+#ifndef USE_SHARED_ROM_REAR4
+static ssize_t camera_rear4_moduleid_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_moduleid_show(buf, CAM_INFO_REAR4);
+}
+#endif
+static ssize_t camera_rear4_camfw_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_camfw_show(buf, CAM_INFO_REAR4, false);
+}
+
+static ssize_t camera_rear4_camfw_full_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_camfw_show(buf, CAM_INFO_REAR4, true);
+}
+
+static ssize_t camera_rear4_info_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_info_show(buf, CAM_INFO_REAR4);
+}
+
+static ssize_t camera_rear4_checkfw_user_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_checkfw_user_show(buf, CAM_INFO_REAR4);
+}
+
+static ssize_t camera_rear4_checkfw_factory_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_checkfw_factory_show(buf, CAM_INFO_REAR4);
+}
+
+static ssize_t camera_rear4_sensorid_exif_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_sensorid_exif_show(buf, CAM_INFO_REAR4);
+}
+
+static ssize_t camera_rear4_mtf_exif_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_mtf_exif_show(buf, CAM_INFO_REAR4, FNUMBER_1ST);
+}
+
+#if defined(REAR_SUB_CAMERA)
+static ssize_t camera_rear4_dualcal_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int position = SENSOR_POSITION_REAR;
+	int32_t dual_cal_data2_addr, dual_cal_data2_size;
+	char *cal_buf;
+	struct fimc_is_vender_specific *specific = sysfs_core->vender.private_data;
+
+	read_from_firmware_version(position);
+	fimc_is_sec_get_cal_buf(position, &cal_buf);
+
+	if (specific->rom_cal_map_addr[position] == NULL)
+		return 0;
+
+	dual_cal_data2_addr = specific->rom_cal_map_addr[position]->rom_dual_cal_data2_start_addr;
+	dual_cal_data2_size = specific->rom_cal_map_addr[position]->rom_dual_cal_data2_size;
+
+
+	if (dual_cal_data2_addr > 0 && dual_cal_data2_size > 0) {
+		memcpy(buf, &cal_buf[dual_cal_data2_addr], dual_cal_data2_size);
+		return dual_cal_data2_size;
+	}
+
+	return 0;
+}
+
+static ssize_t camera_rear4_dualcal_size_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	int position = SENSOR_POSITION_REAR;
+	int32_t dual_cal_data2_size;
+
+	struct fimc_is_vender_specific *specific = sysfs_core->vender.private_data;
+
+	dual_cal_data2_size = specific->rom_cal_map_addr[position]->rom_dual_cal_data2_size;
+
+	if (dual_cal_data2_size > 0)
+		return sprintf(buf, "%d\n", dual_cal_data2_size);
+	else
+		return 0;
+}
+
+static ssize_t camera_rear4_tilt_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return camera_tilt_show(buf, CAM_INFO_REAR4);
+}
+#endif
+
+static DEVICE_ATTR(rear4_sensorid,        S_IRUGO, camera_rear4_sensorid_show,        NULL);
+static DEVICE_ATTR(rear4_camfw,           S_IRUGO, camera_rear4_camfw_show,           NULL);
+static DEVICE_ATTR(rear4_camfw_full,      S_IRUGO, camera_rear4_camfw_full_show,      NULL);
+static DEVICE_ATTR(rear4_caminfo,         S_IRUGO, camera_rear4_info_show,            NULL);
+static DEVICE_ATTR(rear4_checkfw_user,    S_IRUGO, camera_rear4_checkfw_user_show,    NULL);
+static DEVICE_ATTR(rear4_checkfw_factory, S_IRUGO, camera_rear4_checkfw_factory_show, NULL);
+static DEVICE_ATTR(rear4_sensorid_exif,   S_IRUGO, camera_rear4_sensorid_exif_show,   NULL);
+static DEVICE_ATTR(rear4_mtf_exif,        S_IRUGO, camera_rear4_mtf_exif_show,        NULL);
+#if defined(REAR_SUB_CAMERA)
+static DEVICE_ATTR(rear4_dualcal,         S_IRUGO, camera_rear4_dualcal_show,          NULL);
+static DEVICE_ATTR(rear4_dualcal_size,    S_IRUGO, camera_rear4_dualcal_size_show,     NULL);
+static DEVICE_ATTR(rear4_tilt,            S_IRUGO, camera_rear4_tilt_show,            NULL);
+#endif
+#ifndef USE_SHARED_ROM_REAR4
+static DEVICE_ATTR(rear4_moduleid,        S_IRUGO, camera_rear4_moduleid_show,        NULL);
+static DEVICE_ATTR(SVC_rear_module4,      S_IRUGO, camera_rear4_moduleid_show,        NULL);
+#endif
+
+#endif //CAMERA_REAR4
 
 int svc_cheating_prevent_device_file_create(struct kobject **obj)
 {
@@ -4442,6 +4667,77 @@ int svc_cheating_prevent_device_file_create(struct kobject **obj)
 
 	return 0;
 }
+
+#ifdef CAMERA_REAR4
+int fimc_is_create_rear4_sysfs(void)
+{
+	if (IS_ERR(camera_rear_dev)) {
+		printk(KERN_ERR "failed to create rear device!\n");
+		return 0;
+	}
+
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_sensorid) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_sensorid.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_camfw) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_camfw.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_camfw_full) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_camfw_full.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_checkfw_user) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_checkfw_user.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_checkfw_factory) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_checkfw_factory.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_sensorid_exif) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_sensorid_exif.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_mtf_exif) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_mtf_exif.attr.name);
+	}
+#ifndef USE_SHARED_ROM_REAR4
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_moduleid) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_moduleid.attr.name);
+	}
+#endif
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_caminfo) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_caminfo.attr.name);
+	}
+#if defined(REAR_SUB_CAMERA)
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_dualcal) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_dualcal.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_dualcal_size) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_dualcal_size.attr.name);
+	}
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_tilt) < 0) {
+		printk(KERN_ERR "failed to create rear device file, %s\n",
+			dev_attr_rear4_tilt.attr.name);
+	}
+#endif
+#ifdef USE_CAMERA_HW_BIG_DATA
+	if (device_create_file(camera_rear_dev, &dev_attr_rear4_hwparam) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_rear4_hwparam.attr.name);
+	}
+#endif
+
+	return 0;
+}
+#endif
 
 int fimc_is_create_sysfs(struct fimc_is_core *core)
 {
@@ -4507,14 +4803,18 @@ int fimc_is_create_sysfs(struct fimc_is_core *core)
 			pr_err("failed to create front device file, %s\n",
 					dev_attr_front_mtf_exif.attr.name);
 		}
+#if defined(ROM_PAF_CAL_DATA_START_ADDR_FRONT) && defined(ROM_PAF_CAL_ERR_CHECK_OFFSET) 
 		if (device_create_file(camera_front_dev, &dev_attr_front_paf_cal_check) < 0) {
 			pr_err("failed to create front device file, %s\n",
 					dev_attr_front_paf_cal_check.attr.name);
 		}
+#endif
+#ifndef CAMERA_FRONT_FIXED_FOCUS
 		if (device_create_file(camera_front_dev, &dev_attr_front_afcal) < 0) {
 			pr_err("failed to create front device file, %s\n",
 					dev_attr_front_afcal.attr.name);
 		}
+#endif
 		if (device_create_file(camera_front_dev, &dev_attr_front_awb_master) < 0) {
 			pr_err("failed to create front device file, %s\n",
 					dev_attr_front_awb_master.attr.name);
@@ -4878,10 +5178,12 @@ int fimc_is_create_sysfs(struct fimc_is_core *core)
 			pr_err("failed to create rear device file, %s\n",
 					dev_attr_rear3_mtf_exif.attr.name);
 		}
+#ifdef ROM_REAR3_PAF_CAL_DATA_START_ADDR
 		if (device_create_file(camera_rear_dev, &dev_attr_rear3_paf_cal_check) < 0) {
 			pr_err("failed to create rear device file, %s\n",
 					dev_attr_rear3_paf_cal_check.attr.name);
 		}
+#endif
 		if (device_create_file(camera_rear_dev, &dev_attr_rear3_awb_master) < 0) {
 			pr_err("failed to create rear device file, %s\n",
 					dev_attr_rear3_awb_master.attr.name);
@@ -5216,6 +5518,18 @@ int fimc_is_create_sysfs(struct fimc_is_core *core)
 	}
 #endif
 
+#ifdef CAMERA_REAR4
+	fimc_is_create_rear4_sysfs();
+
+#ifndef USE_SHARED_ROM_REAR4
+
+	if (sysfs_create_file(svc, &dev_attr_SVC_rear_module4.attr) < 0) {
+		printk(KERN_ERR "failed to create rear4 device file, %s\n",
+			dev_attr_SVC_rear_module4.attr.name);
+	}
+#endif
+#endif
+
 	sysfs_core = core;
 
 	return 0;
@@ -5231,12 +5545,16 @@ int fimc_is_destroy_sysfs(struct fimc_is_core *core)
 		device_remove_file(camera_front_dev, &dev_attr_front_caminfo);
 		device_remove_file(camera_front_dev, &dev_attr_front_camfw);
 #if defined(CONFIG_CAMERA_EEPROM_SUPPORT_FRONT)
+#ifndef CAMERA_FRONT_FIXED_FOCUS
 		device_remove_file(camera_front_dev, &dev_attr_front_afcal);
+#endif
 		device_remove_file(camera_front_dev, &dev_attr_front_camfw_full);
 		device_remove_file(camera_front_dev, &dev_attr_front_checkfw_factory);
 		device_remove_file(camera_front_dev, &dev_attr_front_moduleid);
 		device_remove_file(camera_front_dev, &dev_attr_front_mtf_exif);
+#if defined(ROM_PAF_CAL_DATA_START_ADDR_FRONT) && defined(ROM_PAF_CAL_ERR_CHECK_OFFSET) 
 		device_remove_file(camera_front_dev, &dev_attr_front_paf_cal_check);
+#endif
 		device_remove_file(camera_front_dev, &dev_attr_front_sensorid_exif);
 		device_remove_file(camera_front_dev, &dev_attr_front_awb_master);
 		device_remove_file(camera_front_dev, &dev_attr_front_awb_module);
@@ -5362,7 +5680,9 @@ int fimc_is_destroy_sysfs(struct fimc_is_core *core)
 		device_remove_file(camera_rear_dev, &dev_attr_rear3_checkfw_factory);
 		device_remove_file(camera_rear_dev, &dev_attr_rear3_sensorid_exif);
 		device_remove_file(camera_rear_dev, &dev_attr_rear3_mtf_exif);
+#ifdef ROM_REAR3_PAF_CAL_DATA_START_ADDR
 		device_remove_file(camera_rear_dev, &dev_attr_rear3_paf_cal_check);
+#endif
 		device_remove_file(camera_rear_dev, &dev_attr_rear3_awb_master);
 		device_remove_file(camera_rear_dev, &dev_attr_rear3_awb_module);
 #ifdef CAMERA_REAR3_AFCAL

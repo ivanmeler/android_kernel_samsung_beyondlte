@@ -57,6 +57,12 @@ struct xattr;
 struct xfrm_sec_ctx;
 struct mm_struct;
 
+#ifdef CONFIG_KDP_CRED
+#include <linux/kdp.h>
+#else
+#define security_integrity_current()  0
+#endif
+
 /* If capable should audit the security request */
 #define SECURITY_CAP_NOAUDIT 0
 #define SECURITY_CAP_AUDIT 1
@@ -68,34 +74,6 @@ struct ctl_table;
 struct audit_krule;
 struct user_namespace;
 struct timezone;
-
-#ifdef CONFIG_RKP_KDP
-#define rocred_uc_read(x) atomic_read(x->use_cnt)
-#define rocred_uc_inc(x)  atomic_inc(x->use_cnt)
-#define rocred_uc_dec_and_test(x) atomic_dec_and_test(x->use_cnt)
-#define rocred_uc_inc_not_zero(x) atomic_inc_not_zero(x->use_cnt)
-#define rocred_uc_set(x,v) atomic_set(x->use_cnt,v)
-
-extern int rkp_cred_enable;
-extern char __rkp_ro_start[], __rkp_ro_end[];
-extern struct cred init_cred;
-extern struct task_security_struct init_sec;
-/*Check whether the address belong to Cred Area*/
-static inline u8 rkp_ro_page(unsigned long addr)
-{
-	if(!rkp_cred_enable)
-		return (u8)0;
-	if((addr == ((unsigned long)&init_cred)) || 
-		(addr == ((unsigned long)&init_sec)))
-		return (u8)1;
-	else
-		return rkp_is_pg_protected(addr);
-}
-extern int security_integrity_current(void);
-
-#else
-#define security_integrity_current()  0
-#endif /*CONFIG_RKP_KDP*/
 
 enum lsm_event {
 	LSM_POLICY_CHANGE,
@@ -1829,5 +1807,42 @@ static inline void free_secdata(void *secdata)
 { }
 #endif /* CONFIG_SECURITY */
 
-#endif /* ! __LINUX_SECURITY_H */
+#ifdef CONFIG_PERF_EVENTS
+struct perf_event_attr;
+struct perf_event;
 
+#ifdef CONFIG_SECURITY
+extern int security_perf_event_open(struct perf_event_attr *attr, int type);
+extern int security_perf_event_alloc(struct perf_event *event);
+extern void security_perf_event_free(struct perf_event *event);
+extern int security_perf_event_read(struct perf_event *event);
+extern int security_perf_event_write(struct perf_event *event);
+#else
+static inline int security_perf_event_open(struct perf_event_attr *attr,
+					   int type)
+{
+	return 0;
+}
+
+static inline int security_perf_event_alloc(struct perf_event *event)
+{
+	return 0;
+}
+
+static inline void security_perf_event_free(struct perf_event *event)
+{
+}
+
+static inline int security_perf_event_read(struct perf_event *event)
+{
+	return 0;
+}
+
+static inline int security_perf_event_write(struct perf_event *event)
+{
+	return 0;
+}
+#endif /* CONFIG_SECURITY */
+#endif /* CONFIG_PERF_EVENTS */
+
+#endif /* ! __LINUX_SECURITY_H */

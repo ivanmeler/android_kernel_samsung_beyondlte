@@ -1,5 +1,9 @@
 #include "../ssp.h"
 
+#if defined(CONFIG_SENSORS_SSP_STK33917)
+#define	VENDOR		"SITRON"
+#define CHIP_ID		"STK33917"
+#else
 #define	VENDOR		"AMS"
 
 #if defined(CONFIG_SENSORS_SSP_TMD4903)
@@ -17,7 +21,7 @@
 #else
 #define CHIP_ID		"UNKNOWN"
 #endif
-
+#endif
 #define PROX_ADC_BITS_NUM		14
 #define THRESHOLD_HIGH			0
 #define THRESHOLD_LOW			1
@@ -30,9 +34,9 @@
 /* Functions                                                             */
 /*************************************************************************/
 
-static s16 get_proximity_rawdata(struct ssp_data *data)
+static u16 get_proximity_rawdata(struct ssp_data *data)
 {
-	s16 uRowdata = 0;
+	u16 uRowdata = 0;
 	char chTempbuf[4] = { 0 };
 
 	s32 dMsDelay = 20;
@@ -300,7 +304,7 @@ static ssize_t proximity_raw_data_show(struct device *dev,
 {
 	struct ssp_data *data = dev_get_drvdata(dev);
 
-	return sprintf(buf, "%d\n", get_proximity_rawdata(data));
+	return sprintf(buf, "%u\n", get_proximity_rawdata(data));
 }
 
 static ssize_t proximity_default_trim_show(struct device *dev,
@@ -399,19 +403,21 @@ static ssize_t barcode_emul_enable_store(struct device *dev,
 {
 	int iRet;
 	int64_t dEnable;
-	struct ssp_data *data = dev_get_drvdata(dev);
+	//struct ssp_data *data = dev_get_drvdata(dev);
 
 	iRet = kstrtoll(buf, 10, &dEnable);
 	if (iRet < 0)
 		return iRet;
+	//bring up for m62 temporary
+	/*if (dEnable)
 
-	if (dEnable)
 		set_proximity_barcode_enable(data, true);
 	else
 		set_proximity_barcode_enable(data, false);
-
+	*/
 	return size;
 }
+
 
 #ifdef CONFIG_SENSORS_SSP_PROX_SETTING
 static ssize_t proximity_setting_show(struct device *dev,
@@ -781,6 +787,18 @@ static ssize_t proximity_position_show(struct device *dev,
 	return snprintf(buf, PAGE_SIZE, "%d.%d %d.%d\n", x.integer, x.point, y.integer, y.point);
 }
 
+static ssize_t proximity_cancel_show(struct device *dev,
+	struct device_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%d\n",0);
+}
+
+static ssize_t proximity_cancel_store(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t size)
+{
+	return size;
+}
+
 static DEVICE_ATTR(vendor, 0440, proximity_vendor_show, NULL);
 static DEVICE_ATTR(name, 0440, proximity_name_show, NULL);
 static DEVICE_ATTR(prox_probe, 0440, proximity_probe_show, NULL);
@@ -791,7 +809,7 @@ static DEVICE_ATTR(thresh_detect_low, 0660, proximity_thresh_detect_low_show, pr
 static DEVICE_ATTR(prox_trim, 0440, proximity_default_trim_show, NULL);
 static DEVICE_ATTR(raw_data, 0440, proximity_raw_data_show, NULL);
 static DEVICE_ATTR(prox_avg, 0660, proximity_avg_show, proximity_avg_store);
-
+static DEVICE_ATTR(prox_cal, 0664, proximity_cancel_show, proximity_cancel_store);
 static DEVICE_ATTR(barcode_emul_en, 0660, barcode_emul_enable_show, barcode_emul_enable_store);
 
 #ifdef CONFIG_SENSORS_SSP_PROX_SETTING
@@ -826,6 +844,7 @@ static struct device_attribute *prox_attrs[] = {
 	&dev_attr_prox_cal,
 #endif
 	&dev_attr_prox_position,
+	&dev_attr_prox_cal,
 	NULL,
 };
 
@@ -839,3 +858,4 @@ void remove_prox_factorytest(struct ssp_data *data)
 {
 	sensors_unregister(data->prox_device, prox_attrs);
 }
+

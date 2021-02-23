@@ -460,6 +460,12 @@ enum sec_battery_wpc_en_ctrl {
 	WPC_EN_FW = 0x20,
 };
 
+enum sec_battery_direct_charging_source_ctrl {
+	SEC_TEST_MODE = 0x1,
+	SEC_SEND_UVDM = 0x2,
+	SEC_STORE_MODE = 0x4,
+};
+
 /* tx_event */
 #define BATT_TX_EVENT_WIRELESS_TX_STATUS		0x00000001
 #define BATT_TX_EVENT_WIRELESS_RX_CONNECT		0x00000002
@@ -494,7 +500,6 @@ enum sec_battery_wpc_en_ctrl {
 #define SEC_BAT_TX_RETRY_MIX_TEMP		0x0008
 #define SEC_BAT_TX_RETRY_HIGH_TEMP		0x0010
 #define SEC_BAT_TX_RETRY_LOW_TEMP		0x0020
-#define SEC_BAT_TX_RETRY_OCP			0x0040
 
 /* ext_event */
 #define BATT_EXT_EVENT_NONE			0x00000000
@@ -864,6 +869,7 @@ struct sec_battery_platform_data {
 	unsigned int pre_wc_afc_input_current;
 	unsigned int store_mode_afc_input_current;
 	unsigned int store_mode_hv_wireless_input_current;
+	unsigned int store_mode_max_input_power;
 	unsigned int prepare_ta_delay;
 
 	char *pmic_name;

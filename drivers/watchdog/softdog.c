@@ -56,8 +56,6 @@ MODULE_PARM_DESC(soft_panic,
 static struct hrtimer softdog_ticktock;
 static struct hrtimer softdog_preticktock;
 
-static struct watchdog_device softdog_dev;
-
 static enum hrtimer_restart softdog_fire(struct hrtimer *timer)
 {
 	module_put(THIS_MODULE);
@@ -78,6 +76,8 @@ static enum hrtimer_restart softdog_fire(struct hrtimer *timer)
 
 	return HRTIMER_NORESTART;
 }
+
+static struct watchdog_device softdog_dev;
 
 static enum hrtimer_restart softdog_pretimeout(struct hrtimer *timer)
 {

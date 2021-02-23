@@ -33,14 +33,9 @@ static void ssp_late_resume(struct early_suspend *handler);
 #include <linux/muic/muic_notifier.h>
 #endif
 
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
-#include <linux/ssp_motorcallback.h>
-
-#ifdef CONFIG_VIB_NOTIFIER
-#include <linux/vib_notifier.h>
+#ifdef CONFIG_SEC_VIB_NOTIFIER
+#include <linux/vibrator/sec_vibrator_notifier.h>
 struct notifier_block vib_notif;
-#endif
-
 #endif
 
 #ifdef CONFIG_PANEL_NOTIFY
@@ -303,6 +298,9 @@ static void initialize_variable(struct ssp_data *data)
 	data->ois_control = &ois_control;
 	data->ois_reset = &ois_reset;
 
+#if defined(CONFIG_SENSORS_SABC)
+	data->pre_camera_lux = CAM_LUX_INITIAL;
+#endif
 }
 
 int initialize_mcu(struct ssp_data *data)
@@ -383,6 +381,10 @@ int initialize_mcu(struct ssp_data *data)
 
 	send_hall_ic_status(data->hall_ic_status);
 
+#if defined(CONFIG_SENSORS_SABC)
+	set_light_brightness(data);
+#endif
+
 /* hoi: il dan mak a */
 #ifndef CONFIG_SENSORS_SSP_BBD
 	iRet = ssp_send_cmd(data, MSG2SSP_AP_MCU_DUMP_CHECK, 0);
@@ -443,6 +445,8 @@ irqreturn_t ssp_shub_int_handler(int irq, void *device)
 	data->ts_index_buffer[data->ts_stacked_cnt] = timestamp;
 
 	ssp_debug_time("[SSP_IRQ] ts_stacked_cnt %d timestamp %llu\n", data->ts_stacked_cnt, timestamp);
+	gpio_set_value(data->pin_ap_sleep, 0);
+	gpio_set_value(data->pin_ap_sleep, 1);
 	return IRQ_HANDLED;
 }
 #endif
@@ -691,30 +695,7 @@ static int exynos_cpuidle_muic_notifier(struct notifier_block *nb,
  *#endif
  */
 
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
-int ssp_motor_callback(int state)
-{
-	int iRet = 0;
-
-	ssp_data_info->motor_state = state;
-
-	queue_work(ssp_data_info->ssp_motor_wq,
-			&ssp_data_info->work_ssp_motor);
-
-	pr_info("[SSP] %s : Motor state %d\n", __func__, state);
-
-	return iRet;
-}
-int get_current_motor_state(void)
-{
-	return ssp_data_info->motor_state;
-}
-int (*getMotorCallback(void))(int)
-{
-	pr_info("[SSP] %s : called\n", __func__);
-	return ssp_motor_callback;
-}
-
+#ifdef CONFIG_SEC_VIB_NOTIFIER
 void ssp_motor_work_func(struct work_struct *work)
 {
 	int iRet = 0;
@@ -725,19 +706,26 @@ void ssp_motor_work_func(struct work_struct *work)
 	pr_info("[SSP] %s : Motor state %d, iRet %d\n", __func__, data->motor_state, iRet);
 }
 
-
-#ifdef CONFIG_VIB_NOTIFIER
 static int vib_notifier_callback(struct notifier_block *self, unsigned long event, void *data){
-	ssp_data_info->motor_state = 1;
+	struct vib_notifier_context *vib = (struct vib_notifier_context *)data;
 
+	pr_info("[SSP] %s: %s, idx: %d timeout: %d\n", __func__, event? "ON" : "OFF",
+					vib->index, vib->timeout);
+
+	if (ssp_data_info->ssp_motor_wq != NULL)
+		queue_work(ssp_data_info->ssp_motor_wq, &ssp_data_info->work_ssp_motor);
+	ssp_data_info->motor_state = event;
+	if (event == 1) {
+		if (ssp_data_info->ssp_motor_wq != NULL)
+			queue_work(ssp_data_info->ssp_motor_wq, &ssp_data_info->work_ssp_motor);
+	}
 	queue_work(ssp_data_info->ssp_motor_wq,
 			&ssp_data_info->work_ssp_motor);
 
 	pr_info("[SSP] %s : Motor state %d\n", __func__, ssp_data_info->motor_state );
 
-	return 0;	
+	return 0;
 }
-#endif
 #endif
 
 #ifdef CONFIG_PANEL_NOTIFY
@@ -746,11 +734,11 @@ int send_panel_information(struct panel_bl_event_data *evdata){
 	int iRet = 0;
 
 	//TODO: send brightness + aor_ratio information to sensorhub
-        if (msg == NULL) {
-                iRet = -ENOMEM;
-                pr_err("[SSP] %s, failed to allocate memory for ssp_msg\n", __func__);
-                return iRet;
-        }
+	if (msg == NULL) {
+		iRet = -ENOMEM;
+		pr_err("[SSP] %s, failed to allocate memory for ssp_msg\n", __func__);
+		return iRet;
+	}
 	msg->cmd = MSG2SSP_PANEL_INFORMATION;
 	msg->length = sizeof(struct panel_bl_event_data);
 	msg->options = AP2HUB_WRITE;
@@ -837,6 +825,32 @@ static int copr_fb_notifier_callback(struct notifier_block *self, unsigned long 
 
 skip_to_send_cmd:
 	return 0;
+}
+#endif
+
+#if defined(CONFIG_SENSORS_SABC)
+void set_light_brightness(struct ssp_data *data)
+{
+	struct ssp_msg *msg = kzalloc(sizeof(*msg), GFP_KERNEL);
+	int iRet = 0;
+
+	if (msg == NULL) {
+		pr_err("[SSP] %s, failed to allocate memory for ssp_msg\n", __func__);
+		return;
+	}
+	msg->cmd = MSG2SSP_PANEL_INFORMATION;
+	msg->length = sizeof(data->brightness);
+	msg->options = AP2HUB_WRITE;
+	msg->buffer = kzalloc(sizeof(data->brightness), GFP_KERNEL);
+	msg->free_buffer = 1;
+	memcpy(msg->buffer, (u8 *)&data->brightness, sizeof(data->brightness));
+
+	iRet = ssp_spi_async(ssp_data_info, msg);
+
+	if (iRet < 0)
+		pr_err("[SSP] %s, failed to send brightness information", __func__);
+	else
+		pr_info("[SSP] %s, %d\n", __func__, data->brightness);
 }
 #endif
 
@@ -1052,11 +1066,8 @@ static int ssp_probe(struct spi_device *spi)
 	mutex_init(&shutdown_lock);
 	set_ssp_data_info(data);
 
-#ifdef CONFIG_SSP_MOTOR_CALLBACK
-	pr_info("[SSP]: %s motor callback set!", __func__);
-	//register motor
-	setMotorCallback(ssp_motor_callback);
 
+#ifdef CONFIG_SEC_VIB_NOTIFIER
 	data->ssp_motor_wq =
 		create_singlethread_workqueue("ssp_motor_wq");
 	if (!data->ssp_motor_wq) {
@@ -1068,17 +1079,13 @@ static int ssp_probe(struct spi_device *spi)
 
 	INIT_WORK(&data->work_ssp_motor, ssp_motor_work_func);
 
-#ifdef CONFIG_VIB_NOTIFIER
 	pr_info("[SSP]: %s motor notifier set!", __func__);
 	vib_notif.notifier_call = vib_notifier_callback;
-	iRet = vib_notifier_register(&vib_notif);
+	iRet = sec_vib_notifier_register(&vib_notif);
 	if (iRet) {
 		pr_err("[SSP]: %s - fail to register vib_notifier_callback\n", __func__);
 	}
 #endif
-
-#endif
-
 
 #ifdef CONFIG_PANEL_NOTIFY
 	pr_info("[SSP]: %s panel notifier set!", __func__);
@@ -1110,7 +1117,7 @@ static int ssp_probe(struct spi_device *spi)
 
 	goto exit;
 
-#ifdef CONFIG_SSP_MOTOR_CALLBACK
+#ifdef CONFIG_SEC_VIB_NOTIFIER
 err_create_motor_workqueue:
 	destroy_workqueue(data->ssp_motor_wq);
 #endif
@@ -1196,7 +1203,7 @@ static void ssp_shutdown(struct spi_device *spi)
 	data->bbd_on_packet_wq = NULL;
 	data->bbd_mcu_ready_wq = NULL;
 
-#ifdef CONFIG_SSP_MOTOR_CALLBACK
+#ifdef CONFIG_SEC_VIB_NOTIFIER
 	cancel_work_sync(&data->work_ssp_motor);
 	destroy_workqueue(data->ssp_motor_wq);
 
@@ -1228,8 +1235,12 @@ static void ssp_shutdown(struct spi_device *spi)
 	mutex_destroy(&data->enable_mutex);
 	mutex_destroy(&data->ssp_enable_mutex);
 
+#ifdef CONFIG_SEC_VIB_NOTIFIER
+	sec_vib_notifier_unregister(&vib_notif);
 #ifdef CONFIG_SENSORS_SSP_LIGHT_COLORID
 	cancel_delayed_work_sync(&data->work_ssp_light_efs_file_init);
+#endif
+
 #endif
 	
 	pr_info("[SSP] %s done\n", __func__);

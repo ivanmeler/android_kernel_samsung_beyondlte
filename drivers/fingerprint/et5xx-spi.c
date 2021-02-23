@@ -45,7 +45,7 @@ static LIST_HEAD(device_list);
 static DEFINE_MUTEX(device_list_lock);
 
 #ifdef ENABLE_SENSORS_FPRINT_SECURE
-int fpsensor_goto_suspend =0;
+int fpsensor_goto_suspend;
 #endif
 
 static int gpio_irq;
@@ -56,8 +56,9 @@ module_param(bufsiz, uint, 0444);
 MODULE_PARM_DESC(bufsiz, "data bytes in biggest supported SPI message");
 
 #if defined(ENABLE_SENSORS_FPRINT_SECURE)
-int fps_resume_set(void) {
-	int ret =0;
+int fps_resume_set(void)
+{
+	int ret = 0;
 
 	if (fpsensor_goto_suspend) {
 		fpsensor_goto_suspend = 0;
@@ -222,7 +223,7 @@ static void etspi_power_control(struct etspi_data *etspi, int status)
 		usleep_range(1100, 1150);
 		if (etspi->sleepPin)
 			gpio_set_value(etspi->sleepPin, 1);
-		usleep_range(10000, 10050);
+		usleep_range(11000, 11050);
 	} else if (status == 0) {
 #if defined(ENABLE_SENSORS_FPRINT_SECURE)
 #if !defined(CONFIG_TZDEV)
@@ -877,7 +878,7 @@ static long etspi_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 	case FP_SPI_VALUE:
 		etspi->spi_value = ioc->len;
-		pr_info("%s spi_value: 0x%x\n", __func__,etspi->spi_value);
+		pr_info("%s spi_value: 0x%x\n", __func__, etspi->spi_value);
 			break;
 	case FP_IOCTL_RESERVED_01:
 	case FP_IOCTL_RESERVED_02:
@@ -1247,7 +1248,7 @@ static int etspi_type_check(struct etspi_data *etspi)
 	} else  if ((buf1 == 0x03) && (buf2 == 0x14) && (buf3 == 0x05)) {
 		etspi->sensortype = SENSOR_EGIS;
 		pr_info("%s sensor type is EGIS ET520 sensor\n", __func__);
-	} else if((buf1 == 0x00) && (buf2 == 0x17) && (buf3 == 0x05)) {
+	} else if ((buf1 == 0x00) && (buf2 == 0x17) && (buf3 == 0x05)) {
 		etspi->sensortype = SENSOR_EGIS;
 		pr_info("%s sensor type is EGIS ET523 sensor\n", __func__);
 	} else {
@@ -1317,6 +1318,7 @@ static ssize_t etspi_intcnt_show(struct device *dev,
 			       struct device_attribute *attr, char *buf)
 {
 	struct etspi_data *data = dev_get_drvdata(dev);
+
 	return snprintf(buf, PAGE_SIZE, "%d\n", data->interrupt_count);
 }
 
@@ -1337,6 +1339,7 @@ static ssize_t etspi_resetcnt_show(struct device *dev,
 			       struct device_attribute *attr, char *buf)
 {
 	struct etspi_data *data = dev_get_drvdata(dev);
+
 	return snprintf(buf, PAGE_SIZE, "%d\n", data->reset_count);
 }
 

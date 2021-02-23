@@ -56,7 +56,6 @@
 #include <linux/slab.h>
 #include <linux/mbcache.h>
 #include <linux/quotaops.h>
-#include <linux/fslog.h>
 #include "ext4_jbd2.h"
 #include "ext4.h"
 #include "xattr.h"
@@ -383,7 +382,7 @@ static int ext4_xattr_inode_iget(struct inode *parent, unsigned long ea_ino,
 	struct inode *inode;
 	int err;
 
-	inode = ext4_iget(parent->i_sb, ea_ino);
+	inode = ext4_iget(parent->i_sb, ea_ino, EXT4_IGET_NORMAL);
 	if (IS_ERR(inode)) {
 		err = PTR_ERR(inode);
 		ext4_error(parent->i_sb,
@@ -1498,7 +1497,8 @@ ext4_xattr_inode_cache_find(struct inode *inode, const void *value,
 	}
 
 	while (ce) {
-		ea_inode = ext4_iget(inode->i_sb, ce->e_value);
+		ea_inode = ext4_iget(inode->i_sb, ce->e_value,
+				     EXT4_IGET_NORMAL);
 		if (!IS_ERR(ea_inode) &&
 		    !is_bad_inode(ea_inode) &&
 		    (EXT4_I(ea_inode)->i_flags & EXT4_EA_INODE_FL) &&
@@ -1710,7 +1710,7 @@ static int ext4_xattr_set_entry(struct ext4_xattr_info *i,
 
 	/* No failures allowed past this point. */
 
-	if (!s->not_found && here->e_value_size && here->e_value_offs) {
+	if (!s->not_found && here->e_value_size && !here->e_value_inum) {
 		/* Remove the old value. */
 		void *first_val = s->base + min_offs;
 		size_t offs = le16_to_cpu(here->e_value_offs);
@@ -1834,8 +1834,11 @@ ext4_xattr_block_find(struct inode *inode, struct ext4_xattr_info *i,
 	if (EXT4_I(inode)->i_file_acl) {
 		/* The inode already has an extended attribute block. */
 		bs->bh = ext4_sb_bread(sb, EXT4_I(inode)->i_file_acl, REQ_PRIO);
-		if (IS_ERR(bs->bh))
-			return PTR_ERR(bs->bh);
+		if (IS_ERR(bs->bh)) {
+			error = PTR_ERR(bs->bh);
+			bs->bh = NULL;
+			return error;
+		}
 		ea_bdebug(bs->bh, "b_count=%d, refcount=%d",
 			atomic_read(&(bs->bh->b_count)),
 			le32_to_cpu(BHDR(bs->bh)->h_refcount));
@@ -1872,15 +1875,6 @@ ext4_xattr_block_set(handle_t *handle, struct inode *inode,
 	size_t old_ea_inode_quota = 0;
 	unsigned int ea_ino;
 
-	if (!strcmp(i->name, "selinux")) {
-		if (!i->value || !strcmp(i->value, "") ||
-				strstr(i->value, "unlabeled")) {
-			SE_LOG("%s : ino(%lu) label set, value : %s.",
-					__func__, inode->i_ino, i->value?i->value:"NuLL");
-			dump_stack();
-			fslog_kmsg_selog(__func__, 12);
-		}			
-	}
 
 #define header(x) ((struct ext4_xattr_header *)(x))
 
@@ -2234,7 +2228,9 @@ int ext4_xattr_ibody_inline_set(handle_t *handle, struct inode *inode,
 	struct ext4_xattr_search *s = &is->s;
 	int error;
 
-	if (EXT4_I(inode)->i_extra_isize == 0)
+	/* @fs.sec -- ec294112f1af9d4be72e6292e7e994e522fccbeb -- */
+	if (EXT4_I(inode)->i_extra_isize == 0 ||
+			(void *) EXT4_XATTR_NEXT(s->first) >= s->end)
 		return -ENOSPC;
 	error = ext4_xattr_set_entry(i, s, handle, inode, false /* is_block */);
 	if (error)
@@ -2258,18 +2254,10 @@ static int ext4_xattr_ibody_set(handle_t *handle, struct inode *inode,
 	struct ext4_xattr_search *s = &is->s;
 	int error;
 
+	/* @fs.sec -- 27aa4ade7b90e77a75b0f821924eaac228cfdd43 -- */
 	if (EXT4_I(inode)->i_extra_isize == 0 ||
 			(void *) EXT4_XATTR_NEXT(s->first) >= s->end)
 		return -ENOSPC;
-
-	if (!strcmp(i->name, "selinux")) {
-		if (!i->value || !strcmp(i->value, "") ||
-				strstr(i->value, "unlabeled")) {
-			SE_LOG("%s : ino(%lu) label set, value : %s.",
-					__func__, inode->i_ino, i->value?i->value:"NuLL");
-		}
-	}
-
 	error = ext4_xattr_set_entry(i, s, handle, inode, false /* is_block */);
 	if (error)
 		return error;
@@ -2441,8 +2429,6 @@ retry_inode:
 			error = ext4_xattr_block_set(handle, inode, &i, &bs);
 			if (!error && !is.s.not_found) {
 				i.value = NULL;
-				SE_LOG(">>> Don't trust next log. %s : ino(%lu)",
-						__func__, inode->i_ino);
 				error = ext4_xattr_ibody_set(handle, inode, &i,
 							     &is);
 			} else if (error == -ENOSPC) {

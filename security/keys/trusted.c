@@ -123,7 +123,7 @@ out:
  */
 static int TSS_authhmac(unsigned char *digest, const unsigned char *key,
 			unsigned int keylen, unsigned char *h1,
-			unsigned char *h2, unsigned int h3, ...)
+			unsigned char *h2, unsigned char h3, ...)
 {
 	unsigned char paramdigest[SHA1_DIGEST_SIZE];
 	struct sdesc *sdesc;
@@ -139,7 +139,7 @@ static int TSS_authhmac(unsigned char *digest, const unsigned char *key,
 		return PTR_ERR(sdesc);
 	}
 
-	c = !!h3;
+	c = h3;
 	ret = crypto_shash_init(&sdesc->shash);
 	if (ret < 0)
 		goto out;
@@ -1136,11 +1136,10 @@ out:
  * trusted_read - copy the sealed blob data to userspace in hex.
  * On success, return to userspace the trusted key datablob size.
  */
-static long trusted_read(const struct key *key, char __user *buffer,
+static long trusted_read(const struct key *key, char *buffer,
 			 size_t buflen)
 {
 	const struct trusted_key_payload *p;
-	char *ascii_buf;
 	char *bufp;
 	int i;
 
@@ -1149,18 +1148,9 @@ static long trusted_read(const struct key *key, char __user *buffer,
 		return -EINVAL;
 
 	if (buffer && buflen >= 2 * p->blob_len) {
-		ascii_buf = kmalloc(2 * p->blob_len, GFP_KERNEL);
-		if (!ascii_buf)
-			return -ENOMEM;
-
-		bufp = ascii_buf;
+		bufp = buffer;
 		for (i = 0; i < p->blob_len; i++)
 			bufp = hex_byte_pack(bufp, p->blob[i]);
-		if (copy_to_user(buffer, ascii_buf, 2 * p->blob_len) != 0) {
-			kzfree(ascii_buf);
-			return -EFAULT;
-		}
-		kzfree(ascii_buf);
 	}
 	return 2 * p->blob_len;
 }

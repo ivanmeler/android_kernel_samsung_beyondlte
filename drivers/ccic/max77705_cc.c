@@ -57,15 +57,15 @@ static void max77705_ccic_event_notifier(struct work_struct *data)
 	switch (event_work->dest) {
 	case CCIC_NOTIFY_DEV_USB:
 			msg_maxim("usb: dest=%s, id=%s, attach=%s, drp=%s",
-				CCIC_NOTI_DEST_Print[event_work->dest],
-				CCIC_NOTI_ID_Print[event_work->id],
+				pdic_event_dest_string(event_work->dest),
+				pdic_event_id_string(event_work->id),
 				event_work->attach ? "Attached" : "Detached",
-				CCIC_NOTI_USB_STATUS_Print[event_work->event]);
+				pdic_usbstatus_string(event_work->event));
 			break;
 	default:
 			msg_maxim("usb: dest=%s, id=%s, attach=%d, event=%d",
-				CCIC_NOTI_DEST_Print[event_work->dest],
-				CCIC_NOTI_ID_Print[event_work->id],
+				pdic_event_dest_string(event_work->dest),
+				pdic_event_id_string(event_work->id),
 				event_work->attach,
 				event_work->event);
 			break;
@@ -95,7 +95,11 @@ void max77705_ccic_event_work(void *data, int dest, int id, int attach, int even
 #endif
 
 	msg_maxim("usb: DIAES %d-%d-%d-%d-%d", dest, id, attach, event, sub);
-	event_work = kmalloc(sizeof(struct ccic_state_work), GFP_ATOMIC);
+	event_work = kmalloc(sizeof(struct ccic_state_work), GFP_KERNEL);
+	if (!event_work) {
+		msg_maxim("failed to allocate event_work");
+		return;
+	}
 	INIT_WORK(&event_work->ccic_work, max77705_ccic_event_notifier);
 
 	event_work->dest = dest;
@@ -327,10 +331,11 @@ static irqreturn_t max77705_vconnsc_irq(int irq, void *data)
 {
 	struct max77705_usbc_platform_data *usbc_data = data;
 	struct max77705_cc_data *cc_data = usbc_data->cc_data;
-	u8 connstat = 0;
+	u8 connstat = 0, usbc_status2 = 0;
 
 	pr_debug("%s: IRQ(%d)_IN\n", __func__, irq);
 	max77705_read_reg(usbc_data->muic, REG_CC_STATUS1, &cc_data->cc_status1);
+	max77705_read_reg(usbc_data->muic, REG_USBC_STATUS2, &usbc_status2);
 	connstat = (cc_data->cc_status1 & BIT_ConnStat)
 				>> FFS(BIT_ConnStat);
 
@@ -351,7 +356,7 @@ static irqreturn_t max77705_vconnsc_irq(int irq, void *data)
 		break;
 
 	case WATER:
-		msg_maxim("== WATER DETECT ==");
+		msg_maxim("== WATER DETECT == sysmsg[0x%x]", usbc_status2);
 
 		if (usbc_data->current_connstat != WATER) {
 			usbc_data->prev_connstat = usbc_data->current_connstat;
@@ -462,7 +467,7 @@ static irqreturn_t max77705_ccistat_irq(int irq, void *data)
 		mode = TYPEC_PWR_MODE_3_0A;
 #endif
 		if (usbc_data->srcccap_request_retry) {
-			usbc_data->pn_flag = false;			
+			usbc_data->pn_flag = false;
 			usbc_data->srcccap_request_retry = false;
 			value.opcode = OPCODE_SRCCAP_REQUEST;
 			value.write_data[0] = pd_noti.sink_status.selected_pdo_num;

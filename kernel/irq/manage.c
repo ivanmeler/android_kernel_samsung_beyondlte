@@ -20,7 +20,6 @@
 #include <linux/sched/task.h>
 #include <uapi/linux/sched/types.h>
 #include <linux/task_work.h>
-#include <linux/sec_debug.h>
 
 #include "internals.h"
 
@@ -103,8 +102,6 @@ void synchronize_irq(unsigned int irq)
 	struct irq_desc *desc = irq_to_desc(irq);
 
 	if (desc) {
-		sec_debug_set_task_in_sync_irq((uint64_t)current, irq, (desc && desc->action) ? desc->action->name : NULL, desc);
-
 		__synchronize_hardirq(desc);
 		/*
 		 * We made sure that no hardirq handler is
@@ -112,9 +109,7 @@ void synchronize_irq(unsigned int irq)
 		 * active.
 		 */
 		wait_event(desc->wait_for_threads,
-				!atomic_read(&desc->threads_active));
-
-		sec_debug_set_task_in_sync_irq(0, 0, 0, 0);
+			   !atomic_read(&desc->threads_active));
 	}
 }
 EXPORT_SYMBOL(synchronize_irq);
@@ -229,7 +224,11 @@ int irq_set_affinity_locked(struct irq_data *data, const struct cpumask *mask,
 
 	if (desc->affinity_notify) {
 		kref_get(&desc->affinity_notify->kref);
-		schedule_work(&desc->affinity_notify->work);
+		if (!schedule_work(&desc->affinity_notify->work)) {
+			/* Work was already scheduled, drop our extra ref */
+			kref_put(&desc->affinity_notify->kref,
+				 desc->affinity_notify->release);
+		}
 	}
 	irqd_set(data, IRQD_AFFINITY_SET);
 
@@ -328,8 +327,13 @@ irq_set_affinity_notifier(unsigned int irq, struct irq_affinity_notify *notify)
 	desc->affinity_notify = notify;
 	raw_spin_unlock_irqrestore(&desc->lock, flags);
 
-	if (old_notify)
+	if (old_notify) {
+		if (cancel_work_sync(&old_notify->work)) {
+			/* Pending work had a ref, put that one too */
+			kref_put(&old_notify->kref, old_notify->release);
+		}
 		kref_put(&old_notify->kref, old_notify->release);
+	}
 
 	return 0;
 }
@@ -385,23 +389,9 @@ int irq_setup_affinity(struct irq_desc *desc)
 {
 	return irq_select_affinity(irq_desc_get_irq(desc));
 }
-#endif
+#endif /* CONFIG_AUTO_IRQ_AFFINITY */
+#endif /* CONFIG_SMP */
 
-/*
- * Called when a bogus affinity is set via /proc/irq
- */
-int irq_select_affinity_usr(unsigned int irq)
-{
-	struct irq_desc *desc = irq_to_desc(irq);
-	unsigned long flags;
-	int ret;
-
-	raw_spin_lock_irqsave(&desc->lock, flags);
-	ret = irq_setup_affinity(desc);
-	raw_spin_unlock_irqrestore(&desc->lock, flags);
-	return ret;
-}
-#endif
 
 /**
  *	irq_set_vcpu_affinity - Set vcpu affinity for the interrupt
@@ -1971,7 +1961,6 @@ static struct irqaction *__free_percpu_irq(unsigned int irq, void __percpu *dev_
 		     irq, cpumask_first(desc->percpu_enabled));
 		goto bad;
 	}
-	printk("%s : desc action of irq %d becomes null\n", __func__, irq);
 
 	/* Found it - now remove it from the list of entries: */
 	desc->action = NULL;

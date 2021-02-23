@@ -138,10 +138,10 @@ static struct GAForensicINFO {
 	.vm_area_struct_struct_vm_rb
 		= offsetof(struct vm_area_struct, vm_rb),
 	.pid_struct_numbers = offsetof(struct pid, numbers[0]),
-	.upid_struct_pid_chain = offsetof(struct upid, pid_chain),
-	.upid_struct_nr = offsetof(struct upid, nr),
+	.upid_struct_pid_chain = 0,
+	.upid_struct_nr = 0,
 	.hlist_node_struct_next = offsetof(struct hlist_node, next),
-	.task_struct_pids = offsetof(struct task_struct, pids[0]),
+	.task_struct_pids = 0,
 	.pid_struct_first
 		= offsetof(struct pid, tasks[0])
 		+ offsetof(struct hlist_head, first),

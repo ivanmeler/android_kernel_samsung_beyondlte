@@ -27,7 +27,6 @@
 #include <linux/percpu-refcount.h>
 #include <linux/scatterlist.h>
 #include <linux/blkzoned.h>
-#include <linux/blk-crypt.h>
 
 struct module;
 struct scsi_ioctl_command;
@@ -44,6 +43,7 @@ struct pr_ops;
 struct rq_wb;
 struct blk_queue_stats;
 struct blk_stat_callback;
+struct keyslot_manager;
 
 #define BLKDEV_MIN_RQ	4
 #ifdef CONFIG_LARGE_DIRTY_BUFFER
@@ -159,9 +159,6 @@ struct request {
 	unsigned int __data_len;	/* total data len */
 	int tag;
 	sector_t __sector;		/* sector cursor */
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-	u64 __dun;                      /* dun for UFS */
-#endif
 	struct bio *bio;
 	struct bio *biotail;
 
@@ -350,6 +347,7 @@ struct queue_limits {
 	unsigned int		max_sectors;
 	unsigned int		max_segment_size;
 	unsigned int		physical_block_size;
+	unsigned int		logical_block_size;
 	unsigned int		alignment_offset;
 	unsigned int		io_min;
 	unsigned int		io_opt;
@@ -360,7 +358,6 @@ struct queue_limits {
 	unsigned int		discard_granularity;
 	unsigned int		discard_alignment;
 
-	unsigned short		logical_block_size;
 	unsigned short		max_segments;
 	unsigned short		max_integrity_segments;
 	unsigned short		max_discard_segments;
@@ -415,7 +412,7 @@ struct block_io_volume {
 
 	/*
 	 * volume count of I/O amount(rqs, bytes) per I/O session.
-	 * I/O session starts when first I/O is incomming into queue,
+	 * I/O session starts when first I/O is incoming into queue,
 	 * and finishes when last I/O is outgoing from queue.
 	 */
 	unsigned int		peak_rqs;
@@ -437,7 +434,7 @@ struct block_io_volume {
 typedef void (blk_tw_try_on_fn) (struct request_queue *q);
 typedef void (blk_tw_try_off_fn) (struct request_queue *q);
 
-enum blk_tw_state{
+enum blk_tw_state {
 	TW_OFF = 0,
 	TW_ON_READY,
 	TW_OFF_READY,
@@ -454,11 +451,16 @@ struct blk_turbo_write {
 	int			up_threshold_rqs;
 	long long		down_threshold_bytes;
 	int			down_threshold_rqs;
-	int			on_delay;		/* delay for ON in jiffies */
-	int			off_delay;		/* delay for OFF in jiffies */
 
-	unsigned long		prev_on_ready_ts;	/* previous TW_ON_READY state timestamp */
-	int			on_interval;		/* TW_ON_READY interval for ON in jiffies */
+	/* delay for WB ON in jiffies */
+	int			on_delay;
+	/* delay for WB OFF in jiffies */
+	int			off_delay;
+
+	/* previous TW_ON_READY state timestamp */
+	unsigned long		prev_on_ready_ts;
+	/* TW_ON_READY interval for ON in jiffies */
+	int			on_interval;
 
 	blk_tw_try_on_fn	*try_on;
 	blk_tw_try_off_fn	*try_off;
@@ -473,19 +475,23 @@ struct blk_turbo_write {
 
 int blk_alloc_turbo_write(struct request_queue *q);
 void blk_free_turbo_write(struct request_queue *q);
-int blk_register_tw_try_on_fn(struct request_queue *q, blk_tw_try_on_fn *fn);
-int blk_register_tw_try_off_fn(struct request_queue *q, blk_tw_try_off_fn *fn);
+int blk_register_tw_try_on_fn(struct request_queue *q,
+	blk_tw_try_on_fn *fn);
+int blk_register_tw_try_off_fn(struct request_queue *q,
+	blk_tw_try_off_fn *fn);
 int blk_reset_tw_state(struct request_queue *q);
-void blk_update_tw_state(struct request_queue *q, int write_rqs, long long write_bytes);
-void blk_account_tw_io(struct request_queue *q, int opf, int bytes);
+void blk_update_tw_state(struct request_queue *q,
+	int write_rqs, long long write_bytes);
+void blk_account_tw_io(struct request_queue *q,
+	int opf, int bytes);
 #else
 #define blk_alloc_turbo_write(q)			do {} while (0)
 #define blk_free_turbo_write(q)				do {} while (0)
-#define blk_register_tw_enable_fn(q,fn)			do {} while (0)
-#define blk_register_tw_disable_fn(q,fn)		do {} while (0)
+#define blk_register_tw_enable_fn(q, fn)		do {} while (0)
+#define blk_register_tw_disable_fn(q, fn)		do {} while (0)
 #define blk_reset_tw_state(q)				do {} while (0)
-#define blk_update_tw_state(q,write_rqs,write_bytes)	do {} while (0)
-#define blk_account_tw_io(q,opf,bytes)			do {} while (0)
+#define blk_update_tw_state(q, write_rqs, write_bytes)	do {} while (0)
+#define blk_account_tw_io(q, opf, bytes)		do {} while (0)
 #endif
 
 struct request_queue {
@@ -621,8 +627,8 @@ struct request_queue {
 
 	unsigned int		nr_sorted;
 	unsigned int		in_flight[2];
-	unsigned long long  in_flight_time;
-	ktime_t         in_flight_stamp;
+	unsigned long long	in_flight_time;
+	ktime_t			in_flight_stamp;
 
 	/*
 	 * Number of active block driver functions for which blk_drain_queue()
@@ -630,6 +636,11 @@ struct request_queue {
 	 * queue_lock internally, e.g. scsi_request_fn().
 	 */
 	unsigned int		request_fn_active;
+
+#ifdef CONFIG_BLK_INLINE_ENCRYPTION
+	/* Inline crypto capabilities */
+	struct keyslot_manager *ksm;
+#endif
 
 	unsigned int		rq_timeout;
 	int			poll_nsec;
@@ -657,7 +668,7 @@ struct request_queue {
 	unsigned int		sg_reserved_size;
 	int			node;
 #ifdef CONFIG_BLK_DEV_IO_TRACE
-	struct blk_trace	*blk_trace;
+	struct blk_trace __rcu	*blk_trace;
 	struct mutex		blk_trace_mutex;
 #endif
 	/*
@@ -1128,13 +1139,6 @@ static inline sector_t blk_rq_pos(const struct request *rq)
 	return rq->__sector;
 }
 
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-static inline sector_t blk_rq_dun(const struct request *rq)
-{
-	return rq->__dun;
-}
-#endif
-
 static inline unsigned int blk_rq_bytes(const struct request *rq)
 {
 	return rq->__data_len;
@@ -1285,7 +1289,7 @@ extern void blk_queue_max_write_same_sectors(struct request_queue *q,
 		unsigned int max_write_same_sectors);
 extern void blk_queue_max_write_zeroes_sectors(struct request_queue *q,
 		unsigned int max_write_same_sectors);
-extern void blk_queue_logical_block_size(struct request_queue *, unsigned short);
+extern void blk_queue_logical_block_size(struct request_queue *, unsigned int);
 extern void blk_queue_physical_block_size(struct request_queue *, unsigned int);
 extern void blk_queue_alignment_offset(struct request_queue *q,
 				       unsigned int alignment);
@@ -1543,7 +1547,7 @@ static inline unsigned int queue_max_segment_size(struct request_queue *q)
 	return q->limits.max_segment_size;
 }
 
-static inline unsigned short queue_logical_block_size(struct request_queue *q)
+static inline unsigned queue_logical_block_size(struct request_queue *q)
 {
 	int retval = 512;
 
@@ -1553,7 +1557,7 @@ static inline unsigned short queue_logical_block_size(struct request_queue *q)
 	return retval;
 }
 
-static inline unsigned short bdev_logical_block_size(struct block_device *bdev)
+static inline unsigned int bdev_logical_block_size(struct block_device *bdev)
 {
 	return queue_logical_block_size(bdev_get_queue(bdev));
 }
@@ -2126,12 +2130,5 @@ static inline int blkdev_issue_flush(struct block_device *bdev, gfp_t gfp_mask,
 }
 
 #endif /* CONFIG_BLOCK */
-
-#if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-#define SIO_PATCH_VERSION(name, major, minor, description)	\
-	static const char *sio_##name##_##major##_##minor __attribute__ ((used, section("sio_patches"))) = (#name " " #major "." #minor " " description)
-#else
-#define SIO_PATCH_VERSION(name, major, minor, description)
-#endif
 
 #endif

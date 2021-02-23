@@ -146,4 +146,19 @@ enum {
 };
 
 #endif
+
+#ifdef CONFIG_RTC_HIGH_RES
+enum {
+	RTC_HR_MSEC = 0,
+	RTC_HR_SEC,
+	RTC_HR_MIN,
+	RTC_HR_HOUR,
+	RTC_HR_WEEKDAY,
+	RTC_HR_DATE,
+	RTC_HR_MONTH,
+	RTC_HR_YEAR,
+	NR_RTC_HR_CNT_REGS,
+};
+#endif /* CONFIG_RTC_HIGH_RES */
+
 #endif /*  __LINUX_MFD_SEC_RTC_H */

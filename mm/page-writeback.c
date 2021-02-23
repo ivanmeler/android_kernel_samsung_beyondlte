@@ -217,11 +217,11 @@ static void wb_min_max_ratio(struct bdi_writeback *wb,
 	if (this_bw < tot_bw) {
 		if (min) {
 			min *= this_bw;
-			do_div(min, tot_bw);
+			min = div64_ul(min, tot_bw);
 		}
 		if (max < 100) {
 			max *= this_bw;
-			do_div(max, tot_bw);
+			max = div64_ul(max, tot_bw);
 		}
 	}
 
@@ -1581,6 +1581,54 @@ static inline void wb_dirty_limits(struct dirty_throttle_control *dtc)
 	}
 }
 
+static inline void bdi_fill_sec_debug_bdp(struct backing_dev_info *bdi,
+		unsigned long start_time,
+		struct dirty_throttle_control *dtc) {
+	struct sec_backing_dev_info *sec_bdi = SEC_BDI(bdi);
+	struct bdi_sec_bdp_dbg *bdp_debug = &sec_bdi->bdp_debug;
+	struct bdi_writeback *wb = dtc->wb;
+	struct inode *inode;
+	unsigned long elapsed_ms = (jiffies - start_time) * 1000 / HZ;
+	unsigned int idx;
+	struct bdi_sec_bdp_entry *entry;
+	unsigned long nr_dirty_pages_in_timelist = 0;  /* # of dirty pages in b_dirty_time list */
+	unsigned long nr_dirty_inodes_in_timelist = 0; /* # of dirty inodes in b_dirty_time list */
+
+	// fuse bdi balance_dirty_pages debug timeout : 1 sec
+	if (!(bdi->capabilities & BDI_CAP_SEC_DEBUG) || elapsed_ms < 1000)
+		return;
+
+	spin_lock(&wb->list_lock);
+	list_for_each_entry(inode, &wb->b_dirty_time, i_io_list) {
+		if (inode->i_state & I_DIRTY) {
+			spin_lock(&inode->i_lock);
+			if (inode->i_state & I_DIRTY) {
+				nr_dirty_inodes_in_timelist++;
+			}
+			spin_unlock(&inode->i_lock);
+		}
+	}
+	spin_unlock(&wb->list_lock);
+
+	spin_lock(&bdp_debug->lock);
+	idx = bdp_debug->total++ % BDI_BDP_DEBUG_ENTRY;
+	entry = bdp_debug->entry + idx;
+
+	entry->start_time = start_time;
+	entry->elapsed_ms = elapsed_ms;
+	entry->global_thresh = dtc->thresh;
+	entry->global_dirty = dtc->dirty;
+	entry->wb_thresh = dtc->wb_thresh;
+	entry->wb_dirty = dtc->wb_dirty;
+	entry->wb_avg_write_bandwidth = dtc->wb->avg_write_bandwidth;
+	entry->wb_timelist_dirty = nr_dirty_pages_in_timelist;
+	entry->wb_timelist_inodes = nr_dirty_inodes_in_timelist;
+
+	if (bdp_debug->max_entry.elapsed_ms <= elapsed_ms)
+		memcpy(&bdp_debug->max_entry, entry, sizeof(struct bdi_sec_bdp_entry));
+	spin_unlock(&bdp_debug->lock);
+}
+
 /*
  * balance_dirty_pages() must be called by processes which are generating dirty
  * data.  It looks at the number of dirty pages in the machine and will force
@@ -1588,9 +1636,6 @@ static inline void wb_dirty_limits(struct dirty_throttle_control *dtc)
  * If we're over `background_thresh' then the writeback threads are woken to
  * perform some writeout.
  */
-
-SIO_PATCH_VERSION(prevent_infinite_writeback, 1, 0, "");
-
 static void balance_dirty_pages(struct address_space *mapping,
 				struct bdi_writeback *wb,
 				unsigned long pages_dirtied)
@@ -1613,6 +1658,7 @@ static void balance_dirty_pages(struct address_space *mapping,
 	struct backing_dev_info *bdi = wb->bdi;
 	bool strictlimit = bdi->capabilities & BDI_CAP_STRICTLIMIT;
 	unsigned long start_time = jiffies;
+	unsigned long logtime_stamp = jiffies;
 
 	for (;;) {
 		unsigned long now = jiffies;
@@ -1695,6 +1741,7 @@ static void balance_dirty_pages(struct address_space *mapping,
 			if (mdtc)
 				m_intv = dirty_poll_interval(m_dirty, m_thresh);
 			current->nr_dirtied_pause = min(intv, m_intv);
+			bdi_fill_sec_debug_bdp(bdi, start_time, mdtc ? mdtc : gdtc);
 			break;
 		}
 
@@ -1788,6 +1835,7 @@ static void balance_dirty_pages(struct address_space *mapping,
 				current->nr_dirtied = 0;
 			} else if (current->nr_dirtied_pause <= pages_dirtied)
 				current->nr_dirtied_pause += pages_dirtied;
+			bdi_fill_sec_debug_bdp(bdi, start_time, sdtc);
 			break;
 		}
 		if (unlikely(pause > max_pause)) {
@@ -1810,7 +1858,38 @@ pause:
 					  pause,
 					  start_time);
 
-		/* IOPP-prevent_infinite_writeback-v1.0.4.4 */
+		/* @fs.sec -- b73d2f65ec1a7a5621f2f682a666bae75da7f61e -- */
+		if (bdi->capabilities & BDI_CAP_SEC_DEBUG && pause == max_pause) {
+			unsigned long nr_dirty_pages_in_timelist = 0;  /* # of dirty pages in b_dirty_time list */
+			unsigned long nr_dirty_inodes_in_timelist = 0; /* # of dirty inodes in b_dirty_time list */
+			struct inode *inode;
+
+			logtime_stamp = jiffies;
+			spin_lock(&wb->list_lock);
+			list_for_each_entry(inode, &wb->b_dirty_time, i_io_list) {
+				if (inode->i_state & I_DIRTY) {
+					spin_lock(&inode->i_lock);
+					if (inode->i_state & I_DIRTY) {
+						nr_dirty_inodes_in_timelist++;
+					}
+					spin_unlock(&inode->i_lock);
+				}
+			}
+			spin_unlock(&wb->list_lock);
+			printk_ratelimited(KERN_WARNING "dev: %s, paused %lu, g-thresh %lu, g-dirty %lu, bdi-thresh %lu, bdi-dirty %lu,"
+				" bdi-bw %lu timelist_dirty %lu, timelist_inodes %lu\n",
+				bdi->dev ? dev_name(bdi->dev) : "(unknown)",
+				(unsigned long) (jiffies - start_time) * 1000 / HZ,
+				(unsigned long) gdtc->thresh,
+				(unsigned long) gdtc->dirty,
+				(unsigned long) gdtc->wb_thresh,
+				(unsigned long) gdtc->wb_dirty,
+				(unsigned long) gdtc->wb->avg_write_bandwidth,
+				(unsigned long) nr_dirty_pages_in_timelist,
+				(unsigned long) nr_dirty_inodes_in_timelist);
+		}
+
+		/* IOPP-prevent_infinite_writeback-v1.1.4.4 */
 		/* Do not sleep if the backing device is removed */
 		if (unlikely(!bdi->dev))
 			return;
@@ -2193,6 +2272,13 @@ EXPORT_SYMBOL(tag_pages_for_writeback);
  * not miss some pages (e.g., because some other process has cleared TOWRITE
  * tag we set). The rule we follow is that TOWRITE tag can be cleared only
  * by the process clearing the DIRTY tag (and submitting the page for IO).
+ *
+ * To avoid deadlocks between range_cyclic writeback and callers that hold
+ * pages in PageWriteback to aggregate IO until write_cache_pages() returns,
+ * we do not loop back to the start of the file. Doing so causes a page
+ * lock/page writeback access order inversion - we should only ever lock
+ * multiple pages in ascending page->index order, and looping back to the start
+ * of the file violates that rule and causes deadlocks.
  */
 int write_cache_pages(struct address_space *mapping,
 		      struct writeback_control *wbc, writepage_t writepage,
@@ -2207,7 +2293,6 @@ int write_cache_pages(struct address_space *mapping,
 	pgoff_t index;
 	pgoff_t end;		/* Inclusive */
 	pgoff_t done_index;
-	int cycled;
 	int range_whole = 0;
 	int tag;
 
@@ -2215,52 +2300,30 @@ int write_cache_pages(struct address_space *mapping,
 	if (wbc->range_cyclic) {
 		writeback_index = mapping->writeback_index; /* prev offset */
 		index = writeback_index;
-		if (index == 0)
-			cycled = 1;
-		else
-			cycled = 0;
 		end = -1;
 	} else {
 		index = wbc->range_start >> PAGE_SHIFT;
 		end = wbc->range_end >> PAGE_SHIFT;
 		if (wbc->range_start == 0 && wbc->range_end == LLONG_MAX)
 			range_whole = 1;
-		cycled = 1; /* ignore range_cyclic tests */
 	}
 	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
 		tag = PAGECACHE_TAG_TOWRITE;
 	else
 		tag = PAGECACHE_TAG_DIRTY;
-retry:
 	if (wbc->sync_mode == WB_SYNC_ALL || wbc->tagged_writepages)
 		tag_pages_for_writeback(mapping, index, end);
 	done_index = index;
 	while (!done && (index <= end)) {
 		int i;
 
-		nr_pages = pagevec_lookup_tag(&pvec, mapping, &index, tag,
-			      min(end - index, (pgoff_t)PAGEVEC_SIZE-1) + 1);
+		nr_pages = pagevec_lookup_range_tag(&pvec, mapping, &index, end,
+				tag);
 		if (nr_pages == 0)
 			break;
 
 		for (i = 0; i < nr_pages; i++) {
 			struct page *page = pvec.pages[i];
-
-			/*
-			 * At this point, the page may be truncated or
-			 * invalidated (changing page->mapping to NULL), or
-			 * even swizzled back from swapper_space to tmpfs file
-			 * mapping. However, page->index will not change
-			 * because we have a reference on the page.
-			 */
-			if (page->index > end) {
-				/*
-				 * can't be range_cyclic (1st pass) because
-				 * end == -1 in that case.
-				 */
-				done = 1;
-				break;
-			}
 
 			done_index = page->index;
 
@@ -2339,17 +2402,14 @@ continue_unlock:
 		pagevec_release(&pvec);
 		cond_resched();
 	}
-	if (!cycled && !done) {
-		/*
-		 * range_cyclic:
-		 * We hit the last page and there is more work to be done: wrap
-		 * back to the start of the file
-		 */
-		cycled = 1;
-		index = 0;
-		end = writeback_index - 1;
-		goto retry;
-	}
+
+	/*
+	 * If we hit the last page and there is more work to be done: wrap
+	 * back the index back to the start of the file for the next
+	 * time we are called.
+	 */
+	if (wbc->range_cyclic && !done)
+		done_index = 0;
 	if (wbc->range_cyclic || (range_whole && wbc->nr_to_write > 0))
 		mapping->writeback_index = done_index;
 

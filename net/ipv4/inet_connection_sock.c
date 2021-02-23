@@ -23,9 +23,6 @@
 #include <net/route.h>
 #include <net/tcp_states.h>
 #include <net/xfrm.h>
-#ifdef CONFIG_MPTCP
-#include <net/mptcp.h>
-#endif
 #include <net/tcp.h>
 #include <net/sock_reuseport.h>
 #include <net/addrconf.h>
@@ -478,8 +475,28 @@ struct sock *inet_csk_accept(struct sock *sk, int flags, int *err, bool kern)
 		}
 		spin_unlock_bh(&queue->fastopenq.lock);
 	}
+
 out:
 	release_sock(sk);
+	if (newsk && mem_cgroup_sockets_enabled) {
+		int amt;
+
+		/* atomically get the memory usage, set and charge the
+		 * newsk->sk_memcg.
+		 */
+		lock_sock(newsk);
+
+		/* The socket has not been accepted yet, no need to look at
+		 * newsk->sk_wmem_queued.
+		 */
+		amt = sk_mem_pages(newsk->sk_forward_alloc +
+				   atomic_read(&newsk->sk_rmem_alloc));
+		mem_cgroup_sk_alloc(newsk);
+		if (newsk->sk_memcg && amt)
+			mem_cgroup_charge_skmem(newsk->sk_memcg, amt);
+
+		release_sock(newsk);
+	}
 	if (req)
 		reqsk_put(req);
 	return newsk;
@@ -691,18 +708,9 @@ static void reqsk_timer_handler(unsigned long data)
 	int qlen, expire = 0, resend = 0;
 	int max_retries, thresh;
 	u8 defer_accept;
-#ifdef CONFIG_MPTCP
-	if (sk_state_load(sk_listener) != TCP_LISTEN &&
-	    !is_meta_sk(sk_listener))
-#else
-	if (sk_state_load(sk_listener) != TCP_LISTEN)
-#endif
-		goto drop;
 
-#ifdef CONFIG_MPTCP
-	if (is_meta_sk(sk_listener) && !mptcp_can_new_subflow(sk_listener))
+	if (sk_state_load(sk_listener) != TCP_LISTEN)
 		goto drop;
-#endif
 
 	max_retries = icsk->icsk_syn_retries ? : net->ipv4.sysctl_tcp_synack_retries;
 	thresh = max_retries;
@@ -948,7 +956,7 @@ struct sock *inet_csk_reqsk_queue_add(struct sock *sk,
 		req->sk = child;
 		req->dl_next = NULL;
 		if (queue->rskq_accept_head == NULL)
-			queue->rskq_accept_head = req;
+			WRITE_ONCE(queue->rskq_accept_head, req);
 		else
 			queue->rskq_accept_tail->dl_next = req;
 		queue->rskq_accept_tail = req;
@@ -995,14 +1003,7 @@ void inet_csk_listen_stop(struct sock *sk)
 	 */
 	while ((req = reqsk_queue_remove(queue, sk)) != NULL) {
 		struct sock *child = req->sk;
-#ifdef CONFIG_MPTCP
-		bool mutex_taken = false;
 
-		if (is_meta_sk(child)) {
-			mutex_lock(&tcp_sk(child)->mpcb->mpcb_mutex);
-			mutex_taken = true;
-		}
-#endif
 		local_bh_disable();
 		bh_lock_sock(child);
 		WARN_ON(sock_owned_by_user(child));
@@ -1012,10 +1013,6 @@ void inet_csk_listen_stop(struct sock *sk)
 		reqsk_put(req);
 		bh_unlock_sock(child);
 		local_bh_enable();
-#ifdef CONFIG_MPTCP
-		if (mutex_taken)
-			mutex_unlock(&tcp_sk(child)->mpcb->mpcb_mutex);
-#endif
 		sock_put(child);
 
 		cond_resched();
@@ -1111,7 +1108,7 @@ struct dst_entry *inet_csk_update_pmtu(struct sock *sk, u32 mtu)
 		if (!dst)
 			goto out;
 	}
-	dst->ops->update_pmtu(dst, sk, NULL, mtu);
+	dst->ops->update_pmtu(dst, sk, NULL, mtu, true);
 
 	dst = __sk_dst_check(sk, 0);
 	if (!dst)

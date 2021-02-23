@@ -26,6 +26,8 @@
 #include <linux/anon_inodes.h>
 #include <linux/sched/signal.h>
 #include <linux/sched/mm.h>
+#include <linux/ion_exynos.h>
+#include <uapi/linux/ion.h>
 
 #include "dma-buf-trace.h"
 
@@ -65,7 +67,8 @@ static struct list_head buffer_list = LIST_HEAD_INIT(buffer_list);
 static struct dmabuf_trace_task head_task;
 static DEFINE_MUTEX(trace_lock);
 
-static struct dentry *debug_root;
+#ifdef CONFIG_DEBUG_FS
+static struct dentry *dmabuf_trace_debug_root;
 
 static int dmabuf_trace_debug_show(struct seq_file *s, void *unused)
 {
@@ -101,6 +104,63 @@ static const struct file_operations dmabuf_trace_debug_fops = {
 	.llseek = seq_lseek,
 	.release = single_release,
 };
+
+static int dmabuf_trace_create_debugfs(struct dmabuf_trace_task *task,
+				       const unsigned char *name)
+{
+	task->debug_task = debugfs_create_file(name, 0444,
+					       dmabuf_trace_debug_root, task,
+					       &dmabuf_trace_debug_fops);
+	if (IS_ERR(task->debug_task))
+		return PTR_ERR(task->debug_task);
+
+	return 0;
+}
+
+static void dmabuf_trace_remove_debugfs(struct dmabuf_trace_task *task)
+{
+	debugfs_remove(task->debug_task);
+}
+
+static int dmabuf_trace_init_debugfs(void)
+{
+	struct dentry *d;
+
+	d = debugfs_create_dir("footprint", dma_buf_debugfs_dir);
+	if (IS_ERR(d))
+		return PTR_ERR(d);
+
+	dmabuf_trace_debug_root = d;
+	/*
+	 * PID 1 is actually the pid of the init process. dma-buf trace borrows
+	 * pid 1 for the buffers allocated by the kernel threads to provide
+	 * full buffer information to Android Memory Tracker.
+	 */
+	d = debugfs_create_file("0", 0444, dmabuf_trace_debug_root, &head_task,
+				&dmabuf_trace_debug_fops);
+	if (IS_ERR(d)) {
+		pr_err("dma_buf_trace: debugfs: failed to create for pid 0\n");
+		debugfs_remove_recursive(dmabuf_trace_debug_root);
+		dmabuf_trace_debug_root = NULL;
+
+		return PTR_ERR(d);
+	}
+	head_task.debug_task = d;
+
+	return 0;
+}
+#else
+#define dmabuf_trace_remove_debugfs(task) do { } while (0)
+static int dmabuf_trace_create_debugfs(struct dmabuf_trace_task *task,
+				       const unsigned char *name)
+{
+	return 0;
+}
+static int dmabuf_trace_init_debugfs(void)
+{
+	return 0;
+}
+#endif
 
 static void dmabuf_trace_free_ref_force(struct dmabuf_trace_ref *ref)
 {
@@ -148,7 +208,7 @@ static int dmabuf_trace_task_release(struct inode *inode, struct file *file)
 
 	mutex_unlock(&trace_lock);
 
-	debugfs_remove(task->debug_task);
+	dmabuf_trace_remove_debugfs(task);
 
 	kfree(task);
 
@@ -176,6 +236,15 @@ static struct dmabuf_trace_task *dmabuf_trace_get_task_noalloc(void)
 	struct dmabuf_trace_task *task;
 
 	if (!current->mm && (current->flags & PF_KTHREAD))
+		return &head_task;
+
+	/*
+	 * init process, pid 1 closes file descriptor after booting.
+	 * At that time, the trace buffers of init process are released,
+	 * so we use head task to track the buffer of init process instead of
+	 * creating dmabuf_trace_task for init process.
+	 */
+	if (current->group_leader->pid == 1)
 		return &head_task;
 
 	list_for_each_entry(task, &head_task.node, node)
@@ -207,13 +276,10 @@ static struct dmabuf_trace_task *dmabuf_trace_get_task(void)
 	get_task_struct(current->group_leader);
 
 	task->task = current->group_leader;
-	task->debug_task = debugfs_create_file(name, 0444,
-					       debug_root, task,
-					       &dmabuf_trace_debug_fops);
-	if (IS_ERR(task->debug_task)) {
-		ret = PTR_ERR(task->debug_task);
+
+	ret = dmabuf_trace_create_debugfs(task, name);
+	if (ret)
 		goto err_debugfs;
-	}
 
 	ret = get_unused_fd_flags(O_RDONLY | O_CLOEXEC);
 	if (ret < 0)
@@ -237,11 +303,13 @@ static struct dmabuf_trace_task *dmabuf_trace_get_task(void)
 err_inode:
 	put_unused_fd(fd);
 err_fd:
-	debugfs_remove(task->debug_task);
+	dmabuf_trace_remove_debugfs(task);
 err_debugfs:
 	put_task_struct(current->group_leader);
 
 	kfree(task);
+
+	pr_err("%s: Failed to get task(err %d)\n", __func__, ret);
 
 	return ERR_PTR(ret);
 
@@ -304,21 +372,21 @@ int dmabuf_trace_alloc(struct dma_buf *dmabuf)
 	struct dmabuf_trace_buffer *buffer;
 	struct dmabuf_trace_task *task;
 	struct dmabuf_trace_ref *ref;
-	int ret = -ENOMEM;
 
 	buffer = kzalloc(sizeof(*buffer), GFP_KERNEL);
 	if (!buffer)
-		return ret;
+		return -ENOMEM;
 
 	INIT_LIST_HEAD(&buffer->ref_list);
-
 	buffer->dmabuf = dmabuf;
-	buffer->shared_count = 1;
+
+	mutex_lock(&trace_lock);
+	list_add_tail(&buffer->node, &buffer_list);
+	mutex_unlock(&trace_lock);
 
 	ref = kzalloc(sizeof(*ref), GFP_KERNEL);
 	if (!ref)
-		goto err_ref;
-
+		return -ENOMEM;
 	ref->buffer = buffer;
 
 	/*
@@ -339,29 +407,19 @@ int dmabuf_trace_alloc(struct dma_buf *dmabuf)
 	task = dmabuf_trace_get_task();
 	if (IS_ERR(task)) {
 		mutex_unlock(&trace_lock);
-		ret = PTR_ERR(task);
-
-		goto err_task;
+		kfree(ref);
+		return PTR_ERR(task);
 	}
-
 	ref->task = task;
-
-	list_add_tail(&buffer->node, &buffer_list);
 
 	list_add_tail(&ref->task_node, &task->ref_list);
 	list_add_tail(&ref->buffer_node, &buffer->ref_list);
 
+	buffer->shared_count++;
+
 	mutex_unlock(&trace_lock);
 
 	return 0;
-err_task:
-	kfree(ref);
-err_ref:
-	kfree(buffer);
-	pr_err("%s: Failed to trace dmabuf after to export(err %d)\n",
-	       __func__, ret);
-
-	return ret;
 }
 
 /**
@@ -378,6 +436,10 @@ void dmabuf_trace_free(struct dma_buf *dmabuf)
 	mutex_lock(&trace_lock);
 
 	buffer = dmabuf_trace_get_buffer(dmabuf);
+	if (!buffer) {
+		mutex_unlock(&trace_lock);
+		return;
+	}
 
 	list_for_each_entry_safe(ref, tmp, &buffer->ref_list, buffer_node)
 		dmabuf_trace_free_ref_force(ref);
@@ -410,6 +472,11 @@ int dmabuf_trace_track_buffer(struct dma_buf *dmabuf)
 	}
 
 	buffer = dmabuf_trace_get_buffer(dmabuf);
+	if (!buffer) {
+		ret = -ENOENT;
+		goto err;
+	}
+
 	ref = dmabuf_trace_get_ref(buffer, task);
 	if (IS_ERR(ref)) {
 		/*
@@ -459,6 +526,11 @@ int dmabuf_trace_untrack_buffer(struct dma_buf *dmabuf)
 	}
 
 	buffer = dmabuf_trace_get_buffer(dmabuf);
+	if (!buffer) {
+		ret = -ENOENT;
+		goto err_unregister;
+	}
+
 	ref = dmabuf_trace_get_ref_noalloc(buffer, task);
 	if (!ref) {
 		ret = -ENOENT;
@@ -476,28 +548,308 @@ err_unregister:
 	return ret;
 }
 
-static int __init dmabuf_trace_create(void)
-{
-	debug_root = debugfs_create_dir("footprint", dma_buf_debugfs_dir);
-	if (IS_ERR(debug_root)) {
-		pr_err("%s : Failed to create directory\n", __func__);
+struct dmabuf_trace_memory {
+	__u32 version;
+	__u32 pid;
+	__u32 count;
+	__u32 type;
+	__u32 *flags;
+	__u32 *size_in_bytes;
+	__u32 reserved[2];
+};
 
-		return PTR_ERR(debug_root);
+#define DMABUF_TRACE_BASE	't'
+#define DMABUF_TRACE_IOCTL_GET_MEMORY \
+	_IOWR(DMABUF_TRACE_BASE, 0, struct dmabuf_trace_memory)
+
+#ifdef CONFIG_COMPAT
+struct compat_dmabuf_trace_memory {
+	__u32 version;
+	__u32 pid;
+	__u32 count;
+	__u32 type;
+	compat_uptr_t flags;
+	compat_uptr_t size_in_bytes;
+	__u32 reserved[2];
+};
+#define DMABUF_TRACE_COMPAT_IOCTL_GET_MEMORY \
+	_IOWR(DMABUF_TRACE_BASE, 0, struct compat_dmabuf_trace_memory)
+#endif
+
+#define MAX_DMABUF_TRACE_MEMORY 64
+
+static int dmabuf_trace_get_user_data(unsigned int cmd, void __user *arg,
+				      unsigned int *pid, unsigned int *count,
+				      unsigned int *type, unsigned int flags[])
+{
+	unsigned int __user *uflags;
+	unsigned int ucnt;
+	int ret;
+
+#ifdef CONFIG_COMPAT
+	if (cmd == DMABUF_TRACE_COMPAT_IOCTL_GET_MEMORY) {
+		struct compat_dmabuf_trace_memory __user *udata = arg;
+		compat_uptr_t cptr;
+
+		ret = get_user(cptr, &udata->flags);
+		ret |= get_user(ucnt, &udata->count);
+		ret |= get_user(*pid, &udata->pid);
+		ret |= get_user(*type, &udata->type);
+		uflags = compat_ptr(cptr);
+	} else
+#endif
+	{
+		struct dmabuf_trace_memory __user *udata = arg;
+
+		ret = get_user(uflags, &udata->flags);
+		ret |= get_user(ucnt, &udata->count);
+		ret |= get_user(*pid, &udata->pid);
+		ret |= get_user(*type, &udata->type);
 	}
 
-	/*
-	 * PID 1 is actually the pid of the init process. dma-buf trace borrows
-	 * pid 1 for the buffers allocated by the kernel threads to provide
-	 * full buffer information to Android Memory Tracker.
-	 */
-	head_task.debug_task = debugfs_create_file("0", 0444,
-						   debug_root, &head_task,
-						   &dmabuf_trace_debug_fops);
-	if (IS_ERR(head_task.debug_task)) {
-		debugfs_remove(debug_root);
-		pr_err("%s: Failed to create task for kernel thread\n",
-		       __func__);
-		return PTR_ERR(head_task.debug_task);
+	if (ret) {
+		pr_err("%s: failed to read data from user\n", __func__);
+		return -EFAULT;
+	}
+
+	if ((ucnt < 1) || (ucnt > MAX_DMABUF_TRACE_MEMORY)) {
+		pr_err("%s: invalid buffer count %u\n", __func__, ucnt);
+		return -EINVAL;
+	}
+
+	if (copy_from_user(flags, uflags, sizeof(flags[0]) * ucnt)) {
+		pr_err("%s: failed to read %u dma_bufs from user\n",
+		       __func__, ucnt);
+		return -EFAULT;
+	}
+
+	*count = ucnt;
+
+	return 0;
+}
+
+static int dmabuf_trace_put_user_data(unsigned int cmd, void __user *arg,
+				      unsigned int sizes[], int count)
+{
+	int __user *usize;
+	int ret;
+
+#ifdef CONFIG_COMPAT
+	if (cmd == DMABUF_TRACE_COMPAT_IOCTL_GET_MEMORY) {
+		struct compat_dmabuf_trace_memory __user *udata = arg;
+		compat_uptr_t cptr;
+
+		ret = get_user(cptr, &udata->size_in_bytes);
+		usize = compat_ptr(cptr);
+	} else
+#endif
+	{
+		struct dmabuf_trace_memory __user *udata = arg;
+
+		ret = get_user(usize, &udata->size_in_bytes);
+	}
+
+	if (ret) {
+		pr_err("%s: failed to read data from user\n", __func__);
+		return -EFAULT;
+	}
+
+	if (copy_to_user(usize, sizes, sizeof(sizes[0]) * count)) {
+		pr_err("%s: failed to read %u dma_bufs from user\n",
+		       __func__, count);
+		return -EFAULT;
+	}
+
+	return 0;
+}
+
+/**
+ * Flags to differentiate memory that can already be accounted for in
+ * /proc/<pid>/smaps,
+ * (Shared_Clean + Shared_Dirty + Private_Clean + Private_Dirty = Size).
+ * In general, memory mapped in to a userspace process is accounted unless
+ * it was mapped with remap_pfn_range.
+ * Exactly one of these should be set.
+ */
+#define MEMTRACK_FLAG_SMAPS_ACCOUNTED   (1 << 1)
+#define MEMTRACK_FLAG_SMAPS_UNACCOUNTED (1 << 2)
+
+/**
+ * Flags to differentiate memory shared across multiple processes vs. memory
+ * used by a single process.  Only zero or one of these may be set in a record.
+ * If none are set, record is assumed to count shared + private memory.
+ */
+#define MEMTRACK_FLAG_SHARED      (1 << 3)
+#define MEMTRACK_FLAG_SHARED_PSS  (1 << 4) /* shared / num_procesess */
+#define MEMTRACK_FLAG_PRIVATE     (1 << 5)
+
+/**
+ * Flags to differentiate memory taken from the kernel's allocation pool vs.
+ * memory that is dedicated to non-kernel allocations, for example a carveout
+ * or separate video memory.  Only zero or one of these may be set in a record.
+ * If none are set, record is assumed to count system + dedicated memory.
+ */
+#define MEMTRACK_FLAG_SYSTEM     (1 << 6)
+#define MEMTRACK_FLAG_DEDICATED  (1 << 7)
+
+/**
+ * Flags to differentiate memory accessible by the CPU in non-secure mode vs.
+ * memory that is protected.  Only zero or one of these may be set in a record.
+ * If none are set, record is assumed to count secure + nonsecure memory.
+ */
+#define MEMTRACK_FLAG_NONSECURE  (1 << 8)
+#define MEMTRACK_FLAG_SECURE     (1 << 9)
+
+enum memtrack_type {
+	MEMTRACK_TYPE_OTHER,
+	MEMTRACK_TYPE_GL,
+	MEMTRACK_TYPE_GRAPHICS,
+	MEMTRACK_TYPE_MULTIMEDIA,
+	MEMTRACK_TYPE_CAMERA,
+	MEMTRACK_NUM_TYPES,
+};
+
+/*
+ * These definitions below are defined in ion_exynos modules.
+ * That will not be changed later. We define with prefix MEMTRACK in duplicate
+ *
+ * ION_HEAP_TYPE_CARVEOUT
+ * ION_EXYNOS_FLAG_PROTECTED
+ * ION_FLAG_MAY_HWRENDER
+ */
+#define MEMTRACK_ION_HEAP_TYPE_CARVEOUT (ION_HEAP_TYPE_CARVEOUT)
+#define MEMTRACK_ION_EXYNOS_FLAG_PROTECTED BIT(4)
+#define MEMTRACK_ION_FLAG_MAY_HWRENDER BIT(6)
+
+static unsigned int dmabuf_trace_get_memtrack_flags(struct dma_buf *dmabuf)
+{
+	unsigned long mflags, flags = 0;
+
+	mflags = MEMTRACK_FLAG_SMAPS_UNACCOUNTED | MEMTRACK_FLAG_SHARED_PSS;
+
+	if (dma_buf_get_flags(dmabuf, &flags))
+		return 0;
+
+	if (ION_HEAP_MASK(flags >> ION_HEAP_SHIFT) ==
+	    MEMTRACK_ION_HEAP_TYPE_CARVEOUT)
+		mflags |= MEMTRACK_FLAG_DEDICATED;
+	else
+		mflags |= MEMTRACK_FLAG_SYSTEM;
+
+	if (ION_BUFFER_MASK(flags) & MEMTRACK_ION_EXYNOS_FLAG_PROTECTED)
+		mflags |= MEMTRACK_FLAG_SECURE;
+	else
+		mflags |= MEMTRACK_FLAG_NONSECURE;
+
+	return mflags;
+}
+
+static unsigned int dmabuf_trace_get_memtrack_type(struct dma_buf *dmabuf)
+{
+	unsigned long flags = 0;
+
+	if (dma_buf_get_flags(dmabuf, &flags))
+		return 0;
+
+	if (ION_BUFFER_MASK(flags) & MEMTRACK_ION_FLAG_MAY_HWRENDER)
+		return MEMTRACK_TYPE_GRAPHICS;
+
+	return MEMTRACK_TYPE_OTHER;
+}
+
+static void dmabuf_trace_set_sizes(unsigned int pid, unsigned int count,
+				   unsigned int type, unsigned int flags[],
+				   unsigned int sizes[])
+{
+	struct dmabuf_trace_task *task;
+	struct dmabuf_trace_ref *ref;
+	int i;
+
+	mutex_lock(&trace_lock);
+	list_for_each_entry(task, &head_task.node, node)
+		if (task->task->pid == pid)
+			break;
+
+	if (&task->node == &head_task.node) {
+		mutex_unlock(&trace_lock);
+		return;
+	}
+
+	list_for_each_entry(ref, &task->ref_list, task_node) {
+		unsigned int mflags, mtype;
+
+		mflags = dmabuf_trace_get_memtrack_flags(ref->buffer->dmabuf);
+		mtype = dmabuf_trace_get_memtrack_type(ref->buffer->dmabuf);
+
+		for (i = 0; i < count; i++) {
+			if ((flags[i] == mflags) && (type == mtype))
+				sizes[i] += ref->buffer->dmabuf->size /
+					ref->buffer->shared_count;
+		}
+	}
+	mutex_unlock(&trace_lock);
+}
+
+static int dmabuf_trace_get_memory(unsigned int cmd, unsigned long arg)
+{
+	unsigned int flags[MAX_DMABUF_TRACE_MEMORY];
+	unsigned int sizes[MAX_DMABUF_TRACE_MEMORY] = {0, };
+	unsigned int count, pid, type;
+	int ret;
+
+	ret = dmabuf_trace_get_user_data(cmd, (void __user *)arg, &pid,
+					 &count, &type, flags);
+	if (ret)
+		return ret;
+
+	dmabuf_trace_set_sizes(pid, count, type, flags, sizes);
+
+	return dmabuf_trace_put_user_data(cmd, (void __user *)arg,
+					  sizes, count);
+}
+
+static long dmabuf_trace_ioctl(struct file *filp, unsigned int cmd,
+			       unsigned long arg)
+{
+	switch (cmd) {
+#ifdef CONFIG_COMPAT
+	case DMABUF_TRACE_COMPAT_IOCTL_GET_MEMORY:
+#endif
+	case DMABUF_TRACE_IOCTL_GET_MEMORY:
+		return dmabuf_trace_get_memory(cmd, arg);
+	default:
+		return -ENOTTY;
+	}
+}
+
+static const struct file_operations dmabuf_trace_fops = {
+	.owner          = THIS_MODULE,
+	.unlocked_ioctl = dmabuf_trace_ioctl,
+#ifdef CONFIG_COMPAT
+	.compat_ioctl	= dmabuf_trace_ioctl,
+#endif
+};
+
+static struct miscdevice dmabuf_trace_dev = {
+	.minor = MISC_DYNAMIC_MINOR,
+	.name = "dmabuf_trace",
+	.fops = &dmabuf_trace_fops,
+};
+
+static int __init dmabuf_trace_create(void)
+{
+	int ret;
+
+	ret = misc_register(&dmabuf_trace_dev);
+	if (ret) {
+		pr_err("failed to register dmabuf_trace dev\n");
+		return ret;
+	}
+
+	ret = dmabuf_trace_init_debugfs();
+	if (ret) {
+		misc_deregister(&dmabuf_trace_dev);
+		return ret;
 	}
 
 	INIT_LIST_HEAD(&head_task.node);

@@ -21,12 +21,6 @@ enum abox_dbg_dump_src {
 };
 
 /**
- * Initialize abox debug driver
- * @return	dentry of abox debugfs root directory
- */
-extern struct dentry *abox_dbg_get_root_dir(void);
-
-/**
  * print gpr into the kmsg from memory
  * @param[in]	dev		pointer to device which invokes this API
  * @param[in]	data		pointer to abox_data structure

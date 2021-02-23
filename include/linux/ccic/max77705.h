@@ -227,6 +227,7 @@ enum max77705_vcon_role {
 #define FW_VERIFY_DATA_SIZE 3
 
 #define FW_VERIFY_TRY_COUNT 10
+#define FW_SECURE_MODE_TRY_COUNT 10
 
 #define FW_WAIT_TIMEOUT			(1000 * 5) /* 5 sec */
 #define I2C_SMBUS_BLOCK_HALF	(I2C_SMBUS_BLOCK_MAX / 2)

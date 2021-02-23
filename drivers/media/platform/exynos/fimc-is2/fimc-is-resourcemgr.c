@@ -693,7 +693,7 @@ static int fimc_is_resourcemgr_deinit_secure_mem(struct fimc_is_resourcemgr *res
 static struct vm_struct fimc_is_lib_vm;
 static struct vm_struct fimc_is_heap_vm;
 static struct vm_struct fimc_is_heap_rta_vm;
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 static struct vm_struct fimc_lib_vm_for_rkp;
 #endif
 #if defined(RESERVED_MEM_IN_DT)
@@ -719,7 +719,7 @@ static int __init fimc_is_reserved_mem_setup(struct reserved_mem *rmem)
 	const __be32 *prop;
 	u64 kbase;
 	int len;
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	u64 roundup_end_addr;
 	rkp_dynamic_load_t rkp_dyn;
 	int ret;
@@ -745,7 +745,7 @@ static int __init fimc_is_reserved_mem_setup(struct reserved_mem *rmem)
 
 	BUG_ON(rmem->size < LIB_SIZE);
 
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	memcpy(&fimc_lib_vm_for_rkp, &fimc_is_lib_vm, sizeof(struct vm_struct));
 
 	roundup_end_addr = (u64)roundup((u64)fimc_is_lib_vm.addr + (u64)fimc_is_lib_vm.size, SECTION_SIZE);
@@ -782,7 +782,7 @@ RESERVEDMEM_OF_DECLARE(fimc_is_lib, "exynos,fimc_is_lib", fimc_is_reserved_mem_s
 static int __init fimc_is_lib_mem_alloc(char *str)
 {
 	ulong addr = 0;
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	u64 roundup_end_addr;
 	rkp_dynamic_load_t rkp_dyn;
 	int ret;
@@ -800,7 +800,7 @@ static int __init fimc_is_lib_mem_alloc(char *str)
 	fimc_is_lib_vm.phys_addr = memblock_alloc(LIB_SIZE, SZ_2M);
 	fimc_is_lib_vm.addr = (void *)addr;
 	fimc_is_lib_vm.size = LIB_SIZE + PAGE_SIZE;
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	memcpy(&fimc_lib_vm_for_rkp, &fimc_is_lib_vm, sizeof(struct vm_struct));
 
 	roundup_end_addr = (u64)roundup((u64)fimc_is_lib_vm.addr + (u64)fimc_is_lib_vm.size, SECTION_SIZE);
@@ -847,7 +847,7 @@ static int __init fimc_is_lib_mem_map(void)
 	struct page **pages;
 	pgprot_t prot;
 
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	prot = PAGE_KERNEL_RKP_RO;
 #else
 	prot = PAGE_KERNEL;

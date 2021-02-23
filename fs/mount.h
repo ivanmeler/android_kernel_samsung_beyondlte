@@ -35,7 +35,7 @@ struct mount {
 	struct hlist_node mnt_hash;
 	struct mount *mnt_parent;
 	struct dentry *mnt_mountpoint;
-#ifdef CONFIG_RKP_NS_PROT
+#ifdef CONFIG_KDP_NS
 	struct vfsmount *mnt;
 #else
 	struct vfsmount mnt;
@@ -80,7 +80,7 @@ struct mount {
 
 static inline struct mount *real_mount(struct vfsmount *mnt)
 {
-#ifdef CONFIG_RKP_NS_PROT
+#ifdef CONFIG_KDP_NS
 	return mnt->bp_mount;
 #else
 	return container_of(mnt, struct mount, mnt);
@@ -106,7 +106,7 @@ extern bool legitimize_mnt(struct vfsmount *, unsigned);
 static inline bool __path_is_mountpoint(const struct path *path)
 {
 	struct mount *m = __lookup_mnt(path->mnt, path->dentry);
-#ifdef CONFIG_RKP_NS_PROT
+#ifdef CONFIG_KDP_NS
 	return m && likely(!(m->mnt->mnt_flags & MNT_SYNC_UMOUNT));
 #else
 	return m && likely(!(m->mnt.mnt_flags & MNT_SYNC_UMOUNT));

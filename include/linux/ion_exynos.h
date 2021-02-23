@@ -24,6 +24,14 @@ struct dma_buf_attachment;
 #define ION_FLAG_NOZEROED 8
 #define ION_FLAG_PROTECTED 16
 
+#define ION_HEAP_SHIFT 32
+
+#define ION_HEAP_MAX_BIT 5 // log2(ION_HEAP_TYPE_MAX + 1)
+#define ION_HEAP_MASK(flag) ((flag) & ((1 << ION_HEAP_MAX_BIT) - 1))
+#define ION_BUFFER_MASK(flag) ((flag) & ((1ULL << ION_HEAP_SHIFT) - 1))
+
+#define ION_HEAP_PROTID_SHIFT (ION_HEAP_SHIFT + ION_HEAP_MAX_BIT)
+
 #ifdef CONFIG_ION_EXYNOS
 struct dma_buf *ion_alloc_dmabuf(const char *heap_name,
 				 size_t len, unsigned int flags);

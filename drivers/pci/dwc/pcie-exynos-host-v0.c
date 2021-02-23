@@ -44,7 +44,6 @@
 #include <linux/debug-snapshot.h>
 
 /* #define CONFIG_DYNAMIC_PHY_OFF */
-/* #define CONFIG_SEC_PANIC_PCIE_ERR */
 
 #if defined(CONFIG_SOC_EXYNOS9810) || defined(CONFIG_SOC_EXYNOS9820)
 /*
@@ -1017,10 +1016,6 @@ static int exynos_pcie_clock_enable(struct pcie_port *pp, int enable)
 	if (enable) {
 		for (i = 0; i < exynos_pcie->pcie_clk_num; i++)
 			ret = clk_prepare_enable(clks->pcie_clks[i]);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-			if (ret)
-				panic("[PCIe0 PANIC Case#2] clk fail!\n");
-#endif		
 	} else {
 		for (i = 0; i < exynos_pcie->pcie_clk_num; i++)
 			clk_disable_unprepare(clks->pcie_clks[i]);
@@ -1040,10 +1035,6 @@ static int exynos_pcie_phy_clock_enable(struct pcie_port *pp, int enable)
 	if (enable) {
 		for (i = 0; i < exynos_pcie->phy_clk_num; i++)
 			ret = clk_prepare_enable(clks->phy_clks[i]);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-			if (ret)
-				panic("[PCIe0 PANIC Case#2] PHY clk fail!\n");
-#endif		
 	} else {
 		for (i = 0; i < exynos_pcie->phy_clk_num; i++)
 			clk_disable_unprepare(clks->phy_clks[i]);
@@ -1309,9 +1300,6 @@ retry:
 			goto retry;
 		} else {
 			exynos_pcie_print_link_history(pp);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-			panic("[PCIe0 PANIC Case#1] PCIe Link up fail!\n");
-#endif			
 			if ((exynos_pcie->ip_ver >= 0x889000) &&
 				(exynos_pcie->ep_device_type == EP_BCM_WIFI)) {
 				return -EPIPE;
@@ -1362,10 +1350,6 @@ void exynos_pcie_dislink_work(struct work_struct *work)
 	dev_info(dev, "link down and recovery cnt: %d\n",
 			exynos_pcie->linkdown_cnt);
 
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-	panic("[PCIe0 Case#4 PANIC] PCIe Link down occurred!\n");
-#endif
-			
 	exynos_pcie_notify_callback(pp, EXYNOS_PCIE_EVENT_LINKDOWN);
 }
 
@@ -2367,9 +2351,6 @@ void exynos_pcie_config_l1ss(struct pcie_port *pp)
 	if (ep_pci_dev == NULL) {
 		dev_err(pci->dev,
 			"Failed to set L1SS Enable (pci_dev == NULL)!!!\n");
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR			
-		panic("PCIe0: No ep_pci_dev found!!!\n");
-#endif		
 		return ;
 	}
 
@@ -2760,9 +2741,6 @@ retry_pme_turnoff:
 			goto retry_pme_turnoff;
 		}
 		dev_err(dev, "cannot receive L23_READY DLLP packet(0x%x)\n", val);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-		panic("[PCIe0 PANIC Case#5] L2/3 READY fail!\n");
-#endif
 	}
 }
 

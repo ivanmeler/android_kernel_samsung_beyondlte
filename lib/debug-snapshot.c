@@ -33,15 +33,15 @@
 #ifdef CONFIG_DEBUG_SNAPSHOT_PMU
 #include <soc/samsung/cal-if.h>
 #endif
-#ifdef CONFIG_SEC_DEBUG
+
 #include <linux/sec_debug.h>
-#endif
+
 #ifdef CONFIG_SEC_PM_DEBUG
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
-#endif
 
-#include <linux/sec_debug.h>
+static bool sec_log_full;
+#endif
 
 extern void register_hook_logbuf(void (*)(const char *, size_t));
 extern void register_hook_logger(void (*)(const char *, const char *, size_t));
@@ -147,13 +147,6 @@ void sec_debug_get_kevent_info(struct ess_info_offset *p, int type)
 		p->per_core = 0;
 		break;
 
-	case DSS_KEVENT_MFRQ:
-		p->base = kevent_base_pa + (unsigned long)(dss_log->freq_misc) - kevent_base_va;
-		p->nr = DSS_LOG_MAX_NUM;
-		p->size = sizeof(struct __freq_misc_log);
-		p->per_core = 0;
-		break;
-
 	default:
 		p->base = 0;
 		p->nr = 0;
@@ -163,6 +156,23 @@ void sec_debug_get_kevent_info(struct ess_info_offset *p, int type)
 	}
 
 	p->last = sec_debug_get_kevent_index_addr(type);
+}
+
+int dbg_snapshot_set_debug_level(int level)
+{
+	int i;
+
+	if (level > -1 && level < ARRAY_SIZE(debug_level_val)) {
+		dss_desc.debug_level = i;
+	} else {
+#if !IS_ENABLED(CONFIG_DEBUG_SNAPSHOT_USER_MODE)
+		dss_desc.debug_level = DSS_DEBUG_LEVEL_MID;
+#else
+		dss_desc.debug_level = DSS_DEBUG_LEVEL_LOW;
+#endif
+	}
+	dbg_snapshot_set_debug_level_reg();
+	return 0;
 }
 
 int dbg_snapshot_get_debug_level(void)
@@ -285,10 +295,6 @@ static inline void dbg_snapshot_hook_logger(const char *name,
 		item->curr_ptr += size;
 	}
 }
-
-#ifdef CONFIG_SEC_PM_DEBUG
-static bool sec_log_full;
-#endif
 
 size_t dbg_snapshot_get_curr_ptr_for_sysrq(void)
 {
@@ -508,7 +514,6 @@ static int __init dbg_snapshot_remap(void)
 			page_size = dss_items[i].entry.size / PAGE_SIZE;
 			pages = kzalloc(sizeof(struct page *) * page_size, GFP_KERNEL);
 			page = phys_to_page(dss_items[i].entry.paddr);
-			pr_info("%s: %2d: paddr: 0x%x\n", __func__, i, dss_items[i].entry.paddr);
 
 			for (j = 0; j < page_size; j++)
 				pages[j] = page++;
@@ -744,7 +749,7 @@ static void __init dbg_snapshot_fixmap(void)
 
 	/* output the information of debug-snapshot */
 	dbg_snapshot_output();
-	
+
 #ifdef CONFIG_SEC_DEBUG
 	sec_debug_save_last_kmsg(dss_items[dss_desc.log_kernel_num].head_ptr,
 			dss_items[dss_desc.log_kernel_num].curr_ptr,

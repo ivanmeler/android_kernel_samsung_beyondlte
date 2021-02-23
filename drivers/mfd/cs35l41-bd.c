@@ -40,6 +40,8 @@ static int cs35l41_bd_probe(struct platform_device *pdev)
 	struct cs35l41_data *cs35l41 = dev_get_drvdata(pdev->dev.parent);
 	unsigned int temp;
 	bool right_channel_amp;
+	const char *dsp_part_name;
+	const char *mfd_suffix;
 	int ret;
 
 	regmap_read(cs35l41->regmap, 0x00000000, &temp);
@@ -48,8 +50,17 @@ static int cs35l41_bd_probe(struct platform_device *pdev)
 
 	right_channel_amp = of_property_read_bool(cs35l41->dev->of_node,
 					"cirrus,right-channel-amp");
+	ret = of_property_read_string(cs35l41->dev->of_node,
+						"cirrus,dsp-part-name",
+						&dsp_part_name);
+	if (ret < 0)
+		dsp_part_name = "cs35l41";
 
-	ret = cirrus_bd_amp_add(cs35l41->regmap, right_channel_amp);
+	ret = of_property_read_string(cs35l41->dev->of_node,
+						"cirrus,mfd-suffix",
+						&mfd_suffix);
+
+	ret = cirrus_bd_amp_add(cs35l41->regmap, mfd_suffix, dsp_part_name);
 
 	if (ret < 0) {
 		dev_info(&pdev->dev,

@@ -157,7 +157,7 @@ static int dsim_wait_for_cmd_fifo_empty(struct dsim_device *dsim, bool must_wait
 	}
 
 	if (IS_DSIM_ON_STATE(dsim) && (ret == -ETIMEDOUT)) {
-		dsim_err("%s timeout\n", __func__);
+		dsim_err("%s have timed out\n", __func__);
 		dsim_to_regs_param(dsim, &regs);
 		__dsim_dump(dsim->id, &regs);
 	}
@@ -792,6 +792,7 @@ int dsim_set_panel_power(struct dsim_device *dsim, bool on)
 	return 0;
 }
 #endif
+
 static int _dsim_enable(struct dsim_device *dsim, enum dsim_state state)
 {
 	bool panel_ctrl;
@@ -830,7 +831,6 @@ static int _dsim_enable(struct dsim_device *dsim, enum dsim_state state)
 	dsim->df_mode = DSIM_MODE_POWER_OFF;
 	call_panel_ops(dsim, set_df_default, dsim);
 #endif
-
 	dsim_reg_start(dsim->id);
 
 	dsim->state = state;
@@ -907,6 +907,7 @@ static int dsim_doze(struct dsim_device *dsim)
 			goto out;
 		}
 	}
+
 	dsim_info("dsim-%d %s - (state:%s -> %s)\n", dsim->id, __func__,
 			dsim_state_names[prev_state],
 			dsim_state_names[dsim->state]);
@@ -1112,20 +1113,19 @@ static int dsim_s_stream(struct v4l2_subdev *sd, int enable)
 		return dsim_disable(dsim);
 }
 
-
 #ifdef CONFIG_DYNAMIC_FREQ
 
 
 static int dsim_set_pre_freq_hop(struct dsim_device *dsim, struct df_param *param)
 {
 	int ret = 0;
-	
+
 #if defined(CONFIG_SOC_EXYNOS9820_EVT0)
 	return ret;
 #endif
 
 	if (param->context)
-		dsim_dbg("[DYN_FREQ]:INFO:%s:p,m,k:%d,%d,%d\n", 
+		dsim_dbg("[DYN_FREQ]:INFO:%s:p,m,k:%d,%d,%d\n",
 			__func__, param->pms.p, param->pms.m, param->pms.k);
 
 	dsim_reg_set_dphy_freq_hopping(dsim->id,
@@ -1146,7 +1146,7 @@ static int dsim_set_post_freq_hop(struct dsim_device *dsim, struct df_param *par
 #endif
 
 	if (param->context)
-		dsim_dbg("[DYN_FREQ]:INFO:%s:p,m,k:%d,%d,%d\n", 
+		dsim_dbg("[DYN_FREQ]:INFO:%s:p,m,k:%d,%d,%d\n",
 			__func__, param->pms.p, param->pms.m, param->pms.k);
 
 	dsim_reg_set_dphy_freq_hopping(dsim->id,
@@ -1489,7 +1489,7 @@ static long dsim_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 	case DSIM_IOC_SET_PRE_FREQ_HOP:
 		ret = dsim_set_pre_freq_hop(dsim, (struct df_param *) arg);
 		break;
-	
+
 	case DSIM_IOC_SET_POST_FREQ_HOP:
 		ret = dsim_set_post_freq_hop(dsim, (struct df_param *)arg);
 		break;
@@ -2050,7 +2050,7 @@ void parse_lcd_info(struct device_node *node, struct decon_lcd *lcd_info)
 	of_property_read_u32_array(node, "size", res, 2);
 	lcd_info->width = res[0];
 	lcd_info->height = res[1];
-	dsim_info("LCD size: width(%d), height(%d)\n", res[0], res[1]);
+	dsim_dbg("LCD size: width(%d), height(%d)\n", res[0], res[1]);
 
 	of_property_read_u32(node, "timing,refresh", &lcd_info->fps);
 	dsim_dbg("LCD refresh rate(%d)\n", lcd_info->fps);
@@ -2331,6 +2331,7 @@ static void dsim_register_panel(struct dsim_device *dsim)
 #endif
 }
 
+
 static int dsim_get_data_lanes(struct dsim_device *dsim)
 {
 	int i;
@@ -2504,7 +2505,7 @@ static int dsim_probe(struct platform_device *pdev)
 	dsim->state = DSIM_STATE_INIT;
 	dsim_enable(dsim);
 
-	/* TODO: If you want to enable DSIM BIST mode. you must turn on LCD here */
+		/* TODO: If you want to enable DSIM BIST mode. you must turn on LCD here */
 
 #if !defined(BRINGUP_DSIM_BIST)
 	call_panel_ops(dsim, probe, dsim);

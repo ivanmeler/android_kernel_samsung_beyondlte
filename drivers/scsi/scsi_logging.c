@@ -16,63 +16,21 @@
 #include <scsi/scsi_host.h>
 #include <scsi/scsi_eh.h>
 #include <scsi/scsi_dbg.h>
-#include <linux/sec_debug.h>
 
-#if defined(CONFIG_SEC_ABC)  
-#include <linux/sti/abc_common.h>  
-#endif   
-
-#define SCSI_LOG_SPOOLSIZE 4096
-
-#if (SCSI_LOG_SPOOLSIZE / SCSI_LOG_BUFSIZE) > BITS_PER_LONG
-#warning SCSI logging bitmask too large
+#if defined(CONFIG_SEC_ABC)
+#include <linux/sti/abc_common.h>
 #endif
-
-struct scsi_log_buf {
-	char buffer[SCSI_LOG_SPOOLSIZE];
-	unsigned long map;
-};
-
-static DEFINE_PER_CPU(struct scsi_log_buf, scsi_format_log);
+#include <linux/sec_debug.h>
 
 static char *scsi_log_reserve_buffer(size_t *len)
 {
-	struct scsi_log_buf *buf;
-	unsigned long map_bits = sizeof(buf->buffer) / SCSI_LOG_BUFSIZE;
-	unsigned long idx = 0;
-
-	preempt_disable();
-	buf = this_cpu_ptr(&scsi_format_log);
-	idx = find_first_zero_bit(&buf->map, map_bits);
-	if (likely(idx < map_bits)) {
-		while (test_and_set_bit(idx, &buf->map)) {
-			idx = find_next_zero_bit(&buf->map, map_bits, idx);
-			if (idx >= map_bits)
-				break;
-		}
-	}
-	if (WARN_ON(idx >= map_bits)) {
-		preempt_enable();
-		return NULL;
-	}
-	*len = SCSI_LOG_BUFSIZE;
-	return buf->buffer + idx * SCSI_LOG_BUFSIZE;
+	*len = 128;
+	return kmalloc(*len, GFP_ATOMIC);
 }
 
 static void scsi_log_release_buffer(char *bufptr)
 {
-	struct scsi_log_buf *buf;
-	unsigned long idx;
-	int ret;
-
-	buf = this_cpu_ptr(&scsi_format_log);
-	if (bufptr >= buf->buffer &&
-	    bufptr < buf->buffer + SCSI_LOG_SPOOLSIZE) {
-		idx = (bufptr - buf->buffer) / SCSI_LOG_BUFSIZE;
-		ret = test_and_clear_bit(idx, &buf->map);
-		WARN_ON(!ret);
-	}
-	preempt_enable();
+	kfree(bufptr);
 }
 
 static inline const char *scmd_name(const struct scsi_cmnd *scmd)
@@ -228,7 +186,6 @@ void scsi_print_command(struct scsi_cmnd *cmd)
 	int k;
 	char *logbuf;
 	size_t off, logbuf_len;
-	struct scsi_sense_hdr sshdr;
 
 	if (!cmd->cmnd)
 		return;
@@ -287,49 +244,6 @@ void scsi_print_command(struct scsi_cmnd *cmd)
 out_printk:
 	dev_printk(KERN_INFO, &cmd->device->sdev_gendev, "%s", logbuf);
 	scsi_log_release_buffer(logbuf);
-	/*
-	 * When MEDIUM_ERROR occurs,
-	 * 1. issue_LBA_list[] : record LBAs
-	 * 2. issue_region_map : set bit the region
-	 *    ______________________________________________
-	 *    |63|62|61|60| ....    |52|51|50| ....    |1|0|                 
-	 *    ----------------------------------------------
-	 *   1) 0 ~ 51 : per 200MB : total 10400MB region
-	 *   2) 52  : region of 10400MB~ (USERDATA)
-	 *   3) ~63 : other LU
-	 *      -> If MEDIUM_ERROR occurs on LU1 : set bit "63"
-	 */
-	if (scsi_normalize_sense(cmd->sense_buffer, SCSI_SENSE_BUFFERSIZE, &sshdr)) {
-		if (sshdr.sense_key == MEDIUM_ERROR) {
-			unsigned long lba = 0;
-			unsigned long region_bit = 0;
-			unsigned int lba_count = cmd->device->host->issue_LBA_count;
-			int i = 0;
-
-			if (cmd->device->lun == 0) {
-				lba = (cmd->cmnd[2] << 24) | (cmd->cmnd[3] << 16) |
-					(cmd->cmnd[4] << 8) | (cmd->cmnd[5] << 0);
-
-				if (lba_count < SEC_MAX_LBA_LOGGING) {
-					for (i = 0; i < SEC_MAX_LBA_LOGGING; i++)
-					{
-						if (cmd->device->host->issue_LBA_list[i] == lba)
-							return;
-					}
-					cmd->device->host->issue_LBA_list[lba_count] = lba;
-					cmd->device->host->issue_LBA_count++;
-				}
-
-				region_bit = lba / SEC_ISSUE_REGION_STEP;
-				if (region_bit > 51)
-					region_bit = 52;
-			} else if (cmd->device->lun < SCSI_W_LUN_BASE) {
-				region_bit = (unsigned long)(64 - cmd->device->lun);
-			}
-
-			cmd->device->host->issue_region_map |= ((u64)1 << region_bit);
-		}
-	}
 }
 EXPORT_SYMBOL(scsi_print_command);
 
@@ -417,6 +331,7 @@ scsi_log_print_sense_hdr(const struct scsi_device *sdev, const char *name,
 {
 	char *logbuf;
 	size_t off, logbuf_len;
+	struct scsi_host_template *sht = sdev->host->hostt;
 
 	logbuf = scsi_log_reserve_buffer(&logbuf_len);
 	if (!logbuf)
@@ -435,27 +350,26 @@ scsi_log_print_sense_hdr(const struct scsi_device *sdev, const char *name,
 	dev_printk(KERN_INFO, &sdev->sdev_gendev, "%s", logbuf);
 	scsi_log_release_buffer(logbuf);
 
-	if (sdev->host->by_ufs) {
+	if (!strncmp(sht->name, "ufshcd", 6)) {
 		if (sshdr->sense_key == 0x03) {
 			sdev->host->medium_err_cnt++;
-#if defined(CONFIG_SEC_ABC) 
-			sec_abc_send_event("MODULE=storage@ERROR=ufs_medium_err"); 
+#if defined(CONFIG_SEC_ABC)
+			sec_abc_send_event("MODULE=storage@ERROR=ufs_medium_err");
 #endif
 #ifdef CONFIG_SEC_DEBUG
-			/* only work for debug level is mid */
+			/* only work for debug level mid */
 			if ((sec_debug_get_debug_level() & 0x1) == 0x1)
 				panic("ufs medium error\n");
 #endif
 		} else if (sshdr->sense_key == 0x04) {
 			sdev->host->hw_err_cnt++;
 #ifdef CONFIG_SEC_DEBUG
-			/* only work for debug level is mid */
+			/* only work for debug level mid */
 			if ((sec_debug_get_debug_level() & 0x1) == 0x1)
 				panic("ufs hardware error\n");
 #endif
 		}
 	}
-
 }
 
 static void

@@ -83,7 +83,7 @@ static int pppolac_recv_core(struct sock *sk_udp, struct sk_buff *skb)
 
 	/* Put it back if it is a control packet. */
 	if (skb->data[sizeof(struct udphdr)] & L2TP_CONTROL_BIT)
-		return 2;
+		return opt->backlog_rcv(sk_udp, skb);
 
 	/* Skip UDP header. */
 	skb_pull(skb, sizeof(struct udphdr));
@@ -190,10 +190,9 @@ drop:
 
 static int pppolac_recv(struct sock *sk_udp, struct sk_buff *skb)
 {
-	int retval;
 	sock_hold(sk_udp);
-	retval =  sk_receive_skb(sk_udp, skb, 0);
-	return (retval >> 1);
+	sk_receive_skb(sk_udp, skb, 0);
+	return 0;
 }
 
 static struct sk_buff_head delivery_queue;

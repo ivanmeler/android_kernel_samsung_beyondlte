@@ -124,25 +124,24 @@ enum {
 	UPIU_CMD_FLAGS_READ	= 0x40,
 };
 
+/* UPIU Command Priority flags */
+enum {
+	UPIU_CMD_PRIO_NONE	= 0x00,
+	UPIU_CMD_PRIO_HIGH	= 0x04,
+};
+
 /* UPIU Task Attributes */
 enum {
 	UPIU_TASK_ATTR_SIMPLE	= 0x00,
 	UPIU_TASK_ATTR_ORDERED	= 0x01,
 	UPIU_TASK_ATTR_HEADQ	= 0x02,
 	UPIU_TASK_ATTR_ACA	= 0x03,
-#ifdef CUSTOMIZE_UPIU_FLAGS
-	UPIU_COMMAND_PRIORITY_HIGH      = 0x4,
-#endif
 };
 
 /* UPIU Query request function */
 enum {
 	UPIU_QUERY_FUNC_STANDARD_READ_REQUEST           = 0x01,
 	UPIU_QUERY_FUNC_STANDARD_WRITE_REQUEST          = 0x81,
-};
-
-enum {
-	UPIU_QUERY_FUNC_VENDOR_TOSHIBA_FATALMODE        = 0xC2,
 };
 
 /* Flag idn for Query Requests*/
@@ -156,9 +155,9 @@ enum flag_idn {
 	QUERY_FLAG_IDN_RESERVED2			= 0x07,
 	QUERY_FLAG_IDN_FPHYRESOURCEREMOVAL	= 0x08,
 	QUERY_FLAG_IDN_BUSY_RTC 			= 0x09,
-	QUERY_FLAG_IDN_TW_EN		 		= 0x0E,
+	QUERY_FLAG_IDN_TW_EN				= 0x0E,
 	QUERY_FLAG_IDN_TW_BUF_FLUSH			= 0x0F,
-	QUERY_FLAG_IDN_TW_FLUSH_HIBERN		= 0x10,	
+	QUERY_FLAG_IDN_TW_FLUSH_HIBERN		= 0x10,
 };
 
 /* Attribute idn for Query requests */
@@ -270,6 +269,7 @@ enum device_desc_param {
 	DEVICE_DESC_PARAM_UD_LEN		= 0x1B,
 	DEVICE_DESC_PARAM_RTT_CAP		= 0x1C,
 	DEVICE_DESC_PARAM_FRQ_RTC		= 0x1D,
+	DEVICE_DESC_PARAM_FEAT_SUP		= 0x1F,
 	DEVICE_DESC_PARAM_EXT_FEAT_SUPPORT		= 0x4F,
 };
 
@@ -588,7 +588,6 @@ struct ufs_dev_info {
  */
 struct ufs_dev_desc {
 	u16 wmanufacturerid;
-	u8 lifetime;
 	char model[MAX_MODEL_LEN + 1];
 	u32 dextfeatsupport;
 };

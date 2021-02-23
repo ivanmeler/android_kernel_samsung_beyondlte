@@ -31,12 +31,13 @@
 #include <linux/kvm_para.h>
 #include <linux/kthread.h>
 
+#include <soc/samsung/exynos-ehld.h>
+
 #include <linux/debug-snapshot.h>
 #include <linux/irqflags.h>
-
-#ifdef CONFIG_SEC_DEBUG
 #include <linux/sec_debug.h>
 
+#ifdef CONFIG_SEC_DEBUG
 static const char * const hl_to_name[] = {
 	"NONE", "TASK STUCK", "IRQ STUCK",
 	"IDLE STUCK", "SMCCALL STUCK", "IRQ STORM",
@@ -52,8 +53,6 @@ static const char * const sl_to_name[] = {
 static DEFINE_PER_CPU(struct hardlockup_info, percpu_hl_info);
 #endif
 #endif
-
-#include <soc/samsung/exynos-ehld.h>
 
 static DEFINE_MUTEX(watchdog_mutex);
 
@@ -204,6 +203,8 @@ static void lockup_detector_update_enable(void)
 
 #ifdef CONFIG_SOFTLOCKUP_DETECTOR
 
+#define SOFTLOCKUP_RESET	ULONG_MAX
+
 /* Global variables, exported for sysctl */
 unsigned int __read_mostly softlockup_panic =
 			CONFIG_BOOTPARAM_SOFTLOCKUP_PANIC_VALUE;
@@ -321,7 +322,7 @@ notrace void touch_softlockup_watchdog_sched(void)
 	 * Preemption can be enabled.  It doesn't matter which CPU's timestamp
 	 * gets zeroed here, so use the raw_ operation.
 	 */
-	raw_cpu_write(watchdog_touch_ts, 0);
+	raw_cpu_write(watchdog_touch_ts, SOFTLOCKUP_RESET);
 }
 
 notrace void touch_softlockup_watchdog(void)
@@ -345,14 +346,14 @@ void touch_all_softlockup_watchdogs(void)
 	 * the softlockup check.
 	 */
 	for_each_cpu(cpu, &watchdog_allowed_mask)
-		per_cpu(watchdog_touch_ts, cpu) = 0;
+		per_cpu(watchdog_touch_ts, cpu) = SOFTLOCKUP_RESET;
 	wq_watchdog_touch(-1);
 }
 
 void touch_softlockup_watchdog_sync(void)
 {
 	__this_cpu_write(softlockup_touch_sync, true);
-	__this_cpu_write(watchdog_touch_ts, 0);
+	__this_cpu_write(watchdog_touch_ts, SOFTLOCKUP_RESET);
 }
 
 #ifdef CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU
@@ -415,7 +416,7 @@ static enum hrtimer_restart watchdog_timer_fn(struct hrtimer *hrtimer)
 	/* .. and repeat */
 	hrtimer_forward_now(hrtimer, ns_to_ktime(sample_period));
 
-	if (touch_ts == 0) {
+	if (touch_ts == SOFTLOCKUP_RESET) {
 		if (unlikely(__this_cpu_read(softlockup_touch_sync))) {
 			/*
 			 * If the time stamp was touched atomically
@@ -710,7 +711,7 @@ void check_softlockup_type(void)
 		sl_info->softirq_info.last_arrival != 0 && sl_info->softirq_info.fn != NULL) {
 		sl_info->delay_time = local_clock() - sl_info->softirq_info.last_arrival;
 		sl_info->sl_type = SL_SOFTIRQ_STUCK;
-		pr_auto(ASL9, "Softlockup state: %s, Latency: %lluns, Softirq type: %s, Func: %pf, preempt_count : %x\n",
+		pr_auto(ASL9, "Softlockup state: %s, Latency: %lluns, Softirq type: %s, Func: %ps, preempt_count : %x\n",
 			sl_to_name[sl_info->sl_type], sl_info->delay_time, sl_info->softirq_info.softirq_type, sl_info->softirq_info.fn, sl_info->preempt_count);
 	} else {
 		dbg_snapshot_get_softlockup_info(cpu, sl_info);
@@ -727,6 +728,7 @@ unsigned long long get_dss_softlockup_thresh(void)
 }
 EXPORT_SYMBOL(get_dss_softlockup_thresh);
 #endif
+
 #else /* CONFIG_SOFTLOCKUP_DETECTOR */
 static inline int watchdog_park_threads(void) { return 0; }
 static inline void watchdog_unpark_threads(void) { }
@@ -1060,7 +1062,7 @@ static void check_hardlockup_type(unsigned int cpu)
 		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, TASK: %s\n",
 			hl_to_name[hl_info->hl_type], hl_info->delay_time, hl_info->task_info.task_comm);
 	} else if (hl_info->hl_type == HL_IRQ_STUCK) {
-		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, IRQ: %d, Func: %pf\n",
+		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, IRQ: %d, Func: %ps\n",
 			hl_to_name[hl_info->hl_type], hl_info->delay_time, hl_info->irq_info.irq, hl_info->irq_info.fn);
 	} else if (hl_info->hl_type == HL_IDLE_STUCK) {
 		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, mode: %s\n",
@@ -1069,7 +1071,7 @@ static void check_hardlockup_type(unsigned int cpu)
 		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, CMD: %u\n",
 			hl_to_name[hl_info->hl_type], hl_info->delay_time,  hl_info->smc_info.cmd);
 	} else if (hl_info->hl_type == HL_IRQ_STORM) {
-		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, IRQ : %d, Func: %pf, Avg period: %lluns\n",
+		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, IRQ : %d, Func: %ps, Avg period: %lluns\n",
 			hl_to_name[hl_info->hl_type], hl_info->delay_time, hl_info->irq_info.irq, hl_info->irq_info.fn, hl_info->irq_info.avg_period);
 	} else if (hl_info->hl_type == HL_UNKNOWN_STUCK) {
 		pr_auto(ASL9, "Hardlockup state: %s, Latency: %lluns, TASK: %s\n",
@@ -1083,7 +1085,7 @@ void update_hardlockup_type(unsigned int cpu)
 
 	if (hl_info->hl_type == HL_TASK_STUCK && !irqs_disabled()) {
 		hl_info->hl_type = HL_UNKNOWN_STUCK;
-		pr_auto(ASL9, "Unknown stuck because IRQ was enabled but IRQ was not generated\n");
+		pr_info("Unknown stuck because IRQ was enabled but IRQ was not generated\n");
 	}
 }
 EXPORT_SYMBOL(update_hardlockup_type);

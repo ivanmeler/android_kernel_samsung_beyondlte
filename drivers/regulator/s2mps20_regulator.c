@@ -31,11 +31,6 @@
 #include <linux/debug-snapshot.h>
 #include <linux/debugfs.h>
 #include <linux/interrupt.h>
-#ifdef CONFIG_SEC_PM
-#include <linux/sec_class.h>
-
-struct device *ap_sub_pmic_dev;
-#endif /* CONFIG_SEC_PM */
 
 static struct s2mps20_info *s2mps20_static_info;
 static struct regulator_desc regulators[S2MPS20_REGULATOR_MAX];
@@ -677,13 +672,6 @@ static int s2mps20_pmic_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, s2mps20);
 
-#ifdef CONFIG_SEC_PM
-	/* Clear OFFSRC register */
-	ret = s2mps20_write_reg(s2mps20->i2c, S2MPS20_PMIC_REG_OFFSRC, 0);
-	if (ret)
-		dev_err(&pdev->dev, "failed to write OFFSRC\n");
-#endif /* CONFIG_SEC_PM */
-
 	for (i = 0; i < pdata->num_regulators; i++) {
 		int id = pdata->regulators[i].id;
 		config.dev = &pdev->dev;
@@ -746,10 +734,6 @@ static int s2mps20_pmic_probe(struct platform_device *pdev)
 	}
 
 	s2mps20_oi_function(iodev);
-
-#ifdef CONFIG_SEC_PM
-	ap_sub_pmic_dev = sec_device_create(NULL, "ap_sub_pmic");
-#endif /* CONFIG_SEC_PM */
 
 	/* BUCK1S PWM */
 	if (pdata->buck1s_pwm) {

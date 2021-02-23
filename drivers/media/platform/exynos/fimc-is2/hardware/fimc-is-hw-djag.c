@@ -178,6 +178,13 @@ int fimc_is_hw_mcsc_update_djag_register(struct fimc_is_hw_ip *hw_ip,
 		}
 	}
 
+	if (out_width > MCSC_LINE_BUF_SIZE) {
+		/* Poly input size should be equal and less than line buffer size */
+		sdbg_hw(4, "DJAG output size exceeds line buffer size(%d > %d), change (%d) -> (%d)", hw_ip,
+			out_width, MCSC_LINE_BUF_SIZE,
+			out_width, MCSC_LINE_BUF_SIZE);
+		out_width = MCSC_LINE_BUF_SIZE;
+	}
 	fimc_is_hw_djag_adjust_out_size(ischain, in_width, in_height, &out_width, &out_height);
 
 	if (param->input.width > out_width || param->input.height > out_height) {

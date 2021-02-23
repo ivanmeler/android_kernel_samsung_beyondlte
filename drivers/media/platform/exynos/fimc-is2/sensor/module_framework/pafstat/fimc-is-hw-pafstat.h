@@ -93,7 +93,8 @@ int pafstat_hw_sw_reset(void __iomem *base_reg);
 void fimc_is_hw_paf_common_config(void __iomem *base_reg_com, void __iomem *base_reg,
 	u32 paf_ch, u32 width, u32 height);
 void fimc_is_hw_paf_rdma_reset(void __iomem *base_reg);
-void fimc_is_hw_paf_rdma_config(void __iomem *base_reg, u32 hw_format, u32 bitwidth, u32 width, u32 height);
+void fimc_is_hw_paf_rdma_config(void __iomem *base_reg, u32 hw_format, u32 bitwidth,
+		u32 width, u32 height, u32 pix_stride);
 void fimc_is_hw_paf_rdma_set_addr(void __iomem *base_reg, u32 addr);
 void fimc_is_hw_paf_rdma_enable(void __iomem *base_reg_com, void __iomem *base_reg, u32 enable);
 void fimc_is_hw_paf_sfr_dump(void __iomem *base_reg_com, void __iomem *base_reg);

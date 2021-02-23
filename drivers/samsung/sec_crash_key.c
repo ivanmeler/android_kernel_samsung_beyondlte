@@ -22,7 +22,7 @@
 
 #ifdef CONFIG_SEC_KEY_NOTIFIER
 static unsigned int __crash_keys[] = {
-	KEY_VOLUMEDOWN, KEY_VOLUMEUP, KEY_POWER, KEY_RESET
+	KEY_VOLUMEDOWN, KEY_VOLUMEUP, KEY_POWER
 };
 //static spinlock_t key_crash_lock;
 #endif

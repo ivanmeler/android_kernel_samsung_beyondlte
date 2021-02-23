@@ -51,6 +51,9 @@
 #define SDP_IS_INO_CACHED	            0x80000000
 #define SDP_IS_CLEARING_ONGOING         0x00010000
 #define SDP_IS_FILE_IO_ONGOING          0x00020000
+#ifdef CONFIG_SDP_KEY_DUMP
+#define SDP_IS_TRACED                   0x00000001
+#endif
 
 #define RV_PAGE_CACHE_CLEANED           1
 #define RV_PAGE_CACHE_NOT_CLEANED       2
@@ -82,7 +85,9 @@ extern int fscrypt_sdp_get_engine_id(struct inode *inode);
 //Exclusively masking the shared flags
 #define FSCRYPT_SDP_PARSE_FLAG_SDP_ONLY(flag) (flag & FSCRYPT_KNOX_FLG_SDP_MASK)
 #define FSCRYPT_SDP_PARSE_FLAG_OUT_OF_SDP(flag) (flag & ~FSCRYPT_KNOX_FLG_SDP_MASK)
-
-#endif
+#ifdef CONFIG_SDP_KEY_DUMP
+#define FSCRYPT_SDP_PARSE_FLAG_SDP_TRACE_ONLY(flag) (flag & FSCRYPT_KNOX_FLG_SDP_TRACE_MASK)
+#endif // End of CONFIG_SDP_KEY_DUMP
+#endif // End of CONFIG_FSCRYPT_SDP
 
 #endif	/* _FSCRYPTO_SDP_H */

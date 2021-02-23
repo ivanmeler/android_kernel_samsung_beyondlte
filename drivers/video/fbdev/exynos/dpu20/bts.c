@@ -23,19 +23,6 @@
 #include <dt-bindings/clock/exynos9820.h>
 #endif
 
-#ifdef FEATURE_DP_UNDERRUN_TEST
-#include "displayport.h"
-#include <linux/time.h>
-#include <linux/sched/clock.h>
-#endif
-
-#ifdef CONFIG_AVOID_TSP_NOISE
-#define TSP_INTER_MIN		134000
-#define TSP_INTER_MAX		333000
-#define ACLK_AVOID_INTER 	333000
-#endif
-
-
 #define DISP_FACTOR		100UL
 #define LCD_REFRESH_RATE	63UL
 #define MULTI_FACTOR 		(1UL << 10)
@@ -57,47 +44,6 @@
 #define ROTATION_FACTOR_SCDN	1434UL	/* 1.4x */
 #define RESOL_QHDP_21_TO_9	3440*1440UL	/* for MIF min-lock */
 
-#ifdef FEATURE_DP_UNDERRUN_TEST
-#define DP_MAX_IDX 32
-#define DP_MAX_LINE 128
-static char bts_test_buf[DP_MAX_IDX][DP_MAX_LINE];
-static int bts_test_idx;
-static int bts_test_log_en = 1;
-
-static void dpu_bts_test_add_log(int decon_id, u32 total_bts, u32 prev_total, int is_after)
-{
-	u64 time;
-	unsigned long nsec;
-
-	if (!bts_test_log_en)
-		return;
-
-	time = local_clock();
-	nsec = do_div(time, 1000000000);
-
-	snprintf(bts_test_buf[bts_test_idx], DP_MAX_LINE, "[%5lu.%06ld] decon%d(%d) bw(%d->%d), mif(%lu), int(%lu), disp(%lu)\n",
-			(unsigned long)time, nsec / 1000, decon_id, is_after, prev_total, total_bts,
-			cal_dfs_get_rate(ACPM_DVFS_MIF),
-			cal_dfs_get_rate(ACPM_DVFS_INT),
-			cal_dfs_get_rate(ACPM_DVFS_DISP));
-
-	if (++bts_test_idx >= DP_MAX_IDX)
-		bts_test_idx = 0;
-}
-void dpu_bts_log_enable(int en)
-{
-	bts_test_log_en = en;
-}
-
-void dpu_bts_print_log(void)
-{
-	int i;
-
-	for (i = 0; i < DP_MAX_IDX; i++) {
-		displayport_info("%s", bts_test_buf[i]);
-	}
-}
-#endif
 
 /* unit : usec x 1000 -> 5592 (5.592us) for WQHD+ case */
 static inline u32 dpu_bts_get_one_line_time(struct decon_lcd *lcd_info)
@@ -124,8 +70,8 @@ static inline u32 dpu_bts_afbc_latency(u32 src_w, u32 ppc, u32 lmc)
 static inline u32 dpu_bts_scale_latency(u32 is_s, u32 src_w, u32 dst_w,
 		u32 ppc, u32 lmc)
 {
-	u64 lat_scale = 0UL;
-	u64 line_w;
+	u32 lat_scale = 0;
+	u32 line_w;
 
 	/*
 	 * line_w : reflecting scale-ratio
@@ -137,7 +83,7 @@ static inline u32 dpu_bts_scale_latency(u32 is_s, u32 src_w, u32 dst_w,
 		line_w = src_w * 1000UL;
 	lat_scale = (line_w * lmc) / (ppc * 1000UL);
 
-	return (u32)lat_scale;
+	return lat_scale;
 }
 
 /*
@@ -249,15 +195,15 @@ static u32 dpu_bts_find_latency_meet_aclk(u32 lat_cycle, u32 line_time,
 		u32 criteria_v, u32 aclk_disp,
 		bool is_yuv10, bool is_rotate, u32 rot_factor)
 {
-	u64 aclk_mhz = aclk_disp / 1000UL;
-	u64 aclk_period, lat_time;
-	u64 lat_time_max;
+	u32 aclk_mhz = aclk_disp / 1000UL;
+	u32 aclk_period, lat_time;
+	u32 lat_time_max;
 
 	DPU_DEBUG_BTS("\t(rot_factor = %d) (is_yuv10 = %d)\n",
 			rot_factor, is_yuv10);
 
 	/* lat_time_max: usec x 1000 */
-	lat_time_max = (u64)line_time * (u64)criteria_v;
+	lat_time_max = line_time * criteria_v;
 
 	/* find min-ACLK to able to cover initial latency */
 	while (1) {
@@ -270,7 +216,7 @@ static u32 dpu_bts_find_latency_meet_aclk(u32 lat_cycle, u32 line_time,
 			lat_time = (lat_time * rot_factor) / MULTI_FACTOR;
 
 		DPU_DEBUG_BTS("\tloop: (aclk_period = %d) (lat_time = %d)\n",
-			(u32)aclk_period, (u32)lat_time);
+			aclk_period, lat_time);
 		if (lat_time < lat_time_max)
 			break;
 
@@ -278,11 +224,10 @@ static u32 dpu_bts_find_latency_meet_aclk(u32 lat_cycle, u32 line_time,
 	}
 
 	DPU_DEBUG_BTS("\t(lat_time = %d) (lat_time_max = %d)\n",
-		(u32)lat_time, (u32)lat_time_max);
+		lat_time, lat_time_max);
 
-	return (u32)(aclk_mhz * 1000UL);
+	return (aclk_mhz * 1000UL);
 }
-
 
 u64 dpu_bts_calc_aclk_disp(struct decon_device *decon,
 		struct decon_win_config *config, u64 resol_clock)
@@ -358,18 +303,6 @@ u64 dpu_bts_calc_aclk_disp(struct decon_device *decon,
 
 	aclk_disp = dpu_bts_find_latency_meet_aclk(lat_cycle, line_time,
 			criteria_v, aclk_disp, is_yuv10, is_rotate, rot_factor);
-
-#ifdef CONFIG_AVOID_TSP_NOISE
-	if ((decon->lcd_info->mres_mode == DSU_MODE_2) ||
-		(decon->lcd_info->mres_mode == DSU_MODE_3)) {
-
-		if ((aclk_disp > TSP_INTER_MIN) &&
-			(aclk_disp < TSP_INTER_MAX)) {
-			decon_dbg("aclk : %d -> %d\n", aclk_disp, ACLK_AVOID_INTER);
-			aclk_disp = ACLK_AVOID_INTER;
-		}
-	}
-#endif
 
 	DPU_DEBUG_BTS("\t[R:%d C:%d S:%d] (lat_cycle=%d) (line_time=%d)\n",
 		is_rotate, is_comp, is_scale, lat_cycle, line_time);
@@ -612,15 +545,14 @@ void dpu_bts_update_bw(struct decon_device *decon, struct decon_reg_data *regs,
 
 #if defined(CONFIG_EXYNOS_DISPLAYPORT)
 		if ((displayport->state == DISPLAYPORT_STATE_ON)
-			&& (pixelclock >= UHD_60HZ_PIXEL_CLOCK)) /* 4K DP case */
+			&& (pixelclock >= 533000000)) /* 4K DP case */
 			return;
 #endif
+
 		if (decon->bts.max_disp_freq <= decon->bts.prev_max_disp_freq)
 			pm_qos_update_request(&decon->bts.disp_qos,
 					decon->bts.max_disp_freq);
-#ifdef FEATURE_DP_UNDERRUN_TEST
-		dpu_bts_test_add_log(decon->id, decon->bts.total_bw, decon->bts.prev_total_bw, 1);
-#endif
+
 		decon->bts.prev_total_bw = decon->bts.total_bw;
 		decon->bts.prev_max_disp_freq = decon->bts.max_disp_freq;
 	} else {
@@ -629,16 +561,13 @@ void dpu_bts_update_bw(struct decon_device *decon, struct decon_reg_data *regs,
 
 #if defined(CONFIG_EXYNOS_DISPLAYPORT)
 		if ((displayport->state == DISPLAYPORT_STATE_ON)
-			&& (pixelclock >= UHD_60HZ_PIXEL_CLOCK)) /* 4K DP case */
+			&& (pixelclock >= 533000000)) /* 4K DP case */
 			return;
 #endif
 
 		if (decon->bts.max_disp_freq > decon->bts.prev_max_disp_freq)
 			pm_qos_update_request(&decon->bts.disp_qos,
 					decon->bts.max_disp_freq);
-#ifdef FEATURE_DP_UNDERRUN_TEST
-		dpu_bts_test_add_log(decon->id, decon->bts.total_bw, decon->bts.prev_total_bw, 0);
-#endif
 	}
 
 	DPU_DEBUG_BTS("%s -\n", __func__);
@@ -685,7 +614,7 @@ void dpu_bts_acquire_bw(struct decon_device *decon)
 	if (decon->dt.out_type != DECON_OUT_DP)
 		return;
 
-	if (pixelclock >= UHD_60HZ_PIXEL_CLOCK) {
+	if (pixelclock >= 533000000) {
 		if (pm_qos_request_active(&decon->bts.mif_qos))
 			pm_qos_update_request(&decon->bts.mif_qos, 1794 * 1000);
 		else
@@ -705,12 +634,12 @@ void dpu_bts_acquire_bw(struct decon_device *decon)
 			decon->bts.scen_updated = 1;
 			bts_update_scen(BS_DP_DEFAULT, 1);
 		}
-	} else { /* pixelclock < 533000000 ? */ 
+	} else if (pixelclock > 148500000) { /* pixelclock < 533000000 ? */
 		if (pm_qos_request_active(&decon->bts.mif_qos))
 			pm_qos_update_request(&decon->bts.mif_qos, 1352 * 1000);
 		else
 			DPU_ERR_BTS("%s mif qos setting error\n", __func__);
-	}
+	} /* pixelclock <= 148500000 ? */
 
 	DPU_DEBUG_BTS("%s: decon%d, pixelclock(%u)\n", __func__, decon->id,
 			pixelclock);

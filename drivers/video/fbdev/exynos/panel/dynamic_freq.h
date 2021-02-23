@@ -12,11 +12,12 @@
 
 #define TBL_ARR_SIZE(arr) (sizeof(arr) / sizeof((arr)[0]))
 
-#define DEFINE_FREQ_RANGE(_min, _max, _idx)	\
+#define DEFINE_FREQ_RANGE(_min, _max, _idx, _ddi_osc)	\
 {							\
 	.min = _min,			\
 	.max = _max,			\
 	.freq_idx = _idx,		\
+	.ddi_osc = _ddi_osc,	\
 }
 
 #define DEFINE_FREQ_SET(_array)	\
@@ -29,6 +30,7 @@ struct dynamic_freq_range {
 	int	min;
 	int max;
 	int freq_idx;
+	int ddi_osc;
 };
 
 struct df_freq_tbl_info {
@@ -93,7 +95,11 @@ enum {
 	FREQ_RANGE_LB48 = 138,
 	FREQ_RANGE_LB66 = 156,
 	FREQ_RANGE_LB71 = 161,
-	FREQ_RANGE_MAX = 162,
+	FREQ_RANGE_N005	= 260,
+	FREQ_RANGE_N008	= 263,
+	FREQ_RANGE_N028	= 283,
+	FREQ_RANGE_N071	= 326,
+	FREQ_RANGE_MAX = 327,
 };
 
 int dynamic_freq_probe(struct panel_device *panel, struct df_freq_tbl_info *freq_set);
@@ -101,5 +107,6 @@ int check_df_update(struct panel_device *panel);
 int set_dynamic_freq_ffc(struct panel_device *panel);
 int finish_dynamic_freq(struct panel_device *panel);
 int dynamic_freq_update(struct panel_device *panel, int idx);
+int set_dynamic_freq_ffc_off(struct panel_device *panel);
 
 #endif //__DYNAMIC_FREQ__

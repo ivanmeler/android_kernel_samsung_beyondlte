@@ -31,6 +31,13 @@
 #define FIMC_IS_CIS_REV_MAX_LIST		3
 #define VENDOR_SOFT_LANDING_STEP_MAX	2
 
+#ifdef USE_CAMERA_ACT_DRIVER_SOFT_LANDING 
+enum HW_SOFTLANDING_STATE {
+	HW_SOFTLANDING_PASS = 0,
+	HW_SOFTLANDING_FAIL = -200,
+};
+#endif
+
 struct fimc_is_cis {
 	u32				id;
 	struct v4l2_subdev		*subdev; /* connected module subdevice */
@@ -43,6 +50,9 @@ struct fimc_is_cis {
 	u32				aperture_num;
 	bool				use_dgain;
 	bool				hdr_ctrl_by_again;
+	bool				use_wb_gain;
+	bool				use_3hdr;
+	struct wb_gains			mode_chg_wb_gains;
 
 	struct fimc_is_sensor_ctl	sensor_ctls[CAM2P0_UCTL_LIST_SIZE];
 
@@ -192,6 +202,7 @@ struct fimc_is_flash_data {
 	u32				intensity;
 	u32				firing_time_us;
 	bool				flash_fired;
+	bool				high_resolution_flash;
 	struct work_struct		flash_fire_work;
 	struct timer_list		flash_expire_timer;
 	struct work_struct		flash_expire_work;
@@ -422,8 +433,8 @@ struct fimc_is_device_sensor_peri {
 
 	unsigned long			peri_state;
 
-	/* Thread for sensor and high spped recording setting */
-	u32				sensor_work_index;
+	/* Thread for sensor and high speed recording setting */
+	bool				use_sensor_work;
 	spinlock_t			sensor_work_lock;
 	struct task_struct		*sensor_task;
 	struct kthread_worker		sensor_worker;
@@ -441,7 +452,6 @@ struct fimc_is_device_sensor_peri {
 	int						reuse_3a_value;
 };
 
-void fimc_is_sensor_work_fn(struct kthread_work *work);
 void fimc_is_sensor_mode_change_work_fn(struct kthread_work *work);
 int fimc_is_sensor_init_sensor_thread(struct fimc_is_device_sensor_peri *sensor_peri);
 void fimc_is_sensor_deinit_sensor_thread(struct fimc_is_device_sensor_peri *sensor_peri);
@@ -492,6 +502,12 @@ int fimc_is_sensor_peri_s_analog_gain(struct fimc_is_device_sensor *device,
 				u32 long_analog_gain, u32 short_analog_gain);
 int fimc_is_sensor_peri_s_digital_gain(struct fimc_is_device_sensor *device,
 				u32 long_digital_gain, u32 short_digital_gain);
+int fimc_is_sensor_peri_s_totalgain(struct fimc_is_device_sensor *device,
+				u32 long_exposure_time, u32 short_exposure_time,
+				u32 long_analog_gain, u32 short_analog_gain,
+				u32 long_digital_gain, u32 short_digital_gain);
+int fimc_is_sensor_peri_s_wb_gains(struct fimc_is_device_sensor *device,
+				struct wb_gains wb_gains);
 int fimc_is_sensor_peri_adj_ctrl(struct fimc_is_device_sensor *device,
 				u32 input, struct v4l2_control *ctrl);
 

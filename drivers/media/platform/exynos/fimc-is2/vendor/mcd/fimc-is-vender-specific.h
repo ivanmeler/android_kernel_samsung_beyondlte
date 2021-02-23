@@ -69,17 +69,12 @@ struct fimc_is_vender_specific {
 #endif /* CONFIG_OIS_USE */
 
 	struct i2c_client	*eeprom_client[ROM_ID_MAX];
+	u32			rom_type[ROM_ID_MAX];
 	bool		rom_valid[ROM_ID_MAX];
 
 	/* dt */
-	u32			rear_sensor_id;
-	u32			front_sensor_id;
-	u32			rear2_sensor_id;
-	u32			front2_sensor_id;
-	u32			rear3_sensor_id;
-	u32			rear_tof_sensor_id;
-	u32			front_tof_sensor_id;
-#ifdef SECURE_CAMERA_IRIS
+	u32			sensor_id[SENSOR_POSITION_MAX];
+#if defined(SECURE_CAMERA_IRIS) || defined(CONFIG_SECURE_CAMERA_USE)
 	u32			secure_sensor_id;
 #endif
 	u32			ois_sensor_index;

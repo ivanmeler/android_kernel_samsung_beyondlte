@@ -431,6 +431,11 @@ int madera_adsp_rate_put(struct snd_kcontrol *kcontrol,
 int madera_set_adsp_clk(struct madera_priv *priv, int dsp_num,
 			unsigned int freq);
 
+int madera_internal_gnd_get(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *ucontrol);
+int madera_internal_gnd_put(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *ucontrol);
+
 int madera_set_sysclk(struct snd_soc_codec *codec, int clk_id, int source,
 		      unsigned int freq, int dir);
 int madera_get_legacy_dspclk_setting(struct madera *madera, unsigned int freq);

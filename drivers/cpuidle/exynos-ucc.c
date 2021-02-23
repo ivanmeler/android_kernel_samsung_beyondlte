@@ -15,9 +15,6 @@
 
 static int ucc_initialized = false;
 
-bool ib_ucc_initialized;
-EXPORT_SYMBOL(ib_ucc_initialized);
-
 /*
  * struct ucc_config
  *
@@ -86,6 +83,7 @@ enum {
 static void ucc_update(struct ucc_req *req, int value, int action)
 {
 	int prev_value = ucc_get_value();
+
 	switch (action) {
 	case UCC_REMOVE_REQ:
 		plist_del(&req->node, &ucc_req_list);
@@ -125,6 +123,7 @@ void ucc_update_request(struct ucc_req *req, int value)
 	unsigned long flags;
 
 	spin_lock_irqsave(&ucc_lock, flags);
+
 	if (!req->active) {
 		spin_unlock_irqrestore(&ucc_lock, flags);
 		return;
@@ -167,7 +166,6 @@ static ssize_t show_ucc_requests(struct kobject *kobj,
 static struct kobj_attribute ucc_requests =
 __ATTR(ucc_requests, 0444, show_ucc_requests, NULL);
 
-
 void __init init_exynos_ucc(void)
 {
 	struct device_node *dn, *child;
@@ -193,10 +191,10 @@ void __init init_exynos_ucc(void)
 
 		i++;
 	}
+
 	if (sysfs_create_file(power_kobj, &ucc_requests.attr))
 		pr_err("failed to create cstate_control node\n");
 
 	cpumask_setall(&cur_cstate);
 	ucc_initialized = true;
-	ib_ucc_initialized = true;
 }

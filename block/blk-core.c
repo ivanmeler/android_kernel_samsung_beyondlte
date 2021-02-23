@@ -34,6 +34,8 @@
 #include <linux/pm_runtime.h>
 #include <linux/blk-cgroup.h>
 #include <linux/debugfs.h>
+#include <linux/psi.h>
+#include <linux/blk-crypto.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/block.h>
@@ -229,7 +231,7 @@ void blk_queue_reset_io_vol(struct request_queue *q)
 		vol = &(q->blk_io_vol[idx]);
 
 		vol->queuing_rqs = 0;
-		vol->queuing_bytes= 0;
+		vol->queuing_bytes = 0;
 
 		vol->peak_rqs = 0;
 		vol->peak_bytes = 0;
@@ -323,7 +325,8 @@ void blk_queue_io_vol_del(struct request_queue *q, int opf, long long bytes)
 }
 
 /* should be called with queue_lock held */
-void blk_queue_io_vol_merge(struct request_queue *q, int opf, int rqs, long long bytes)
+void blk_queue_io_vol_merge(struct request_queue *q,
+	int opf, int rqs, long long bytes)
 {
 	struct block_io_volume *vol;
 	int op = opf & REQ_OP_MASK;
@@ -348,7 +351,7 @@ void blk_queue_io_vol_merge(struct request_queue *q, int opf, int rqs, long long
 #endif /* CONFIG_BLK_IO_VOLUME */
 
 #ifdef CONFIG_BLK_TURBO_WRITE
-#define set_tw_state(tw, s) ({(tw)->state = (s); (tw)->state_ts = jiffies;})
+#define set_tw_state(tw, s) ({(tw)->state = (s); (tw)->state_ts = jiffies; })
 #define tw_may_on(tw, write_bytes, write_rqs) \
 	((write_bytes) > (tw)->up_threshold_bytes || \
 	(write_rqs) > (tw)->up_threshold_rqs)
@@ -369,7 +372,7 @@ int blk_alloc_turbo_write(struct request_queue *q)
 	new->up_threshold_bytes = (12 * 1024 * 1024);
 	new->up_threshold_rqs = 50;
 	new->down_threshold_bytes = (10 * 1024 * 1024);
-	new->down_threshold_rqs= 40;
+	new->down_threshold_rqs = 40;
 	new->on_delay = msecs_to_jiffies(20);
 	new->off_delay = msecs_to_jiffies(5000);
 
@@ -391,9 +394,9 @@ int blk_alloc_turbo_write(struct request_queue *q)
 		spin_unlock_irq(q->queue_lock);
 		kfree(new);
 		return -EEXIST;
-	} else {
-		q->tw = new;
 	}
+
+	q->tw = new;
 	spin_unlock_irq(q->queue_lock);
 
 	return 0;
@@ -476,7 +479,8 @@ static void blk_update_tw_stats(struct blk_turbo_write *tw)
 }
 
 /* should be called with queue_lock held */
-void blk_update_tw_state(struct request_queue *q, int write_rqs, long long write_bytes)
+void blk_update_tw_state(struct request_queue *q,
+	int write_rqs, long long write_bytes)
 {
 	struct blk_turbo_write	*tw = q->tw;
 
@@ -487,9 +491,8 @@ void blk_update_tw_state(struct request_queue *q, int write_rqs, long long write
 
 	switch (tw->state) {
 	case TW_OFF:
-		if (tw_may_on(tw, write_bytes, write_rqs)) {
+		if (tw_may_on(tw, write_bytes, write_rqs))
 			set_tw_state(tw, TW_ON_READY);
-		}
 		break;
 
 	case TW_ON_READY:
@@ -509,9 +512,9 @@ void blk_update_tw_state(struct request_queue *q, int write_rqs, long long write
 		break;
 
 	case TW_OFF_READY:
-		if (tw_may_on(tw, write_bytes, write_rqs)) {
+		if (tw_may_on(tw, write_bytes, write_rqs))
 			set_tw_state(tw, TW_ON);
-		} else if (time_after_eq(jiffies, tw->state_ts + tw->off_delay)) {
+		else if (time_after_eq(jiffies, tw->state_ts + tw->off_delay)) {
 			set_tw_state(tw, TW_OFF);
 			if (tw->try_off) {
 				spin_unlock_irq(q->queue_lock);
@@ -523,9 +526,8 @@ void blk_update_tw_state(struct request_queue *q, int write_rqs, long long write
 		break;
 
 	case TW_ON:
-		if (tw_may_off(tw, write_bytes, write_rqs)) {
+		if (tw_may_off(tw, write_bytes, write_rqs))
 			set_tw_state(tw, TW_OFF_READY);
-		}
 		break;
 
 	default:
@@ -544,9 +546,8 @@ void blk_account_tw_io(struct request_queue *q, int opf, int bytes)
 	if (!tw)
 		return;
 
-	if ((tw->state != TW_OFF) && op_is_write(opf)) {
+	if ((tw->state != TW_OFF) && op_is_write(opf))
 		tw->curr_issued_kb += bytes / 1024;
- 	}
 }
 #endif
 
@@ -671,7 +672,6 @@ void blk_sync_queue(struct request_queue *q)
 		struct blk_mq_hw_ctx *hctx;
 		int i;
 
-		cancel_delayed_work_sync(&q->requeue_work);
 		queue_for_each_hw_ctx(q, hctx, i)
 			cancel_delayed_work_sync(&hctx->run_work);
 	} else {
@@ -1770,9 +1770,6 @@ static struct request *blk_old_get_request(struct request_queue *q,
 	/* q->queue_lock is unlocked at this point */
 	rq->__data_len = 0;
 	rq->__sector = (sector_t) -1;
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-	rq->__dun = 0;
-#endif
 	rq->bio = rq->biotail = NULL;
 	return rq;
 }
@@ -1998,9 +1995,6 @@ bool bio_attempt_front_merge(struct request_queue *q, struct request *req,
 	bio->bi_next = req->bio;
 	req->bio = bio;
 
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-	req->__dun = bio->bi_iter.bi_dun;
-#endif
 	req->__sector = bio->bi_iter.bi_sector;
 	req->__data_len += bio->bi_iter.bi_size;
 	req->ioprio = ioprio_best(req->ioprio, bio_prio(bio));
@@ -2143,9 +2137,6 @@ void blk_init_request_from_bio(struct request *req, struct bio *bio)
 		req->cmd_flags |= REQ_FAILFAST_MASK;
 
 	req->__sector = bio->bi_iter.bi_sector;
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-	req->__dun = bio->bi_iter.bi_dun;
-#endif
 	if (ioprio_valid(bio_prio(bio)))
 		req->ioprio = bio_prio(bio);
 	else if (ioc)
@@ -2583,7 +2574,9 @@ blk_qc_t generic_make_request(struct bio *bio)
 			/* Create a fresh bio_list for all subordinate requests */
 			bio_list_on_stack[1] = bio_list_on_stack[0];
 			bio_list_init(&bio_list_on_stack[0]);
-			ret = q->make_request_fn(q, bio);
+
+			if (!blk_crypto_submit_bio(&bio))
+				ret = q->make_request_fn(q, bio);
 
 			blk_queue_exit(q);
 
@@ -2628,6 +2621,10 @@ EXPORT_SYMBOL(generic_make_request);
  */
 blk_qc_t submit_bio(struct bio *bio)
 {
+	bool workingset_read = false;
+	unsigned long pflags;
+	blk_qc_t ret;
+
 	/*
 	 * If it's a regular read/write or a barrier with data attached,
 	 * go through the normal accounting stuff before submission.
@@ -2643,6 +2640,8 @@ blk_qc_t submit_bio(struct bio *bio)
 		if (op_is_write(bio_op(bio))) {
 			count_vm_events(PGPGOUT, count);
 		} else {
+			if (bio_flagged(bio, BIO_WORKINGSET))
+				workingset_read = true;
 			task_io_account_read(bio->bi_iter.bi_size);
 			count_vm_events(PGPGIN, count);
 		}
@@ -2657,7 +2656,21 @@ blk_qc_t submit_bio(struct bio *bio)
 		}
 	}
 
-	return generic_make_request(bio);
+	/*
+	 * If we're reading data that is part of the userspace
+	 * workingset, count submission time as memory stall. When the
+	 * device is congested, or the submitting cgroup IO-throttled,
+	 * submission can be a significant part of overall IO time.
+	 */
+	if (workingset_read)
+		psi_memstall_enter(&pflags);
+
+	ret = generic_make_request(bio);
+
+	if (workingset_read)
+		psi_memstall_leave(&pflags);
+
+	return ret;
 }
 EXPORT_SYMBOL(submit_bio);
 
@@ -2795,74 +2808,18 @@ unsigned int blk_rq_err_bytes(const struct request *rq)
 }
 EXPORT_SYMBOL_GPL(blk_rq_err_bytes);
 
-static int rw_size_group(unsigned int bytes)
-{
-	int sg;
-
-	if (bytes <= 4 * 1024)
-		sg = 0;
-	else if (bytes <= 8 * 1024)
-		sg = 1;
-	else if (bytes <= 16 * 1024)
-		sg = 2;
-	else if (bytes <= 32 * 1024)
-		sg = 3;
-	else if (bytes <= 64 * 1024)
-		sg = 4;
-	else if (bytes <= 128 * 1024)
-		sg = 5;
-	else if (bytes <= 256 * 1024)
-		sg = 6;
-	else
-		sg = 7;
-
-	return sg;
-}
-
-static int discard_size_group(unsigned int bytes)
-{
-	int sg;
-
-	if (bytes <= 32 * 1024)
-		sg = 0;
-	else if (bytes <= 64 * 1024)
-		sg = 1;
-	else if (bytes <= 128 * 1024)
-		sg = 2;
-	else if (bytes <= 256 * 1024)
-		sg = 3;
-	else if (bytes <= 512 * 1024)
-		sg = 4;
-	else if (bytes <= 1024 * 1024)
-		sg = 5;
-	else if (bytes <= 2 * 1024 * 1024)
-		sg = 6;
-	else
-		sg = 7;
-
-	return sg;
-}
-
 void blk_account_io_completion(struct request *req, unsigned int bytes)
 {
 	if (blk_do_io_stat(req)) {
 		const int rw = rq_data_dir(req);
 		struct hd_struct *part;
 		int cpu;
-		int sg;
 
 		cpu = part_stat_lock();
 		part = req->part;
 		part_stat_add(cpu, part, sectors[rw], bytes >> 9);
-		if (req_op(req) == REQ_OP_DISCARD) {
-			sg = discard_size_group(bytes);
-			part_stat_inc(cpu, part, size_cnt[2][sg]);
+		if (req_op(req) == REQ_OP_DISCARD)
 			part_stat_add(cpu, part, discard_sectors, bytes >> 9);
-		} else {
-			sg = rw_size_group(bytes);
-			part_stat_inc(cpu, part, size_cnt[rw][sg]);
-		}
-
 		part_stat_unlock();
 	}
 }
@@ -2898,7 +2855,6 @@ void blk_account_io_done(struct request *req)
 
 	if (req->rq_flags & RQF_FLUSH_SEQ)
 		req->q->flush_ios++;
-
 }
 
 #ifdef CONFIG_PM
@@ -3215,13 +3171,8 @@ bool blk_update_request(struct request *req, blk_status_t error,
 	req->__data_len -= total_bytes;
 
 	/* update sector only for requests with clear definition of sector */
-	if (!blk_rq_is_passthrough(req)) {
+	if (!blk_rq_is_passthrough(req))
 		req->__sector += total_bytes >> 9;
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-		if (req->__dun)
-			req->__dun += total_bytes >> 12;
-#endif
-	}
 
 	/* mixed attributes always follow the first bio */
 	if (req->rq_flags & RQF_MIXED_MERGE) {
@@ -3585,9 +3536,6 @@ static void __blk_rq_prep_clone(struct request *dst, struct request *src)
 	dst->cpu = src->cpu;
 	dst->__sector = blk_rq_pos(src);
 	dst->__data_len = blk_rq_bytes(src);
-#ifdef CONFIG_BLK_DEV_CRYPT_DUN
-	dst->__dun = blk_rq_dun(src);
-#endif
 	if (src->rq_flags & RQF_SPECIAL_PAYLOAD) {
 		dst->rq_flags |= RQF_SPECIAL_PAYLOAD;
 		dst->special_vec = src->special_vec;
@@ -3749,7 +3697,7 @@ static void queue_unplugged(struct request_queue *q, unsigned int depth,
 		blk_run_queue_async(q);
 	else
 		__blk_run_queue(q);
-	spin_unlock_irq(q->queue_lock);
+	spin_unlock(q->queue_lock);
 }
 
 static void flush_plug_callbacks(struct blk_plug *plug, bool from_schedule)
@@ -3797,6 +3745,7 @@ EXPORT_SYMBOL(blk_check_plugged);
 void blk_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 {
 	struct request_queue *q;
+	unsigned long flags;
 	struct request *rq;
 	LIST_HEAD(list);
 	unsigned int depth;
@@ -3816,6 +3765,11 @@ void blk_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 	q = NULL;
 	depth = 0;
 
+	/*
+	 * Save and disable interrupts here, to avoid doing it for every
+	 * queue lock we have to take.
+	 */
+	local_irq_save(flags);
 	while (!list_empty(&list)) {
 		rq = list_entry_rq(list.next);
 		list_del_init(&rq->queuelist);
@@ -3828,7 +3782,7 @@ void blk_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 				queue_unplugged(q, depth, from_schedule);
 			q = rq->q;
 			depth = 0;
-			spin_lock_irq(q->queue_lock);
+			spin_lock(q->queue_lock);
 		}
 
 		/*
@@ -3855,6 +3809,8 @@ void blk_flush_plug_list(struct blk_plug *plug, bool from_schedule)
 	 */
 	if (q)
 		queue_unplugged(q, depth, from_schedule);
+
+	local_irq_restore(flags);
 }
 
 void blk_finish_plug(struct blk_plug *plug)
@@ -4052,73 +4008,6 @@ void blk_set_runtime_active(struct request_queue *q)
 EXPORT_SYMBOL(blk_set_runtime_active);
 #endif
 
-/* IOPP-sio-v1.0.4.4 */
-#if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-/*********************************
- * debugfs functions
- **********************************/
-#ifdef CONFIG_DEBUG_FS
-#include <linux/debugfs.h>
-
-#define DBGFS_FUNC_DECL(name) \
-static int sio_open_##name(struct inode *inode, struct file *file) \
-{ \
-	return single_open(file, sio_show_##name, inode->i_private); \
-} \
-static const struct file_operations sio_fops_##name = { \
-	.owner		= THIS_MODULE, \
-	.open		= sio_open_##name, \
-	.llseek		= seq_lseek, \
-	.read		= seq_read, \
-	.release	= single_release, \
-}
-
-static int sio_show_patches(struct seq_file *s, void *p)
-{
-	extern char *__start_sio_patches;
-	extern char *__stop_sio_patches;
-	char **p_version_str;
-
-	for (p_version_str = &__start_sio_patches; p_version_str < &__stop_sio_patches; ++p_version_str)
-		seq_printf(s, "%s\n", *p_version_str);
-
-	return 0;
-}
-
-static struct dentry *sio_debugfs_root;
-
-DBGFS_FUNC_DECL(patches);
-
-SIO_PATCH_VERSION(SIO_patch_manager, 1, 0, "");
-
-static int __init sio_debugfs_init(void)
-{
-	if (!debugfs_initialized())
-		return -ENODEV;
-
-	sio_debugfs_root = debugfs_create_dir("sio", NULL);
-	if (!sio_debugfs_root)
-		return -ENOMEM;
-
-	debugfs_create_file("patches", 0400, sio_debugfs_root, NULL, &sio_fops_patches);
-
-	return 0;
-}
-
-static void __exit sio_debugfs_exit(void)
-{
-	debugfs_remove_recursive(sio_debugfs_root);
-}
-#else
-static int __init sio_debugfs_init(void)
-{
-	return 0;
-}
-
-static void __exit sio_debugfs_exit(void) { }
-#endif
-#endif
-
 int __init blk_dev_init(void)
 {
 	BUILD_BUG_ON(REQ_OP_LAST >= (1 << REQ_OP_BITS));
@@ -4143,9 +4032,11 @@ int __init blk_dev_init(void)
 	blk_debugfs_root = debugfs_create_dir("block", NULL);
 #endif
 
-#if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-	sio_debugfs_init();
-#endif
+	if (bio_crypt_ctx_init() < 0)
+		panic("Failed to allocate mem for bio crypt ctxs\n");
+
+	if (blk_crypto_fallback_init() < 0)
+		panic("Failed to init blk-crypto-fallback\n");
 
 	return 0;
 }

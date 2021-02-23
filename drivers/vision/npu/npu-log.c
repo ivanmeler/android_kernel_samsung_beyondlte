@@ -366,6 +366,7 @@ static int npu_store_log_fops_open(struct inode *inode, struct file *file)
 	return 0;
 
 err_exit:
+	kfree(robj);
 	return ret;
 }
 
@@ -388,6 +389,7 @@ static int npu_fw_report_fops_open(struct inode *inode, struct file *file)
 	return 0;
 
 err_exit:
+	kfree(robj);
 	return ret;
 }
 
@@ -485,6 +487,7 @@ static ssize_t npu_store_log_fops_read(struct file *file, char __user *outbuf, s
 		}
 	}
 
+
 	ret = spin_lock_safe_isr(&npu_log_lock);
 	if (ret)
 		goto err_exit;
@@ -504,16 +507,16 @@ static ssize_t npu_store_log_fops_read(struct file *file, char __user *outbuf, s
 	ret = copy_len;
 err_exit:
 
-	if (tmp_buf)
-		kfree(tmp_buf);
+	kfree(tmp_buf);
 
 	/* schedule() is insearted to prevent busy-waiting loop around npu_log_lock */
 	schedule();
 	return ret;
 }
 
-void npu_fw_report_store(char *strRep, int nSize)
+int npu_fw_report_store(char *strRep, int nSize)
 {
+	size_t	ret = -1;
 	size_t	wr_len = 0;
 	size_t	remain = fw_report.st_size - fw_report.wr_pos;
 	char	*buf = fw_report.st_buf + fw_report.wr_pos;
@@ -541,6 +544,7 @@ void npu_fw_report_store(char *strRep, int nSize)
 	fw_report.st_buf[fw_report.wr_pos] = '\0';
 
 	spin_unlock_irqrestore(&fw_report_lock, intr_flags);
+	return (int)ret;
 }
 
 static ssize_t __npu_fw_report_fops_read(struct npu_store_log_read_obj *robj, char *outbuf, const size_t outlen)
@@ -614,8 +618,7 @@ static ssize_t npu_fw_report_fops_read(struct file *file, char __user *outbuf, s
 
 	ret = copy_len;
 err_exit:
-	if (tmp_buf)
-		kfree(tmp_buf);
+	kfree(tmp_buf);
 	return ret;
 }
 
@@ -700,7 +703,7 @@ static int npu_store_log_dump(const size_t dump_size)
 err_exit:
 
 	kfree(dump_buf);
-	return ret;
+	return 0;
 }
 
 /*
@@ -1116,24 +1119,13 @@ int npu_log_probe(struct npu_device *npu_device)
 
 	/* Log level change function on sysfs */
 	ret = device_create_file(npu_device->dev, &dev_attr_log_level);
-	if (ret) {
+	if (ret)
 		probe_err("device_create_file() failed: ret = %d\n", ret);
-		return ret;
-	}
 
 	/* Register memory store logger */
-	ret = npu_debug_register("dev-log", &npu_store_log_fops);
-	if (ret) {
-		npu_err("npu_debug_register error : ret = %d\n", ret);
-		return ret;
-	}
-
+	npu_debug_register("dev-log", &npu_store_log_fops);
 	/* Register FW log keeper */
-	ret = npu_debug_register("fw-report", &npu_fw_report_fops);
-	if (ret) {
-		npu_err("npu_debug_register error : ret = %d\n", ret);
-		return ret;
-	}
+	npu_debug_register("fw-report", &npu_fw_report_fops);
 
 	probe_info("complete in npu_log_probe\n");
 	return 0;

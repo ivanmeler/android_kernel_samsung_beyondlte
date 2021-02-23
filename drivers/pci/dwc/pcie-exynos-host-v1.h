@@ -200,6 +200,8 @@ struct exynos_pcie {
 #define IDLE_IP_RC1_SHIFT		(31)
 #define IDLE_IP_RC0_SHIFT		(30)
 #define IDLE_IP3_MASK			0x3FC
+#define WAKEUP_MASK			0x3944
+#define WAKEUP_MASK_PCIE_WIFI		16
 #define PCIE_PHY_CONTROL		0x071C
 #define PCIE_PHY_CONTROL_MASK		0x1
 

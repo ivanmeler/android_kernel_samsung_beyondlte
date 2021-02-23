@@ -374,9 +374,9 @@ static void print_sensordata(struct ssp_data *data, unsigned int uSensor)
 	case LIGHT_SENSOR:
 	case UNCAL_LIGHT_SENSOR:
 		ssp_dbg("[SSP] %u : %u, %u, %u, %u, %u, %u (%ums)\n", uSensor,
-			data->buf[uSensor].r, data->buf[uSensor].g,
-			data->buf[uSensor].b, data->buf[uSensor].w,
-			data->buf[uSensor].a_time, data->buf[uSensor].a_gain,
+			data->buf[uSensor].light_t.r, data->buf[uSensor].light_t.g,
+			data->buf[uSensor].light_t.b, data->buf[uSensor].light_t.w,
+			data->buf[uSensor].light_t.a_time, data->buf[uSensor].light_t.a_gain,
 			get_msdelay(data->adDelayBuf[uSensor]));
 		break;
 	case LIGHT_FLICKER_SENSOR:
@@ -385,9 +385,9 @@ static void print_sensordata(struct ssp_data *data, unsigned int uSensor)
 		break;
 	case LIGHT_CCT_SENSOR:
 		ssp_dbg("[SSP] %u : %u, %u, %u, %u, %u, %u (%ums)\n", uSensor,
-			data->buf[uSensor].r, data->buf[uSensor].g,
-			data->buf[uSensor].b, data->buf[uSensor].w,
-			data->buf[uSensor].a_time, data->buf[uSensor].a_gain,
+			data->buf[uSensor].light_cct_t.r, data->buf[uSensor].light_cct_t.g,
+			data->buf[uSensor].light_cct_t.b, data->buf[uSensor].light_cct_t.w,
+			data->buf[uSensor].light_cct_t.a_time, data->buf[uSensor].light_cct_t.a_gain,
 			get_msdelay(data->adDelayBuf[uSensor]));
 		break;
 	case PROXIMITY_SENSOR:
@@ -515,7 +515,7 @@ bool check_wait_event(struct ssp_data *data)
 	int check_sensors[2] = {ACCELEROMETER_SENSOR, LIGHT_SENSOR};
 	int i, sensor;
 	bool res = false;
-	int arrSize = (ANDROID_VERSION < 90000 ? 2 : 1);
+	int arrSize = 1;
 
 	for (i = 0 ; i < arrSize ; i++) { // because light sensor does not check anymore
 		sensor = check_sensors[i];
@@ -628,3 +628,4 @@ unsigned int ssp_check_sec_dump_mode(void)
 #endif
 	return 0;
 }
+

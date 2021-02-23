@@ -108,39 +108,10 @@ void bt_sock_unregister(int proto)
 }
 EXPORT_SYMBOL(bt_sock_unregister);
 
-#ifdef CONFIG_PARANOID_NETWORK
-static inline int current_has_bt_admin(void)
-{
-	return !current_euid();
-}
-
-static inline int current_has_bt(void)
-{
-	return current_has_bt_admin();
-}
-# else
-static inline int current_has_bt_admin(void)
-{
-	return 1;
-}
-
-static inline int current_has_bt(void)
-{
-	return 1;
-}
-#endif
-
 static int bt_sock_create(struct net *net, struct socket *sock, int proto,
 			  int kern)
 {
 	int err;
-
-	if (proto == BTPROTO_RFCOMM || proto == BTPROTO_SCO ||
-			proto == BTPROTO_L2CAP) {
-		if (!current_has_bt())
-			return -EPERM;
-	} else if (!current_has_bt_admin())
-		return -EPERM;
 
 	if (net != &init_net)
 		return -EAFNOSUPPORT;
@@ -489,7 +460,7 @@ unsigned int bt_sock_poll(struct file *file, struct socket *sock,
 	if (sk->sk_state == BT_LISTEN)
 		return bt_accept_poll(sk);
 
-	if (sk->sk_err || !skb_queue_empty(&sk->sk_error_queue))
+	if (sk->sk_err || !skb_queue_empty_lockless(&sk->sk_error_queue))
 		mask |= POLLERR |
 			(sock_flag(sk, SOCK_SELECT_ERR_QUEUE) ? POLLPRI : 0);
 
@@ -499,7 +470,7 @@ unsigned int bt_sock_poll(struct file *file, struct socket *sock,
 	if (sk->sk_shutdown == SHUTDOWN_MASK)
 		mask |= POLLHUP;
 
-	if (!skb_queue_empty(&sk->sk_receive_queue))
+	if (!skb_queue_empty_lockless(&sk->sk_receive_queue))
 		mask |= POLLIN | POLLRDNORM;
 
 	if (sk->sk_state == BT_CLOSED)

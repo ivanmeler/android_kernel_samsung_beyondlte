@@ -70,16 +70,24 @@ static inline void sec_debug_hook_auto_comm(int type, const char *buf, size_t si
 	p->offset += (unsigned int)size;
 }
 
-static void sec_debug_auto_comment_init_print_buf(void)
+static int sec_debug_auto_comment_init_print_buf(void)
 {
 	auto_comment_buf = (char *)phys_to_virt(sec_debug_get_buf_base(SDN_MAP_AUTO_COMMENT));
 	auto_comment_info = (struct sec_debug_auto_comment *)sec_debug_get_debug_base(SDN_MAP_AUTO_COMMENT);
+
+	if (!auto_comment_buf || !auto_comment_info) {
+		pr_crit("%s: no buffer for auto comment\n", __func__);
+
+		return 0;
+	}
 
 	memset(auto_comment_info, 0, sizeof(struct sec_debug_auto_comment));
 
 	register_set_auto_comm_buf(sec_debug_hook_auto_comm);
 
 	pr_info("%s: done\n", __func__);
+
+	return 1;
 }
 
 static ssize_t sec_reset_auto_comment_proc_read(struct file *file, char __user *buf, size_t len, loff_t *offset)
@@ -125,9 +133,10 @@ static int __init sec_debug_auto_comment_init(void)
 	struct proc_dir_entry *entry;
 	int i;
 
-	pr_info("%s: start\n", __func__);
+	if (!sec_debug_auto_comment_init_print_buf())
+		return -1;
 
-	sec_debug_auto_comment_init_print_buf();
+	pr_info("%s: start\n", __func__);
 
 	if (auto_comment_info) {
 		auto_comment_info->header_magic = AC_MAGIC;

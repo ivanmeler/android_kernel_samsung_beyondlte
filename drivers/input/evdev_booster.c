@@ -109,7 +109,6 @@ int get_device_type(struct evdev_client *dev, unsigned int *keyId, int *cur_idx,
 			case KEY_VOLUMEUP:
 			case KEY_VOLUMEDOWN:
 			case KEY_POWER:
-			case KEY_WINK:
 				dev_type = KEY;
 				break;
 			default:
@@ -211,13 +210,8 @@ void input_booster(struct evdev_client *dev, int dev_head)
 	int cur_idx = -1;
 	int head = 0;
 
-	if (dev == NULL) {
-		pr_err(ITAG"dev is Null");
-		return;
-	}
-
-	if (!ib_init_succeed || dev->ev_cnt == 0) {
-		pr_err(ITAG"ev_cnt(%d) dt_infor hasn't mem alloc", dev->ev_cnt);
+	if (dev == NULL || !ib_init_succeed || dev->ev_cnt == 0) {
+		pr_err(ITAG"ev_cnt(%d) dev is Null OR dt_infor hasn't mem alloc", dev->ev_cnt);
 		return;
 	}
 
@@ -256,7 +250,7 @@ void input_booster(struct evdev_client *dev, int dev_head)
 		ib_trigger[trigger_cnt].event_type = enable;
 		ib_trigger[trigger_cnt].dev_type = dev_type;
 
-		queue_work(ev_unbound_wq, &(ib_trigger[trigger_cnt++].ib_trigger_work));
+		queue_work(system_unbound_wq, &(ib_trigger[trigger_cnt++].ib_trigger_work));
 		trigger_cnt = (trigger_cnt == MAX_IB_COUNT) ? 0 : trigger_cnt;
 	}
 }

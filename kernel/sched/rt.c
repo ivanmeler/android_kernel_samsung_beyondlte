@@ -1663,7 +1663,7 @@ void dec_rt_tasks(struct sched_rt_entity *rt_se, struct rt_rq *rt_rq)
 	dec_rt_group(rt_se, rt_rq);
 }
 
-#ifdef CONFIG_SMP
+#if defined(CONFIG_SMP) && defined(CONFIG_RT_GROUP_SCHED)
 static void
 attach_rt_entity_load_avg(struct rt_rq *rt_rq, struct sched_rt_entity *rt_se)
 {
@@ -1672,9 +1672,7 @@ attach_rt_entity_load_avg(struct rt_rq *rt_rq, struct sched_rt_entity *rt_se)
 	rt_rq->avg.util_sum += rt_se->avg.util_sum;
 	rt_rq->avg.load_avg += rt_se->avg.load_avg;
 	rt_rq->avg.load_sum += rt_se->avg.load_sum;
-#ifdef CONFIG_RT_GROUP_SCHED
 	rt_rq->propagate_avg = 1;
-#endif
 	rt_rq_util_change(rt_rq);
 }
 
@@ -1685,9 +1683,7 @@ detach_rt_entity_load_avg(struct rt_rq *rt_rq, struct sched_rt_entity *rt_se)
 	sub_positive(&rt_rq->avg.util_sum, rt_se->avg.util_sum);
 	sub_positive(&rt_rq->avg.load_avg, rt_se->avg.load_avg);
 	sub_positive(&rt_rq->avg.load_sum, rt_se->avg.load_sum);
-#ifdef CONFIG_RT_GROUP_SCHED
 	rt_rq->propagate_avg = 1;
-#endif
 	rt_rq_util_change(rt_rq);
 }
 #else
@@ -2088,6 +2084,7 @@ static void remove_rt_entity_load_avg(struct sched_rt_entity *rt_se)
 	atomic_long_add(rt_se->avg.util_avg, &rt_rq->removed_util_avg);
 }
 
+#ifdef CONFIG_RT_GROUP_SCHED
 static void attach_task_rt_rq(struct task_struct *p)
 {
 	struct sched_rt_entity *rt_se = &p->rt;
@@ -2107,6 +2104,7 @@ static void detach_task_rt_rq(struct task_struct *p)
 	update_rt_load_avg(now, rt_se);
 	detach_rt_entity_load_avg(rt_rq, rt_se);
 }
+#endif
 
 static void migrate_task_rq_rt(struct task_struct *p)
 {
@@ -2389,13 +2387,13 @@ static void put_prev_task_rt(struct rq *rq, struct task_struct *p)
 
 #ifdef CONFIG_SMP
 
+#ifdef CONFIG_RT_GROUP_SCHED
 void rt_rq_util_change(struct rt_rq *rt_rq)
 {
 	if (&this_rq()->rt == rt_rq)
 		cpufreq_update_util(rt_rq->rq, SCHED_CPUFREQ_RT);
 }
 
-#ifdef CONFIG_RT_GROUP_SCHED
 /* Take into account change of utilization of a child task group */
 static inline void
 update_tg_rt_util(struct rt_rq *cfs_rq, struct sched_rt_entity *rt_se)
@@ -2479,7 +2477,7 @@ static inline int propagate_entity_rt_load_avg(struct sched_rt_entity *rt_se)
 	return 1;
 }
 #else
-static inline int propagate_entity_rt_load_avg(struct sched_rt_entity *rt_se) { };
+static inline int propagate_entity_rt_load_avg(struct sched_rt_entity *rt_se) { return 1; };
 #endif
 
 void update_rt_load_avg(u64 now, struct sched_rt_entity *rt_se)
@@ -2497,8 +2495,10 @@ void update_rt_load_avg(u64 now, struct sched_rt_entity *rt_se)
 	update_rt_rq_load_avg(now, cpu, rt_rq, rt_rq->curr == rt_se);
 	propagate_entity_rt_load_avg(rt_se);
 
+#ifdef CONFIG_RT_GROUP_SCHED
 	if (entity_is_task(rt_se))
 		trace_sched_rt_load_avg_task(rt_task_of(rt_se), &rt_se->avg);
+#endif
 }
 
 /* Only try algorithms three times */
@@ -2716,6 +2716,7 @@ static int find_idle_cpu(struct task_struct *task, int wake_flags)
 	u64 cpu_load, min_load = ULLONG_MAX;
 	struct cpumask candidate_cpus;
 	struct frt_dom *dom, *prefer_dom;
+	unsigned long sum_load;
 
 	cpu = frt_find_prefer_cpu(task);
 	prefer_dom = dom = per_cpu(frt_rqs, cpu);
@@ -2728,6 +2729,11 @@ static int find_idle_cpu(struct task_struct *task, int wake_flags)
 		cpumask_copy(&candidate_cpus, &task->cpus_allowed);
 
 	do {
+		sum_load = 0;
+		for_each_cpu_and(cpu, &dom->cpus, &candidate_cpus) {
+			sum_load += cpu_rq(cpu)->cpu_load[0];
+		}
+
 		for_each_cpu_and(cpu, &dom->cpus, &candidate_cpus) {
 			if (!idle_cpu(cpu))
 				continue;
@@ -2738,6 +2744,9 @@ static int find_idle_cpu(struct task_struct *task, int wake_flags)
 
 			cpu_load = frt_cpu_util_wake(cpu, task) + task_util(task);
 			if (cpu_load > capacity_orig_of(cpu))
+				continue;
+
+			if (cpu_rq(cpu)->cpu_load[0] * 4 > sum_load * 3)
 				continue;
 
 			if ((cpu_prio > max_prio) || (cpu_load < min_load) ||
@@ -2769,6 +2778,7 @@ static int find_recessive_cpu(struct task_struct *task, int wake_flags)
 	struct cpumask *lowest_mask;
 	struct cpumask candidate_cpus;
 	struct frt_dom *dom, *prefer_dom;
+	unsigned long sum_load;
 
 	lowest_mask = this_cpu_cpumask_var_ptr(local_cpu_mask);
 	/* Make sure the mask is initialized first */
@@ -2787,10 +2797,18 @@ static int find_recessive_cpu(struct task_struct *task, int wake_flags)
 		return best_cpu;
 
 	do {
+		sum_load = 0;
+		for_each_cpu_and(cpu, &dom->cpus, &candidate_cpus) {
+			sum_load += cpu_rq(cpu)->cpu_load[0];
+		}
+
 		for_each_cpu_and(cpu, &dom->cpus, &candidate_cpus) {
 			cpu_load = frt_cpu_util_wake(cpu, task) + task_util(task);
 
 			if (cpu_load > capacity_orig_of(cpu))
+				continue;
+
+			if (cpu_rq(cpu)->cpu_load[0] * 4 > sum_load * 3)
 				continue;
 
 			if (cpu_load < min_load ||
@@ -3448,7 +3466,9 @@ static void rq_offline_rt(struct rq *rq)
  */
 static void switched_from_rt(struct rq *rq, struct task_struct *p)
 {
+#ifdef CONFIG_RT_GROUP_SCHED
 	detach_task_rt_rq(p);
+#endif
 	/*
 	 * If there are other RT tasks then we will reschedule
 	 * and the scheduling of the other RT tasks will handle
@@ -3675,6 +3695,9 @@ const struct sched_class rt_sched_class = {
 #ifdef CONFIG_RT_GROUP_SCHED
 	.task_change_group	= task_change_group_rt,
 #endif
+#ifdef CONFIG_SCHED_WALT
+	.fixup_cumulative_runnable_avg = walt_fixup_cumulative_runnable_avg,
+#endif
 };
 
 #ifdef CONFIG_RT_GROUP_SCHED
@@ -3830,6 +3853,8 @@ int sched_group_set_rt_runtime(struct task_group *tg, long rt_runtime_us)
 	rt_runtime = (u64)rt_runtime_us * NSEC_PER_USEC;
 	if (rt_runtime_us < 0)
 		rt_runtime = RUNTIME_INF;
+	else if ((u64)rt_runtime_us > U64_MAX / NSEC_PER_USEC)
+		return -EINVAL;
 
 	return tg_set_rt_bandwidth(tg, rt_period, rt_runtime);
 }
@@ -3849,6 +3874,9 @@ long sched_group_rt_runtime(struct task_group *tg)
 int sched_group_set_rt_period(struct task_group *tg, u64 rt_period_us)
 {
 	u64 rt_runtime, rt_period;
+
+	if (rt_period_us > U64_MAX / NSEC_PER_USEC)
+		return -EINVAL;
 
 	rt_period = rt_period_us * NSEC_PER_USEC;
 	rt_runtime = tg->rt_bandwidth.rt_runtime;

@@ -32,7 +32,7 @@ typedef struct _sdp_ess_material {
     struct fscrypt_key key;
 } sdp_ess_material;
 
-void dump_file_key_hex(const char* tag, uint8_t *data, size_t data_len);
+void dump_file_key_hex(const char* tag, uint8_t *data, unsigned int data_len);
 int fscrypt_sdp_dump_file_key(struct inode *inode);
 int fscrypt_sdp_set_sdp_policy(struct inode *inode, int engine_id);
 int fscrypt_sdp_set_sensitive(struct inode *inode, int engine_id, struct fscrypt_key *key);
@@ -40,8 +40,8 @@ int fscrypt_sdp_set_protected(struct inode *inode, int engine_id);
 int fscrypt_sdp_add_chamber_directory(int engine_id, struct inode *inode);
 int fscrypt_sdp_remove_chamber_directory(struct inode *inode);
 int fscrypt_sdp_get_engine_id(struct inode *inode);
-int fscrypt_sdp_inherit_context(struct inode *parent, struct inode *child, struct fscrypt_context *ctx, void *fs_data);
-void fscrypt_sdp_finalize_tasks(struct inode *inode, u8 *raw_key, int key_len);
+int fscrypt_sdp_inherit_context(struct inode *parent, struct inode *child, union fscrypt_context *ctx, void *fs_data);
+void fscrypt_sdp_finalize_tasks(struct inode *inode);
 struct sdp_info *fscrypt_sdp_alloc_sdp_info(void);
 void fscrypt_sdp_put_sdp_info(struct sdp_info *ci_sdp_info);
 bool fscrypt_sdp_init_sdp_info_cachep(void);
@@ -62,7 +62,7 @@ int fscrypt_sdp_store_fek(struct inode *inode,
 						struct fscrypt_info *crypt_info,
 						unsigned char *fek, unsigned int fek_len);
 int fscrypt_sdp_update_sdp_info(struct inode *inode,
-						const struct fscrypt_context *ctx,
+						const union fscrypt_context *ctx,
 						struct fscrypt_info *crypt_info);
 int fscrypt_sdp_is_classified(struct fscrypt_info *crypt_info);
 int fscrypt_sdp_is_uninitialized(struct fscrypt_info *crypt_info);
@@ -70,6 +70,11 @@ int fscrypt_sdp_is_native(struct fscrypt_info *crypt_info);
 int fscrypt_sdp_is_sensitive(struct fscrypt_info *crypt_info);
 int fscrypt_sdp_is_to_sensitive(struct fscrypt_info *crypt_info);
 void fscrypt_sdp_update_conv_status(struct fscrypt_info *crypt_info);
-#endif
+
+#ifdef CONFIG_SDP_KEY_DUMP
+int fscrypt_sdp_trace_file(struct inode *inode);
+int fscrypt_sdp_is_traced_file(struct fscrypt_info *crypt_info);
+#endif // End of CONFIG_SDP_KEY_DUMP
+#endif // End of CONFIG_FSCRYPT_SDP
 
 #endif	/* _FSCRYPTO_SDP_DEK_H */

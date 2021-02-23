@@ -87,11 +87,7 @@ alternative_if ARM64_UNMAP_KERNEL_AT_EL0
 alternative_else_nop_endif
 #endif
 
-	.if	\el == 0
 	sub	sp, sp, #S_FRAME_SIZE
-	.else
-	sub	sp, sp, #(S_FRAME_SIZE+PRESERVE_STACK_SIZE)
-	.endif /* \el == 0 */
 #ifdef CONFIG_VMAP_STACK
 	/*
 	 * Test whether the SP has overflowed, without corrupting a GPR.
@@ -196,9 +192,13 @@ alternative_cb_end
 1:
 
 	mov	x29, xzr			// fp pointed to user-space
+
+#ifdef CONFIG_SHADOW_CALL_STACK
+	ldr	x18, [tsk, #TSK_TI_SCS]		// Restore shadow call stack
+	str	xzr, [tsk, #TSK_TI_SCS]		// Limit visibility of saved SCS
+#endif
 	.else
-	add	x21, sp, #(S_FRAME_SIZE+PRESERVE_STACK_SIZE)
-	.if \el == 1 
+	add	x21, sp, #S_FRAME_SIZE
 	get_thread_info tsk
 	/* Save the task's original addr_limit and set USER_DS */
 	ldr	x20, [tsk, #TSK_TI_ADDR_LIMIT]
@@ -206,7 +206,6 @@ alternative_cb_end
 	mov	x20, #USER_DS
 	str	x20, [tsk, #TSK_TI_ADDR_LIMIT]
 	/* No need to reset PSTATE.UAO, hardware's already set it to 0 for us */
-	.endif
 	.endif /* \el == 0 */
 	mrs	x22, elr_el1
 	mrs	x23, spsr_el1
@@ -287,6 +286,12 @@ alternative_else_nop_endif
 	ct_user_enter
 	.endif
 
+#ifdef CONFIG_SHADOW_CALL_STACK
+	.if	\el == 0
+	str	x18, [tsk, #TSK_TI_SCS]		// Save shadow call stack
+	.endif
+#endif
+
 #ifdef CONFIG_ARM64_SW_TTBR0_PAN
 	/*
 	 * Restore access to TTBR0_EL1. If returning to EL0, no need for SPSR
@@ -357,11 +362,7 @@ alternative_else_nop_endif
 	ldp	x26, x27, [sp, #16 * 13]
 	ldp	x28, x29, [sp, #16 * 14]
 	ldr	lr, [sp, #S_LR]
-	.if	\el == 0
 	add	sp, sp, #S_FRAME_SIZE		// restore sp
-	.else
-	add	sp, sp, #(S_FRAME_SIZE+PRESERVE_STACK_SIZE)
-	.endif /* \el == 0 */
 
 	.if	\el == 0
 alternative_insn eret, nop, ARM64_UNMAP_KERNEL_AT_EL0
@@ -381,6 +382,9 @@ alternative_insn eret, nop, ARM64_UNMAP_KERNEL_AT_EL0
 
 	.macro	irq_stack_entry
 	mov	x19, sp			// preserve the original sp
+#ifdef CONFIG_SHADOW_CALL_STACK
+	mov	x20, x18		// preserve the original shadow stack
+#endif
 
 	/*
 	 * Compare sp with the base of the task stack.
@@ -398,15 +402,24 @@ alternative_insn eret, nop, ARM64_UNMAP_KERNEL_AT_EL0
 
 	/* switch to the irq stack */
 	mov	sp, x26
+
+#ifdef CONFIG_SHADOW_CALL_STACK
+	/* also switch to the irq shadow stack */
+	ldr_this_cpu x18, irq_shadow_call_stack_ptr, x26
+#endif
+
 9998:
 	.endm
 
 	/*
-	 * x19 should be preserved between irq_stack_entry and
-	 * irq_stack_exit.
+	 * The callee-saved regs (x19-x29) should be preserved between
+	 * irq_stack_entry and irq_stack_exit.
 	 */
 	.macro	irq_stack_exit
 	mov	sp, x19
+#ifdef CONFIG_SHADOW_CALL_STACK
+	mov	x18, x20
+#endif
 	.endm
 
 /*
@@ -485,9 +498,9 @@ __bad_stack:
 	 * S_FRAME_SIZE) was stashed in tpidr_el0 by kernel_ventry.
 	 */
 	sub	sp, sp, #S_FRAME_SIZE
-	kernel_entry fake_el_bad_stack
+	kernel_entry 1
 	mrs	x0, tpidr_el0
-	add	x0, x0, #(S_FRAME_SIZE+PRESERVE_STACK_SIZE)
+	add	x0, x0, #S_FRAME_SIZE
 	str	x0, [sp, #S_SP]
 
 	/* Stash the regs for handle_bad_stack */
@@ -636,7 +649,7 @@ el1_da:
 	tbnz	x23, #7, 1f			// PSR_I_BIT
 	enable_irq
 1:
-	clear_address_tag x0, x3
+	untagged_addr x0, x3
 	mov	x2, sp				// struct pt_regs
 	bl	do_mem_abort
 
@@ -658,7 +671,6 @@ el1_undef:
 	 */
 	enable_dbg
 	mov	x0, sp
-	mrs	x1, esr_el1			// read the syndrome register
 	bl	do_undefinstr
 	ASM_BUG()
 el1_dbg:
@@ -801,7 +813,7 @@ el0_da:
 	// enable interrupts before calling the main handler
 	enable_dbg_and_irq
 	ct_user_exit
-	clear_address_tag x0, x26
+	untagged_addr x0, x26
 	mov	x1, x25
 	mov	x2, sp
 	bl	do_mem_abort
@@ -864,7 +876,6 @@ el0_undef:
 	enable_dbg_and_irq
 	ct_user_exit
 	mov	x0, sp
-	mrs	x1, esr_el1			// read the syndrome register
 	bl	do_undefinstr
 	b	ret_to_user
 el0_sys:
@@ -982,7 +993,6 @@ el0_svc_naked:					// compat entry point
 	b.ne	__sys_trace
 	cmp     wscno, wsc_nr			// check upper syscall limit
 	b.hs	ni_sys
-	mask_nospec64 xscno, xsc_nr, x19	// enforce bounds for syscall number
 #ifdef CONFIG_SECURITY_DEFEX
 /*
  * Defex enter hook
@@ -992,7 +1002,7 @@ el0_svc_naked:					// compat entry point
 	ldr	x16, [x16]
 	cmp	x16, xzr
 	b.eq	2f
-	mov	x0, xscno
+	uxtw	x0, wscno  //  it will copy wscno to low bits of x0 and fill high bits with 0
 	mov	x1, sp
 	blr	x16
 
@@ -1006,7 +1016,7 @@ el0_svc_naked:					// compat entry point
 
 2:
 #endif
-
+	mask_nospec64 xscno, xsc_nr, x19	// enforce bounds for syscall number
 	ldr	x16, [stbl, xscno, lsl #3]	// address in the syscall table
 	blr	x16				// call sys_* routine
 	b	ret_fast_syscall
@@ -1042,7 +1052,7 @@ __sys_trace:
 	ldr	x16, [x16]
 	cmp	x16, xzr
 	b.eq	3f
-	mov	x0, xscno
+	uxtw	x0, wscno  //  it will copy wscno to low bits of x0 and fill high bits with 0
 	mov	x1, sp
 	blr	x16
 
@@ -1219,6 +1229,11 @@ ENTRY(cpu_switch_to)
 	ldr	lr, [x8]
 	mov	sp, x9
 	msr	sp_el0, x1
+#ifdef CONFIG_SHADOW_CALL_STACK
+	str	x18, [x0, #TSK_TI_SCS]
+	ldr	x18, [x1, #TSK_TI_SCS]
+	str	xzr, [x1, #TSK_TI_SCS]		// limit visibility of saved SCS
+#endif
 	ret
 ENDPROC(cpu_switch_to)
 NOKPROBE(cpu_switch_to)
@@ -1235,13 +1250,3 @@ ENTRY(ret_from_fork)
 	b	ret_to_user
 ENDPROC(ret_from_fork)
 NOKPROBE(ret_from_fork)
-
-	.section .bss
-	.align 3
-	.globl	entry_dbg_saved_data
-entry_dbg_saved_data:
-	.dword	0	//magic
-	.dword	0	//el
-	.dword	0	//esr_el1
-	.dword	0	//elr_el1
-	.dword	0	//far_el1

@@ -164,6 +164,7 @@ void panic(const char *fmt, ...)
 	 * after setting panic_cpu) from invoking panic() again.
 	 */
 	local_irq_disable();
+	preempt_disable_notrace();
 
 	/*
 	 * It's possible to come here directly from a panic-assertion and
@@ -202,6 +203,7 @@ void panic(const char *fmt, ...)
 	if (strncmp(buf, "Fatal exception", 15))
 		sec_debug_set_extra_info_fault(PANIC_FAULT, (unsigned long)regs.pc, &regs);
 #endif
+
 	pr_auto(ASL5, "Kernel panic - not syncing: %s\n", buf);
 
 	dbg_snapshot_prepare_panic();

@@ -79,46 +79,46 @@ static inline void jsqz_on_off_time_out(void __iomem *base, u32 value)
 {
 	u32 sfr = 0;
 	sfr = readl(base + REG_42_BUS_CONFIG);
-    if (value == 0)
-        writel((sfr & 0xfeffffff), base + REG_42_BUS_CONFIG);
-    else
-        writel((sfr | 0x01000000), base + REG_42_BUS_CONFIG);
+	if (value == 0)
+		writel((sfr & 0xfeffffff), base + REG_42_BUS_CONFIG);
+	else
+		writel((sfr | 0x01000000), base + REG_42_BUS_CONFIG);
 }
 
 static inline void jsqz_set_stride_on_n_value(void __iomem *base, u32 value)
 {
 	u32 sfr = 0;
 	sfr = readl(base + REG_42_BUS_CONFIG);
-    if (value == 0)
-        writel((sfr & 0xfffee000), base + REG_42_BUS_CONFIG);
-    else
-        writel(((sfr & 0xfffe0000) | (0x00010000 | (value & 0x1fff))), base + REG_42_BUS_CONFIG);
+	if (value == 0)
+		writel((sfr & 0xfffee000), base + REG_42_BUS_CONFIG);
+	else
+		writel(((sfr & 0xfffe0000) | (0x00010000 | (value & 0x1fff))), base + REG_42_BUS_CONFIG);
 }
 
 static inline void jsqz_set_input_format(void __iomem *base, u32 format)
 {
-    writel(format, base + REG_3_INPUT_FORMAT);
+	writel(format, base + REG_3_INPUT_FORMAT);
 }
 
 static inline void jsqz_set_input_addr_luma(void __iomem *base, dma_addr_t y_addr)
 {
-    writel(y_addr, base + REG_0_Y_ADDR);
+	writel(y_addr, base + REG_0_Y_ADDR);
 }
 
 static inline void jsqz_set_input_addr_chroma(void __iomem *base, dma_addr_t u_addr, dma_addr_t v_addr)
 {
-    writel(u_addr, base + REG_1_U_ADDR);
-    writel(v_addr, base + REG_2_V_ADDR);
+	writel(u_addr, base + REG_1_U_ADDR);
+	writel(v_addr, base + REG_2_V_ADDR);
 }
 
 static inline void jsqz_set_input_qtbl(void __iomem *base, u32 * input_qt)
 {
 	int i;
-    for (i = 0; i < 16; i++)
-    {
-        writel(input_qt[i], base + REG_43_TO_58_INIT_Y_Q + (i * 0x4));
-        writel(input_qt[i+16], base + REG_59_TO_74_INIT_C_Q + (i * 0x4));
-    }
+	for (i = 0; i < 16; i++)
+	{
+		writel(input_qt[i], base + REG_43_TO_58_INIT_Y_Q + (i * 0x4));
+		writel(input_qt[i+16], base + REG_59_TO_74_INIT_C_Q + (i * 0x4));
+	}
 }
 
 static inline u32 jsqz_get_bug_config(void __iomem *base)
@@ -129,43 +129,42 @@ static inline u32 jsqz_get_bug_config(void __iomem *base)
 static inline void jsqz_get_init_qtbl(void __iomem *base, u32 * init_qt)
 {
 	int i;
-    for (i = 0; i < 16; i++)
-    {
-        init_qt[i] = readl(base + REG_43_TO_58_INIT_Y_Q + (i * 0x4));
-        init_qt[i+16] = readl(base + REG_59_TO_74_INIT_C_Q + (i * 0x4));
-    }
+	for (i = 0; i < 16; i++)
+	{
+		init_qt[i] = readl(base + REG_43_TO_58_INIT_Y_Q + (i * 0x4));
+		init_qt[i+16] = readl(base + REG_59_TO_74_INIT_C_Q + (i * 0x4));
+	}
 }
 
 static inline void jsqz_get_output_regs(void __iomem *base, u32 * output_qt)
 {
 	int i;
-    for (i = 0; i < 16; i++)
-    {
-        output_qt[i] = readl(base + REG_4_TO_19_Y_Q_MAT + (i * 0x4));
-        output_qt[i+16] = readl(base + REG_20_TO_35_C_Q_MAT + (i * 0x4));
-    }
+	for (i = 0; i < 16; i++)
+	{
+		output_qt[i] = readl(base + REG_4_TO_19_Y_Q_MAT + (i * 0x4));
+		output_qt[i+16] = readl(base + REG_20_TO_35_C_Q_MAT + (i * 0x4));
+	}
 }
 
-#ifdef DEBUG
 static inline void jsqz_print_all_regs(struct jsqz_dev *jsqz)
 {
 	int i;
 	void __iomem *base = jsqz->regs;
-	dev_dbg(jsqz->dev, "%s: BEGIN\n", __func__);
+	dev_info(jsqz->dev, "%s: BEGIN\n", __func__);
 	for (i = 0; i < 4; i++)
 	{
-		dev_dbg(jsqz->dev, "%s: 0x%08x : %08x\n", __func__, (i*0x4), readl(base + (i*0x4)));
+		dev_info(jsqz->dev, "%s: 0x%08x : %08x\n", __func__, (i*0x4), readl(base + (i*0x4)));
 	}
 	for (i = 0; i < 4; i++)
 	{
-		dev_dbg(jsqz->dev, "%s: 0x%08x : %08x\n", __func__, (REG_36_SW_RESET + (i*0x4)), readl(base + REG_36_SW_RESET + (i*0x4)));
+		dev_info(jsqz->dev, "%s: 0x%08x : %08x\n", __func__,
+			(REG_36_SW_RESET + (i*0x4)), readl(base + REG_36_SW_RESET + (i*0x4)));
 	}
-	dev_dbg(jsqz->dev, "%s: 0x00000100 : %08x\n", __func__, readl(base + REG_40_JSQZ_HW_DONE));
-	dev_dbg(jsqz->dev, "%s: 0x00000104 : %08x\n", __func__, readl(base + 0x104));
-	dev_dbg(jsqz->dev, "%s: 0x00000108 : %08x\n", __func__, readl(base + REG_42_BUS_CONFIG));
-	dev_dbg(jsqz->dev, "%s: END\n", __func__);
+	dev_info(jsqz->dev, "%s: 0x00000100 : %08x\n", __func__, readl(base + REG_40_JSQZ_HW_DONE));
+	dev_info(jsqz->dev, "%s: 0x00000104 : %08x\n", __func__, readl(base + 0x104));
+	dev_info(jsqz->dev, "%s: 0x00000108 : %08x\n", __func__, readl(base + REG_42_BUS_CONFIG));
+	dev_info(jsqz->dev, "%s: END\n", __func__);
 }
-#endif
 
 
 

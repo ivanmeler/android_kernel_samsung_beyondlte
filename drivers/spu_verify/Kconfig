@@ -1,5 +1,8 @@
 config SPU_VERIFY
 	bool "SPU Sign Verify Driver"
+    select ASYMMETRIC_KEY_TYPE
+    select ASYMMETRIC_PUBLIC_KEY_SUBTYPE
+    select CRYPTO_RSA
 	default n
 	help
 	  This option enables SPU sign verify driver.

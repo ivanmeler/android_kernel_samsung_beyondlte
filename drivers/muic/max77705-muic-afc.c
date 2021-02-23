@@ -49,6 +49,7 @@
 
 bool max77705_muic_check_is_enable_afc(struct max77705_muic_data *muic_data, muic_attached_dev_t new_dev)
 {
+	struct max77705_usbc_platform_data *usbc_pdata = muic_data->usbc_pdata;
 	int ret = false;
 
 	if (new_dev == ATTACHED_DEV_TA_MUIC || new_dev == ATTACHED_DEV_AFC_CHARGER_PREPARE_MUIC) {
@@ -68,9 +69,13 @@ bool max77705_muic_check_is_enable_afc(struct max77705_muic_data *muic_data, mui
 			pr_info("%s water detected(%d), skip AFC\n", __func__,
 				muic_data->afc_water_disable);
 #endif /* CONFIG_MUIC_MAX77705_CCIC */
+		} else if (usbc_pdata->pd_support) {
+			pr_info("%s PD TA detected(%d), skip AFC\n", __func__,
+				usbc_pdata->pd_support);
 		} else {
 			ret = true;
 		}
+
 	}
 
 	return ret;
@@ -341,18 +346,33 @@ void max77705_muic_handle_detect_dev_afc(struct max77705_muic_data *muic_data, u
 		break;
 	case 8:
 		pr_info("%s:%s CC-Vbus Short case\n", MUIC_DEV_NAME, __func__);
+
+		muic_data->attached_dev = ATTACHED_DEV_TA_MUIC;
+#if defined(CONFIG_MUIC_NOTIFIER)
+		muic_notifier_attach_attached_dev(ATTACHED_DEV_TA_MUIC);
+#endif /* CONFIG_MUIC_NOTIFIER */
 #if defined(CONFIG_SEC_ABC)
 		sec_abc_send_event("MODULE=muic@ERROR=cable_short");
 #endif
 		break;
 	case 9:
 		pr_info("%s:%s SBU-Gnd Short case\n", MUIC_DEV_NAME, __func__);
+
+		muic_data->attached_dev = ATTACHED_DEV_TA_MUIC;
+#if defined(CONFIG_MUIC_NOTIFIER)
+		muic_notifier_attach_attached_dev(ATTACHED_DEV_TA_MUIC);
+#endif /* CONFIG_MUIC_NOTIFIER */
 #if defined(CONFIG_SEC_ABC)
 		sec_abc_send_event("MODULE=muic@ERROR=cable_short");
 #endif
 		break;
 	case 10:
 		pr_info("%s:%s SBU-Vbus Short case\n", MUIC_DEV_NAME, __func__);
+
+		muic_data->attached_dev = ATTACHED_DEV_TA_MUIC;
+#if defined(CONFIG_MUIC_NOTIFIER)
+		muic_notifier_attach_attached_dev(ATTACHED_DEV_TA_MUIC);
+#endif /* CONFIG_MUIC_NOTIFIER */
 #if defined(CONFIG_SEC_ABC)
 		sec_abc_send_event("MODULE=muic@ERROR=cable_short");
 #endif

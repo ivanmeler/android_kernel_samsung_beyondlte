@@ -101,6 +101,9 @@ static int fimc_is_hw_mcsc_handle_interrupt(u32 id, void *context)
 	if (status & (1 << INTR_MC_SCALER_WDMA_FINISH))
 		mserr_hw("Disabeld interrupt occurred! WDAM FINISH!! (0x%x)", instance, hw_ip, status);
 
+	if ((status & (1 << INTR_MC_SCALER_FRAME_START)) && (status & (1 << INTR_MC_SCALER_FRAME_END)))
+		mswarn_hw("start/end overlapped!! (0x%x)", instance, hw_ip, status);
+
 	if (status & (1 << INTR_MC_SCALER_FRAME_START)) {
 		atomic_add(hw_ip->num_buffers, &hw_ip->count.fs);
 		hw_ip->cur_s_int++;
@@ -114,12 +117,7 @@ static int fimc_is_hw_mcsc_handle_interrupt(u32 id, void *context)
 			if (!atomic_read(&hardware->streaming[hardware->sensor_position[instance]]))
 				msinfo_hw("[F:%d]F.S\n", instance, hw_ip, hw_fcount);
 
-			if (param->input.dma_cmd == DMA_INPUT_COMMAND_ENABLE) {
-				fimc_is_hardware_frame_start(hw_ip, instance);
-			} else {
-				clear_bit(HW_CONFIG, &hw_ip->state);
-				atomic_set(&hw_ip->status.Vvalid, V_VALID);
-			}
+			fimc_is_hardware_frame_start(hw_ip, instance);
 		}
 
 		/* for set shadow register write start */
@@ -1818,6 +1816,7 @@ int fimc_is_hw_mcsc_dma_output(struct fimc_is_hw_ip *hw_ip, struct param_mcs_out
 	enum exynos_sensor_position sensor_position;
 	struct fimc_is_hw_mcsc *hw_mcsc;
 	struct fimc_is_hw_mcsc_cap *cap = GET_MCSC_HW_CAP(hw_ip);
+	u32 conv420_weight = 0;
 
 	FIMC_BUG(!hw_ip);
 	FIMC_BUG(!output);
@@ -1876,7 +1875,9 @@ int fimc_is_hw_mcsc_dma_output(struct fimc_is_hw_ip *hw_ip, struct param_mcs_out
 	}
 
 	fimc_is_scaler_set_wdma_format(hw_ip->regs, hw_ip->id, output_id, img_format);
-	fimc_is_scaler_set_420_conversion(hw_ip->regs, output_id, 0, conv420_en);
+	if (out_width > MCSC_LINE_BUF_SIZE)
+		conv420_weight = 16;
+	fimc_is_scaler_set_420_conversion(hw_ip->regs, output_id, conv420_weight, conv420_en);
 
 	fimc_is_scaler_get_post_dst_size(hw_ip->regs, output_id, &scaled_width, &scaled_height);
 	if ((scaled_width != 0) && (scaled_height != 0)) {
@@ -2445,12 +2446,12 @@ int fimc_is_hw_mcsc_check_format(enum mcsc_io_type type, u32 format, u32 bit_wid
 		break;
 	case HW_MCSC_DMA_OUTPUT:
 		/* check dma output */
-		if (width < 16 || width > 8192) {
+		if (width < 16) {
 			ret = -EINVAL;
 			err_hw("Invalid MCSC DMA Output width(%d)", width);
 		}
 
-		if (height < 16 || height > 8192) {
+		if (height < 16) {
 			ret = -EINVAL;
 			err_hw("Invalid MCSC DMA Output height(%d)", height);
 		}

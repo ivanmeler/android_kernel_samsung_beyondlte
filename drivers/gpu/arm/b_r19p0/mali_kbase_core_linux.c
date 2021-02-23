@@ -2875,6 +2875,7 @@ static DEVICE_ATTR(reset_timeout, S_IRUGO | S_IWUSR, show_reset_timeout,
 		set_reset_timeout);
 
 
+#if IS_ENABLED(CONFIG_DEBUG_FS)
 static ssize_t show_mem_pool_size(struct device *dev,
 		struct device_attribute *attr, char * const buf)
 {
@@ -3045,6 +3046,8 @@ static ssize_t set_lp_mem_pool_max_size(struct device *dev,
 
 static DEVICE_ATTR(lp_mem_pool_max_size, S_IRUGO | S_IWUSR, show_lp_mem_pool_max_size,
 		set_lp_mem_pool_max_size);
+
+#endif /* CONFIG_DEBUG_FS */
 
 /**
  * show_js_ctx_scheduling_mode - Show callback for js_ctx_scheduling_mode sysfs
@@ -3973,10 +3976,12 @@ static struct attribute *kbase_attrs[] = {
 	&dev_attr_js_scheduling_period.attr,
 	&dev_attr_power_policy.attr,
 	&dev_attr_core_mask.attr,
+#if IS_ENABLED(CONFIG_DEBUG_FS)
 	&dev_attr_mem_pool_size.attr,
 	&dev_attr_mem_pool_max_size.attr,
 	&dev_attr_lp_mem_pool_size.attr,
 	&dev_attr_lp_mem_pool_max_size.attr,
+#endif
 	&dev_attr_js_ctx_scheduling_mode.attr,
 	NULL
 };
@@ -4338,9 +4343,8 @@ static int kbase_platform_device_probe(struct platform_device *pdev)
 		return err;
 	}
 	kbdev->inited_subsys |= inited_hwcnt_gpu_virt;
-//SRUK-START
-	err = kbase_vinstr_init(kbdev, kbdev->hwcnt_gpu_virt, &kbdev->vinstr_ctx);
-//SRUK-END
+
+	err = kbase_vinstr_init(kbdev->hwcnt_gpu_virt, &kbdev->vinstr_ctx);
 	if (err) {
 		dev_err(kbdev->dev,
 			"Virtual instrumentation initialization failed\n");

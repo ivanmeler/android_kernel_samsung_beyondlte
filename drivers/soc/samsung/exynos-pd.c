@@ -17,6 +17,7 @@
 #include <soc/samsung/cal-if.h>
 #include <linux/apm-exynos.h>
 #include <linux/sec_debug.h>
+
 struct exynos_pm_domain *exynos_pd_lookup_name(const char *domain_name)
 {
 	struct exynos_pm_domain *exypd = NULL;
@@ -485,7 +486,6 @@ static int __init exynos_pd_init(void)
 		pr_info("%s PM Domain Initialize\n", EXYNOS_PD_PREFIX);
 		/* show information of power domain registration */
 		exynos_pd_show_power_domain();
-
 		return 0;
 	}
 #endif

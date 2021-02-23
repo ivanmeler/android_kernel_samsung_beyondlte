@@ -1687,7 +1687,9 @@ ssize_t sec_bat_store_attrs(
 	int x = 0;
 	int t[12];
 	int i = 0;
-
+#if defined(CONFIG_DIRECT_CHARGING)
+	char direct_charging_source_status[2] = {0, };
+#endif
 	union power_supply_propval value = {0, };
 
 	switch (offset) {
@@ -1983,6 +1985,14 @@ ssize_t sec_bat_store_attrs(
 				wake_lock(&battery->parse_mode_dt_wake_lock);
 				queue_delayed_work(battery->monitor_wqueue,
 					&battery->parse_mode_dt_work, 0);
+#if defined(CONFIG_DIRECT_CHARGING)
+				direct_charging_source_status[0] = SEC_STORE_MODE;
+				direct_charging_source_status[1] = SEC_DIRECT_CHG_CHARGING_SOURCE_SWITCHING;
+				value.strval = direct_charging_source_status;
+				psy_do_property(battery->pdata->charger_name, set,
+					POWER_SUPPLY_EXT_PROP_CHANGE_CHARGING_SOURCE, value);
+#endif
+
 			}
 #endif
 			ret = count;
@@ -3263,14 +3273,17 @@ ssize_t sec_bat_store_attrs(
 		break;
 	case SWITCH_CHARGING_SOURCE:
 		if (sscanf(buf, "%10d\n", &x) == 1) {
-			if (is_pd_apdo_wire_type(battery->cable_type)) {
-				dev_info(battery->dev, "%s: Request Change Charging Source : %s \n",
-					__func__, x == 0 ? "Switch Charger" : "Direct Charger" );
+			dev_info(battery->dev, "%s: Request Change Charging Source : %s \n",
+				__func__, x == 0 ? "Switch Charger" : "Direct Charger" );
 
-				value.intval = (x == 0) ? SEC_DIRECT_CHG_CHARGING_SOURCE_SWITCHING : SEC_DIRECT_CHG_CHARGING_SOURCE_DIRECT;
-				psy_do_property(battery->pdata->charger_name, set,
-					POWER_SUPPLY_EXT_PROP_CHANGE_CHARGING_SOURCE, value);
-			}
+			direct_charging_source_status[0] = SEC_TEST_MODE;
+			direct_charging_source_status[1] =
+				 (x == 0) ? SEC_DIRECT_CHG_CHARGING_SOURCE_SWITCHING : SEC_DIRECT_CHG_CHARGING_SOURCE_DIRECT;
+			value.strval = direct_charging_source_status;
+			psy_do_property(battery->pdata->charger_name, set,
+				POWER_SUPPLY_EXT_PROP_CHANGE_CHARGING_SOURCE, value);
+
+			ret = count;
 		}
 		break;
 #endif

@@ -181,8 +181,8 @@ struct ifconn_manager_data {
 	void *pd;
 	int water_count;
 	int dry_count;
-	int usb_highspeed_count;
-	int usb_superspeed_count;
+	int usb210_count;
+	int usb310_count;
 	int waterChg_count;
 	unsigned long waterDet_duration;
 	unsigned long waterDet_time;

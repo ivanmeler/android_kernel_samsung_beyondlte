@@ -2069,6 +2069,7 @@ void decon_reg_set_mres(u32 id, struct decon_param *p)
 {
 	struct decon_lcd *lcd_info = p->lcd_info;
 	struct decon_mode_info *psr = &p->psr;
+	u32 overlap_w = 0;
 
 	if (lcd_info->mode != DECON_MIPI_COMMAND_MODE) {
 		dsim_info("%s: mode[%d] doesn't support multi resolution\n",
@@ -2079,7 +2080,11 @@ void decon_reg_set_mres(u32 id, struct decon_param *p)
 	decon_reg_set_blender_bg_image_size(id, psr->dsi_mode, lcd_info);
 	decon_reg_set_scaled_image_size(id, psr->dsi_mode, lcd_info);
 
-	decon_reg_configure_lcd(id, p);
+	if (lcd_info->dsc_enabled)
+		dsc_reg_init(id, p, overlap_w, 0);
+	else
+		decon_reg_config_data_path_size(id, lcd_info->xres,
+				lcd_info->yres, overlap_w, NULL, p);
 }
 
 void decon_reg_release_resource(u32 id, struct decon_mode_info *psr)
@@ -2375,7 +2380,7 @@ int decon_check_global_limitation(struct decon_device *decon,
 		 */
 		if (config[i].compression && (config[i].src.w > 2048)) {
 			for (j = 0; j < MAX_DECON_WIN; j++) {
-				if (i == j || (config[i].idma_type >= ODMA_WB))
+				if (i == j)
 					continue;
 				/* idma_type means DPP channel number */
 				if ((config[j].state == DECON_WIN_STATE_BUFFER) &&
@@ -2411,7 +2416,7 @@ int decon_check_global_limitation(struct decon_device *decon,
 			}
 
 			for (j = 0; j < MAX_DECON_WIN; j++) {
-				if (i == j || (config[i].idma_type >= ODMA_WB))
+				if (i == j)
 					continue;
 				if ((config[j].state == DECON_WIN_STATE_BUFFER) &&
 						(config[j].idma_type ==

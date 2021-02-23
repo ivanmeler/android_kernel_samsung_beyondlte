@@ -23,17 +23,15 @@
 enum exynos_dm_type {
 	DM_CPU_CL0 = 0,
 	DM_CPU_CL1,
-	DM_CPU_CL2,
 	DM_MIF,
 	DM_INT,
 	DM_INTCAM,
+	DM_FSYS0,
 	DM_CAM,
-	DM_IVA,
-	DM_SCORE,
 	DM_DISP,
 	DM_AUD,
-	DM_MFC,
-	DM_NPU,
+	DM_IVA,
+	DM_SCORE,
 	DM_GPU,
 	DM_TYPE_END
 };
@@ -41,17 +39,15 @@ enum exynos_dm_type {
 static const char dm_type_name[DM_TYPE_END][EXYNOS_DM_TYPE_NAME_LEN] = {
 	"dm_cpu_cl0",
 	"dm_cpu_cl1",
-	"dm_cpu_cl2",
 	"dm_mif",
 	"dm_int",
 	"dm_intcam",
+	"dm_fsys0",
 	"dm_cam",
-	"dm_iva",
-	"dm_score",
 	"dm_disp",
 	"dm_aud",
-	"dm_mfc",
-	"dm_npu",
+	"dm_iva",
+	"dm_score",
 	"dm_gpu",
 };
 

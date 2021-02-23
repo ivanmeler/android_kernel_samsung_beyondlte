@@ -40,6 +40,14 @@ static struct switch_dev switch_dock = {
 	.name = "ccic_dock",
 };
 
+struct device *get_ccic_device(void)
+{
+	if (!ccic_device)
+		ccic_core_init();
+	return ccic_device;
+}
+EXPORT_SYMBOL(get_ccic_device);
+
 int ccic_register_switch_device(int mode)
 {
 	int ret = 0;
@@ -123,6 +131,9 @@ void ccic_core_unregister_chip(void)
 int ccic_core_init(void)
 {
 	int ret = 0;
+
+	if (ccic_device)
+		return 0;
 
 	pr_info("%s\n", __func__);
 

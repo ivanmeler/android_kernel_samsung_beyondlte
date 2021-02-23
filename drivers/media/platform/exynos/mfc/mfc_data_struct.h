@@ -802,6 +802,7 @@ struct mfc_dev {
 	void __iomem		*sysmmu0_base;
 	void __iomem		*sysmmu1_base;
 	void __iomem		*hwfc_base;
+	/* for MMCACHE */
 	void __iomem		*cmu_busc_base;
 	void __iomem		*cmu_mif0_base;
 	void __iomem		*cmu_mif1_base;
@@ -833,7 +834,7 @@ struct mfc_dev {
 	bool has_2sysmmu;
 	bool has_hwfc;
 	bool has_mmcache;
-	bool has_cmu;	
+	bool has_cmu;
 
 	struct mfc_special_buf common_ctx_buf;
 	struct mfc_special_buf drm_common_ctx_buf;

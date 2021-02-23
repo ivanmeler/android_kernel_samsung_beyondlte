@@ -36,39 +36,38 @@ EXPORT_SYMBOL(secgpio_dotest);
 /* extern GPIOMAP_RESULT GpioMap_result; */
 static struct gpio_dvs_t *gdvs_info;
 
-static ssize_t checked_init_secgpio_file_read(
-	struct device *dev, struct device_attribute *attr, char *buf);
-static ssize_t checked_sleep_secgpio_file_read(
-	struct device *dev, struct device_attribute *attr, char *buf);
-static ssize_t checked_secgpio_init_read_details(
-	struct device *dev, struct device_attribute *attr, char *buf);
-static ssize_t checked_secgpio_sleep_read_details(
-	struct device *dev, struct device_attribute *attr, char *buf);
-static ssize_t secgpio_checked_sleepgpio_read(
-	struct device *dev, struct device_attribute *attr, char *buf);
-static ssize_t secgpio_read_request_gpio(
-        struct device *dev, struct device_attribute *attr, char *buf);
-static ssize_t secgpio_write_request_gpio(
-        struct device *dev, struct device_attribute *attr,
-        const char *buf, size_t size);
+static ssize_t checked_init_secgpio_file_read(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t checked_sleep_secgpio_file_read(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t checked_secgpio_init_read_details(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t checked_secgpio_sleep_read_details(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t secgpio_checked_sleepgpio_read(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t secgpio_read_request_gpio(struct device *dev,
+	struct device_attribute *attr, char *buf);
+static ssize_t secgpio_write_request_gpio(struct device *dev,
+	struct device_attribute *attr, const char *buf, size_t size);
 static ssize_t secgpio_ctrl_request_gpio(
-        struct device *dev, struct device_attribute *attr,
-        const char *buf, size_t size);
+	struct device *dev, struct device_attribute *attr,
+	const char *buf, size_t size);
 
 static DEVICE_ATTR(gpioinit_check, 0444,
-	checked_init_secgpio_file_read, NULL);
+		checked_init_secgpio_file_read, NULL);
 static DEVICE_ATTR(gpiosleep_check, 0444,
-	checked_sleep_secgpio_file_read, NULL);
+		checked_sleep_secgpio_file_read, NULL);
 static DEVICE_ATTR(check_init_detail, 0444,
-	checked_secgpio_init_read_details, NULL);
+		checked_secgpio_init_read_details, NULL);
 static DEVICE_ATTR(check_sleep_detail, 0444,
-	checked_secgpio_sleep_read_details, NULL);
+		checked_secgpio_sleep_read_details, NULL);
 static DEVICE_ATTR(checked_sleepGPIO, 0444,
-	secgpio_checked_sleepgpio_read, NULL);
+		secgpio_checked_sleepgpio_read, NULL);
 static DEVICE_ATTR(check_requested_gpio, 0664,
-        secgpio_read_request_gpio, secgpio_write_request_gpio);
+		secgpio_read_request_gpio, secgpio_write_request_gpio);
 static DEVICE_ATTR(ctrl_requested_gpio, 0664,
-        NULL, secgpio_ctrl_request_gpio);
+		NULL, secgpio_ctrl_request_gpio);
 
 static struct attribute *secgpio_dvs_attributes[] = {
 		&dev_attr_gpioinit_check.attr,
@@ -85,8 +84,8 @@ static struct attribute_group secgpio_dvs_attr_group = {
 		.attrs = secgpio_dvs_attributes,
 };
 
-static ssize_t checked_init_secgpio_file_read(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t checked_init_secgpio_file_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
 	int i = 0;
 	char temp_buf[20];
@@ -101,8 +100,8 @@ static ssize_t checked_init_secgpio_file_read(
 	return strlen(buf);
 }
 
-static ssize_t checked_sleep_secgpio_file_read(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t checked_sleep_secgpio_file_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
 	int i = 0;
 	char temp_buf[20];
@@ -117,8 +116,8 @@ static ssize_t checked_sleep_secgpio_file_read(
 	return strlen(buf);
 }
 
-static ssize_t checked_secgpio_init_read_details(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t checked_secgpio_init_read_details(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
 	int i = 0;
 	char temp_buf[20];
@@ -133,8 +132,8 @@ static ssize_t checked_secgpio_init_read_details(
 
 	return strlen(buf);
 }
-static ssize_t checked_secgpio_sleep_read_details(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t checked_secgpio_sleep_read_details(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
 	int i = 0;
 	char temp_buf[20];
@@ -151,8 +150,8 @@ static ssize_t checked_secgpio_sleep_read_details(
 
 }
 
-static ssize_t secgpio_checked_sleepgpio_read(
-	struct device *dev, struct device_attribute *attr, char *buf)
+static ssize_t secgpio_checked_sleepgpio_read(struct device *dev,
+		struct device_attribute *attr, char *buf)
 {
 	struct gpio_dvs_t *gdvs = dev_get_drvdata(dev);
 
@@ -182,8 +181,8 @@ static ssize_t secgpio_read_request_gpio(
 	return snprintf(buf, PAGE_SIZE, "GPIO[%d] : [%x]", gdvs->gpio_num, val);
 }
 
-static ssize_t secgpio_write_request_gpio(
-        struct device *dev, struct device_attribute *attr, const char *buf, size_t size)
+static ssize_t secgpio_write_request_gpio(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t size)
 {
 	int ret;
 	struct gpio_dvs_t *gdvs = dev_get_drvdata(dev);
@@ -273,7 +272,7 @@ static const struct of_device_id secgpio_dvs_dt_match[] = {
 MODULE_DEVICE_TABLE(of, secgpio_dvs_dt_match);
 
 static struct secgpio_dvs_data *secgpio_dvs_get_soc_data(
-					struct platform_device *pdev)
+		struct platform_device *pdev)
 {
 	const struct of_device_id *match;
 	struct device_node *node = pdev->dev.of_node;

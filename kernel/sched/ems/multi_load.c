@@ -997,16 +997,19 @@ void part_cpu_active_ratio(unsigned long *util, unsigned long *max, int cpu)
 		demand = pa->active_ratio_max;
 		break;
 	case PART_POLICY_MAX_RECENT_MAX:
-		demand = max(pa->active_ratio_recent, pa->active_ratio_max);
+		demand = max(pa->active_ratio_recent,
+				pa->active_ratio_max);
 		break;
 	case PART_POLICY_LAST:
 		demand = pa->hist[pa->hist_idx];
 		break;
 	case PART_POLICY_MAX_RECENT_LAST:
-		demand = max(pa->active_ratio_recent, pa->hist[pa->hist_idx]);
+		demand = max(pa->active_ratio_recent,
+				pa->hist[pa->hist_idx]);
 		break;
 	case PART_POLICY_MAX_RECENT_AVG:
-		demand = max(pa->active_ratio_recent, pa->active_ratio_avg);
+		demand = max(pa->active_ratio_recent,
+				pa->active_ratio_avg);
 		break;
 	}
 

@@ -51,7 +51,8 @@ static ssize_t power_supply_show_property(struct device *dev,
 		"SMART_OTG", "SMART_NOTG", "POWER_SHARING",
 		"HV_Mains", "HV_Mains_12V", "HV_Prepare_Mains", "HV_ERR", "MHL_USB_100", "MHL_2000",
 		"HV_Unknown", "MDOCK_TA", "HMT_CONNECTED", "HMT_CHARGE", "Wireless_Pack", "Wireless_Pack_TA",
-		"Wireless_Stand", "HV_Wireless_Stand", "PDIC", "HV_Mains_CHG_LIMIT"
+		"Wireless_Stand", "HV_Wireless_Stand", "PDIC", "HV_Mains_CHG_LIMIT",
+		"HV_QC20", "HV_QC30", "USB_PD", "USB_PD_DRP", "Prepare_TA"
 	};
 	static char *status_text[] = {
 		"Unknown", "Charging", "Discharging", "Not charging", "Full"
@@ -89,8 +90,9 @@ static ssize_t power_supply_show_property(struct device *dev,
 			if (ret == -ENODATA)
 				dev_dbg(dev, "driver has no data for `%s' property\n",
 					attr->attr.name);
-			else if (ret != -ENODEV)
-				dev_err(dev, "driver failed to report `%s' property: %zd\n",
+			else if (ret != -ENODEV && ret != -EAGAIN)
+				dev_err_ratelimited(dev,
+					"driver failed to report `%s' property: %zd\n",
 					attr->attr.name, ret);
 			return ret;
 		}
@@ -233,6 +235,7 @@ static struct device_attribute power_supply_attrs[] = {
 	POWER_SUPPLY_ATTR(afc_charger_mode),
 	POWER_SUPPLY_ATTR(usb_hc),
 	POWER_SUPPLY_ATTR(model_name),
+	POWER_SUPPLY_ATTR(fuelgauge_reset),
 };
 
 static struct attribute *
@@ -309,14 +312,10 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 	char *prop_buf;
 	char *attrname;
 
-	dev_dbg(dev, "uevent\n");
-
 	if (!psy || !psy->desc) {
 		dev_dbg(dev, "No power supply yet\n");
 		return ret;
 	}
-
-	dev_dbg(dev, "POWER_SUPPLY_NAME=%s\n", psy->desc->name);
 
 	ret = add_uevent_var(env, "POWER_SUPPLY_NAME=%s", psy->desc->name);
 	if (ret)
@@ -352,8 +351,6 @@ int power_supply_uevent(struct device *dev, struct kobj_uevent_env *env)
 			ret = -ENOMEM;
 			goto out;
 		}
-
-		dev_dbg(dev, "prop %s=%s\n", attrname, prop_buf);
 
 		ret = add_uevent_var(env, "POWER_SUPPLY_%s=%s", attrname, prop_buf);
 		kfree(attrname);

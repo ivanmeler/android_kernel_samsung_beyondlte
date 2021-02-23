@@ -1,13 +1,17 @@
-# drivers/kperfmon/Kconfig
 #
-# Copyright (c) 2010-2011 Samsung Electronics Co., Ltd.
-#		http://www.samsung.com/
+# Samsung Performance Logging system
 #
-# Licensed under GPLv2
+
+menu "samsung Performace manager"
 
 config KPERFMON
 	bool "Enable performance log"
-	default n
+	default y
 	help
-	  Samsung performance log(OLOG).
+		Samsung performance log(OLOG).
+		Say Y here if enable performance olog driver to do logging system resources.
+		When some delay occurs in the kernel, native or user user space,
+		the logging information should be restored into the system.
+
+endmenu
 

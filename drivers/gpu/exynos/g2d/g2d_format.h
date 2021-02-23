@@ -120,6 +120,6 @@
 
 #define G2D_MAX_PLANES	4
 
-#define G2D_MAX_SIZE	8192
+#define G2D_MAX_SIZE	16383
 
 #endif /* __G2D_FORMAT_H__ */

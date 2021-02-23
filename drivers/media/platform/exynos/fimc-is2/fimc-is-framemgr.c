@@ -161,6 +161,19 @@ struct fimc_is_frame *find_frame(struct fimc_is_framemgr *this,
 	return NULL;
 }
 
+struct fimc_is_frame *find_stripe_process_frame(struct fimc_is_framemgr *framemgr,
+			u32 fcount)
+{
+	struct fimc_is_frame *frame = NULL;
+
+	if (framemgr->queued_count[FS_STRIPE_PROCESS]) {
+		frame = find_frame(framemgr, FS_STRIPE_PROCESS, frame_fcount,
+					(void *)(ulong)fcount);
+	}
+
+	return frame;
+}
+
 void print_frame_queue(struct fimc_is_framemgr *this,
 			enum fimc_is_frame_state state)
 {

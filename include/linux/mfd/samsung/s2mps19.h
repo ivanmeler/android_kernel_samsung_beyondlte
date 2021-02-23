@@ -102,9 +102,6 @@ struct s2mps19_platform_data {
 	int				smpl_warn;
 	bool				smpl_warn_en;
 	bool				smpl_warn_dev2;
-#ifdef CONFIG_SEC_PM
-	bool				smpl_warn_en_by_evt;
-#endif
 	unsigned int                    smpl_warn_vth;
 	unsigned int                    smpl_warn_hys;
 	bool			ocp_warn1_en;

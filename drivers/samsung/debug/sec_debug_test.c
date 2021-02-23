@@ -30,7 +30,7 @@
 #include <linux/rwsem.h>
 #include <linux/moduleparam.h>
 
-//#include <soc/samsung/exynos-pmu.h>
+#include <soc/samsung/exynos-pmu.h>
 #include <soc/samsung/exynos-debug.h>
 
 /* Override the default prefix for the compatibility with other models */
@@ -208,7 +208,7 @@ struct debug_delayed_work_info {
 	struct delayed_work read_info_work;
 };
 
-struct work_struct lockup_work;
+static struct work_struct lockup_work;
 
 static DEFINE_SPINLOCK(sec_debug_test_lock);
 static DEFINE_RWLOCK(sec_debug_test_rw_lock);
@@ -354,13 +354,11 @@ static void simulate_SFR(char *arg)
 
 static void simulate_WP(char *arg)
 {
-#if 0
 	unsigned int ps_hold_control;
 
 	pr_crit("%s()\n", __func__);
 	exynos_pmu_read(EXYNOS_PS_HOLD_CONTROL, &ps_hold_control);
 	exynos_pmu_write(EXYNOS_PS_HOLD_CONTROL, ps_hold_control & 0xFFFFFEFF);
-#endif
 }
 
 static void simulate_TP(char *arg)
@@ -488,7 +486,7 @@ static void simulate_SOFTIRQ_LOCKUP(char *arg)
 {
 	int cpu;
 
-	tasklet_init(&sec_debug_tasklet, softirq_lockup_tasklet, (unsigned long)0);
+	tasklet_init(&sec_debug_tasklet, softirq_lockup_tasklet, 0);
 	pr_crit("%s()\n", __func__);
 
 	if (arg) {
@@ -523,9 +521,9 @@ static enum hrtimer_restart softirq_storm_timer_fn(struct hrtimer *hrtimer)
 
 static void simulate_SOFTIRQ_STORM(char *arg)
 {
-	if ((arg && kstrtol(arg, 10, &sample_period)) || !arg) {
+	if ((arg && kstrtol(arg, 10, &sample_period)) || !arg)
 		sample_period = 1000000;
-	}
+
 	pr_crit("%s : set period (%d)\n", __func__, (unsigned int)sample_period);
 
 	tasklet_init(&sec_debug_tasklet, softirq_storm_tasklet, 0);
@@ -780,7 +778,7 @@ static int recursive_loop(int remaining)
 	char buf[BUFFER_SIZE];
 
 	/*sub sp, sp, #(S_FRAME_SIZE+PRESERVE_STACK_SIZE) = 320+256 = 576 @kernel_ventry*/
-	if((unsigned long)(current->stack)+575 > current_stack_pointer)
+	if ((unsigned long)(current->stack)+575 > current_stack_pointer)
 		*((volatile unsigned int *)0) = 0;
 
 	/* Make sure compiler does not optimize this away. */
@@ -829,6 +827,7 @@ static void simulate_BAD_SCHED(char *arg)
 
 static void simulate_CORRUPT_MAGIC(char *arg)
 {
+#ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
 	int magic;
 
 	pr_crit("%s()\n", __func__);
@@ -839,6 +838,9 @@ static void simulate_CORRUPT_MAGIC(char *arg)
 	} else {
 		simulate_extra_info_force_error(0);
 	}
+#else
+	pr_crit("%s(): no extra info\n", __func__);
+#endif
 }
 
 static void simulate_IRQ_STORM(char *arg)
@@ -854,7 +856,7 @@ static void simulate_IRQ_STORM(char *arg)
 		else
 			pr_crit("%s : wrong irq number (%d)\n", __func__, (unsigned int)irq);
 	} else {
-		for_each_irq_nr(i) {			
+		for_each_irq_nr(i) {
 			struct irq_desc *desc = irq_to_desc(i);
 
 			if (desc && desc->action && desc->action->name)
@@ -896,18 +898,17 @@ static void simulate_SYNC_IRQ_LOCKUP(char *arg)
 			struct irq_desc *desc = irq_to_desc(i);
 
 			if (desc && desc->action && desc->action->thread_fn)
-				desc->action->thread_fn = dummy_wait_for_completion_irq_handler;	
-		}
-		else {
+				desc->action->thread_fn = dummy_wait_for_completion_irq_handler;
+		} else {
 			pr_crit("%s : wrong irq number (%d)\n", __func__, (unsigned int)irq);
 		}
 	} else {
-		for_each_irq_nr(i) {			
+		for_each_irq_nr(i) {
 			struct irq_desc *desc = irq_to_desc(i);
 
 			if (desc && desc->action && desc->action->name && desc->action->thread_fn)
 				if (!strcmp(desc->action->name, "sec_ts")) {
-					desc->action->thread_fn = dummy_wait_for_completion_irq_handler;	
+					desc->action->thread_fn = dummy_wait_for_completion_irq_handler;
 					break;
 				}
 		}
@@ -942,7 +943,7 @@ static void simulate_CORRUPT_DELAYED_WORK(char *arg)
 
 	info = kzalloc(sizeof(struct debug_delayed_work_info), GFP_KERNEL);
 
-	pr_info("%s(): address of info is 0x%p", __func__, info);
+	pr_crit("%s(): address of info is 0x%p", __func__, info);
 
 	if (!info)
 		return;

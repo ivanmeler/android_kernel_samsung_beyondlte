@@ -134,8 +134,8 @@ enum hdr_path {
 	HDR_PATH_LSI = 0,
 	HDR_PATH_MCD,
 };
-
 #endif
+
 enum dpp_attr {
 	DPP_ATTR_AFBC		= 0,
 	DPP_ATTR_BLOCK		= 1,
@@ -146,7 +146,9 @@ enum dpp_attr {
 	DPP_ATTR_HDR		= 6,
 	DPP_ATTR_C_HDR		= 7,
 	DPP_ATTR_C_HDR10_PLUS	= 8,
+#ifdef CONFIG_EXYNOS_MCD_HDR
 	DPP_ATTR_WCG		= 9,
+#endif
 	DPP_ATTR_IDMA		= 16,
 	DPP_ATTR_ODMA		= 17,
 	DPP_ATTR_DPP		= 18,

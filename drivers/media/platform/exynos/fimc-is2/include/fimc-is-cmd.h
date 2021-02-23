@@ -157,6 +157,10 @@ enum is_subscenario_id {
 	ISS_SUB_SCENARIO_FRONT_VT1_STILL_CAPTURE = 39,		/* 39: front camera VT1 still capture */
 	ISS_SUB_SCENARIO_FRONT_STILL_PREVIEW_BINNING = 40,	/* 40: front camera binning mode for low power */
 	ISS_SUB_SCENARIO_FRONT_COLOR_IRIS_PREVIEW = 43,         /* 43: front camera Color Iris preview */
+
+	ISS_SUB_SCENARIO_STILL_FULL_PREVIEW_WDR_AUTO = 64,	/* 64: Full resolution Capture (HDR Auto/Off)*/
+	ISS_SUB_SCENARIO_SUPER_NIGHT_SHOT_PREVIEW = 65,		/* 65: Super night Preview (HDR Auto) */
+	ISS_SUB_SCENARIO_FULL_CAPTURE = 66,			/* 66: Full resolution Capture (HDR Auto/Off) */
 	ISS_SUB_END,
 };
 

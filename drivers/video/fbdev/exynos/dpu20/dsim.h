@@ -280,7 +280,6 @@ struct dsim_device {
 	struct df_status_info *df_status;
 	int df_mode;
 #endif
-
 };
 
 struct dsim_lcd_driver {
@@ -311,7 +310,6 @@ struct dsim_lcd_driver {
 	int (*set_df_default)(struct dsim_device *dsim);
 	int (*update_lcd_info)(struct dsim_device *dsim);
 #endif
-
 };
 
 int dsim_write_data(struct dsim_device *dsim, u32 id, unsigned long d0, u32 d1, bool must_wait, bool wakeup);
@@ -433,6 +431,7 @@ static inline void dsim_phy_write_mask(u32 id, u32 reg_id, u32 val, u32 mask)
 int dsim_function_reset(struct dsim_device *dsim);
 void parse_lcd_info(struct device_node *, struct decon_lcd *);
 #endif
+
 /* DPHY loop back for test */
 #ifdef DPHY_LOOP
 void dsim_reg_set_dphy_loop_back_test(u32 id);
@@ -483,4 +482,5 @@ int dsim_update_adaptive_freq(struct dsim_device *dsim, bool force);
 #define DSIM_IOC_NOTIFY			_IOW('D', 50, u32)
 #define DSIM_IOC_SET_ERROR_CB	_IOW('D', 51, struct disp_error_cb_info *)
 #endif
+
 #endif /* __SAMSUNG_DSIM_H__ */

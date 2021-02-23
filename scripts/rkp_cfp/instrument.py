@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 # Copyright (c) 2016 Samsung Electronics Co., Ltd.
-# Authors:	James Gleeson <jagleeso@gmail.com>
-#		Wenbo Shen <wenbo.s@samsung.com>
+# Authors:  James Gleeson <jagleeso@gmail.com>
+#       Wenbo Shen <wenbo.s@samsung.com>
 #
 # Instrument vmlinux STP, LDP and BLR instructions to protect RA and restrict jumpping
 #
@@ -164,7 +164,7 @@ def instrument(objdump, func=None, skip=set([]), skip_stp=set([]), skip_asm=set(
     Replace
         <assembled_c_function>:
           nop
-          stp	x29, x30, [sp,#-<frame>]!
+          stp   x29, x30, [sp,#-<frame>]!
           (insns)
     With:
         <assembled_c_function>:
@@ -228,7 +228,7 @@ def instrument(objdump, func=None, skip=set([]), skip_stp=set([]), skip_asm=set(
                 magic_i, magic_insn = last_insns[0]
                 objdump.write(magic_i, objdump.JOPP_MAGIC)
 
-            if objdump.JOPP and insn['type'] == 'blr' and curfunc not in skip_blr :
+            if objdump.JOPP and insn['type'] == 'blr' and insn['args']['dst_reg'] < 31 and curfunc not in skip_blr :
                 springboard_blr = 'jopp_springboard_blr_x{register}'.format(register=insn['args']['dst_reg'])
                 insn = bl_insn(insn,
                         offset=objdump.func_offset(springboard_blr) - objdump.insn_offset(i))

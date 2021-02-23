@@ -21,6 +21,10 @@
 #include <linux/sched.h>
 #include <linux/sched/user.h>
 
+#ifdef CONFIG_KDP
+#include <linux/kdp.h>
+#endif
+
 struct cred;
 struct inode;
 
@@ -85,15 +89,6 @@ extern int groups_search(const struct group_info *, kgid_t);
 extern bool may_setgroups(void);
 extern void groups_sort(struct group_info *);
 
-#ifdef CONFIG_RKP_KDP
-struct ro_rcu_head {
-	struct rcu_head	rcu;		/* RCU deletion hook */
-	void *bp_cred;
-};
-#define get_rocred_rcu(cred) ((struct ro_rcu_head *)((atomic_t *)cred->use_cnt+1))
-#define get_usecnt_rcu(use_cnt) ((struct ro_rcu_head *)((atomic_t *)use_cnt+1))
-#endif /*CONFIG_RKP_KDP*/
-
 /*
  * The security context of a task
  *
@@ -154,46 +149,18 @@ struct cred {
 	struct user_struct *user;	/* real user ID subscription */
 	struct user_namespace *user_ns; /* user_ns the caps and keyrings are relative to. */
 	struct group_info *group_info;	/* supplementary groups for euid/fsgid */
-	struct rcu_head	rcu;		/* RCU deletion hook */
-#ifdef CONFIG_RKP_KDP
+	/* RCU deletion */
+	union {
+		int non_rcu;			/* Can we skip RCU deletion? */
+		struct rcu_head	rcu;		/* RCU deletion hook */
+	};
+#ifdef CONFIG_KDP
 	atomic_t *use_cnt;
 	struct task_struct *bp_task;
 	void *bp_pgd;
 	unsigned long long type;
-#endif /*CONFIG_RKP_KDP*/
+#endif
 } __randomize_layout;
-
-#ifdef CONFIG_RKP_KDP
-typedef struct cred_param{
-	struct cred *cred;
-	struct cred *cred_ro;
-	void *use_cnt_ptr;
-	void *sec_ptr;
-	unsigned long type;
-	union {
-		void *task_ptr;
-		u64 use_cnt;
-	};
-}cred_param_t;
-
-enum {
-	RKP_CMD_COPY_CREDS = 0,
-	RKP_CMD_CMMIT_CREDS,
-	RKP_CMD_OVRD_CREDS,
-};
-#define override_creds(x) rkp_override_creds(&x)
-
-#define rkp_cred_fill_params(crd,crd_ro,uptr,tsec,rkp_cmd_type,rkp_use_cnt)	\
-do {						\
-	cred_param.cred = crd;		\
-	cred_param.cred_ro = crd_ro;		\
-	cred_param.use_cnt_ptr = uptr;		\
-	cred_param.sec_ptr= tsec;		\
-	cred_param.type = rkp_cmd_type;		\
-	cred_param.use_cnt = (u64)rkp_use_cnt;		\
-} while(0)
-
-#endif /*CONFIG_RKP_KDP*/
 
 extern void __put_cred(struct cred *);
 extern void exit_creds(struct task_struct *);
@@ -204,13 +171,9 @@ extern struct cred *prepare_creds(void);
 extern struct cred *prepare_exec_creds(void);
 extern int commit_creds(struct cred *);
 extern void abort_creds(struct cred *);
-#ifndef CONFIG_RKP_KDP
+#ifndef CONFIG_KDP_CRED
 extern const struct cred *override_creds(const struct cred *);
-#else
-extern const struct cred *rkp_override_creds(struct cred **);
-extern unsigned int rkp_get_task_sec_size(void);
-unsigned int rkp_get_offset_bp_cred(void);
-#endif /*CONFIG_RKP_KDP*/
+#endif
 extern void revert_creds(const struct cred *);
 extern struct cred *prepare_kernel_cred(struct task_struct *);
 extern int change_create_files_as(struct cred *, struct inode *);
@@ -273,15 +236,13 @@ static inline bool cap_ambient_invariant_ok(const struct cred *cred)
  * Get a reference on the specified set of new credentials.  The caller must
  * release the reference.
  */
-#ifdef CONFIG_RKP_KDP
-struct cred *get_new_cred(struct cred *cred);
-#else
+#ifndef CONFIG_KDP_CRED
 static inline struct cred *get_new_cred(struct cred *cred)
 {
 	atomic_inc(&cred->usage);
 	return cred;
 }
-#endif /*CONFIG_RKP_KDP*/
+#endif
 
 /**
  * get_cred - Get a reference on a set of credentials
@@ -300,6 +261,12 @@ static inline const struct cred *get_cred(const struct cred *cred)
 {
 	struct cred *nonconst_cred = (struct cred *) cred;
 	validate_creds(cred);
+#ifdef CONFIG_KDP_CRED
+	if (is_kdp_protect_addr((unsigned long)nonconst_cred))
+		GET_ROCRED_RCU(nonconst_cred)->non_rcu = 0;
+	else
+#endif
+	nonconst_cred->non_rcu = 0;
 	return get_new_cred(nonconst_cred);
 }
 
@@ -314,9 +281,7 @@ static inline const struct cred *get_cred(const struct cred *cred)
  * on task_struct are attached by const pointers to prevent accidental
  * alteration of otherwise immutable credential sets.
  */
-#ifdef CONFIG_RKP_KDP
-void put_cred(const struct cred *_cred);
-#else
+#ifndef CONFIG_KDP_CRED
 static inline void put_cred(const struct cred *_cred)
 {
 	struct cred *cred = (struct cred *) _cred;
@@ -325,7 +290,7 @@ static inline void put_cred(const struct cred *_cred)
 	if (atomic_dec_and_test(&(cred)->usage))
 		__put_cred(cred);
 }
-#endif /*CONFIG_RKP_KDP*/
+#endif
 
 /**
  * current_cred - Access the current task's subjective credentials

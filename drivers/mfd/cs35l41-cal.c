@@ -41,6 +41,7 @@ static int cs35l41_cal_probe(struct platform_device *pdev)
 	unsigned int temp;
 	bool right_channel_amp;
 	const char *dsp_part_name;
+	const char *mfd_suffix;
 	int ret;
 
 	regmap_read(cs35l41->regmap, 0x00000000, &temp);
@@ -54,7 +55,15 @@ static int cs35l41_cal_probe(struct platform_device *pdev)
 	if (ret < 0)
 		dsp_part_name = "cs35l41";
 
-	ret = cirrus_cal_amp_add(cs35l41->regmap, right_channel_amp,
+	ret = of_property_read_string(cs35l41->dev->of_node,
+						"cirrus,mfd-suffix",
+						&mfd_suffix);
+	if (ret < 0) {
+		dev_err(&pdev->dev, "No MFD suffix\n");
+		return -EINVAL;
+	}
+
+	ret = cirrus_cal_amp_add(cs35l41->regmap, mfd_suffix,
 							dsp_part_name);
 
 	if (ret < 0) {

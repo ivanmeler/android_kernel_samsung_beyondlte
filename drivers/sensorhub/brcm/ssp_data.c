@@ -18,6 +18,7 @@
 
 /* SSP -> AP Instruction */
 #define MSG2AP_INST_BYPASS_DATA			0x37
+#define MSG2AP_INST_VDIS_DATA			0x38
 #define MSG2AP_INST_LIBRARY_DATA		0x01
 #define MSG2AP_INST_DEBUG_DATA			0x03
 #define MSG2AP_INST_BIG_DATA			0x04
@@ -40,13 +41,8 @@
 #endif
 
 
-#if defined(CONFIG_SENSORS_SSP_DAVINCI) || ANDROID_VERSION >= 100000
 #define SUPER_VDIS_FORMAT	0xEEEE
 #define VDIS_TIMESTAMP_FORMAT 	0xFFFF
-#else
-#define SUPER_VDIS_FORMAT	0xEEEEEEEE
-#define VDIS_TIMESTAMP_FORMAT 	0xFFFFFFFF
-#endif
 #define NORMAL_TIMESTAMP_FORMAT 0x0
 #define get_prev_index(a) (a - 1 + SIZE_TIMESTAMP_BUFFER) % SIZE_TIMESTAMP_BUFFER
 #define get_next_index(a) (a + 1) % SIZE_TIMESTAMP_BUFFER
@@ -98,29 +94,24 @@ exit_current:
 
 static void get_timestamp(struct ssp_data *data, char *pchRcvDataFrame,
 		int *iDataIdx, struct sensor_value *sensorsdata,
-		u16 batch_mode, int sensor_type)
+		u16 batch_mode, char msg_inst, int sensor_type)
 {
 	u64 time_delta_ns = 0;
 	u64 update_timestamp = 0;
 	u64 current_timestamp = get_current_timestamp();
 	u32 ts_index = 0;
-#if defined(CONFIG_SENSORS_SSP_DAVINCI) || ANDROID_VERSION >= 100000
 	u16 ts_flag = 0;
-#else
-	u32 ts_flag = 0;
-#endif
 	u16 ts_cnt = 5;
-
+#ifdef CONFIG_SENSORS_SSP_F62
+	if (msg_inst == MSG2AP_INST_VDIS_DATA) {
+#else
 	if (data->IsVDIS_Enabled == true && sensor_type == GYROSCOPE_SENSOR) {
+#endif
 		u64 prev_index = 0;
 
 		memcpy(&ts_index, pchRcvDataFrame + *iDataIdx, 4);
-#if defined(CONFIG_SENSORS_SSP_DAVINCI) || ANDROID_VERSION >= 100000
 		memcpy(&ts_flag, pchRcvDataFrame + *iDataIdx + 4, 2);
 		memcpy(&ts_cnt, pchRcvDataFrame + *iDataIdx + 6, 2);
-#else
-		memcpy(&ts_flag, pchRcvDataFrame + *iDataIdx + 4, 4);
-#endif
 		prev_index = get_prev_index(ts_index);
 
 		if (ts_flag == SUPER_VDIS_FORMAT || ts_flag == VDIS_TIMESTAMP_FORMAT) {
@@ -142,8 +133,8 @@ static void get_timestamp(struct ssp_data *data, char *pchRcvDataFrame,
 
 			if (time_delta_ns > current_timestamp) {
 				time_delta_ns = current_timestamp;
-				pr_err("[SSP_DEBUG_TIME] timestamp_error, ts_index: %d ts_index_cnt: %d timestamp: %llu\n",
-					       	ts_index, ts_index_cnt[ts_index], time_delta_ns);
+				pr_err("[SSP_DEBUG_TIME] timestamp_error, ts_index: %d ts_cnt: %d ts_index_cnt: %d timestamp: %llu\n",
+					ts_index, ts_cnt, ts_index_cnt[ts_index], time_delta_ns);
 			}
 		} else if (ts_flag == VDIS_TIMESTAMP_FORMAT) {
 			if (data->ts_index_buffer[ts_index] < data->ts_index_buffer[prev_index]) {
@@ -169,9 +160,10 @@ normal_parse:
 	update_timestamp = time_delta_ns;
 
 	if (ts_flag == VDIS_TIMESTAMP_FORMAT || ts_flag == SUPER_VDIS_FORMAT) {
-		ssp_debug_time("[SSP_DEBUG_TIME] ts_index: %u stacked_cnt: %u ts_flag: 0x%x ts_cnt: %d current_ts: %lld update_ts: %llu latency: %lld",
-			       	ts_index, data->ts_stacked_cnt, ts_flag, ts_cnt, current_timestamp, update_timestamp, current_timestamp - time_delta_ns);
-	} else { 
+		ssp_debug_time("[SSP_DEBUG_TIME] ts_index: %u ts_index_cnt: %d stacked_cnt: %u ts_flag: 0x%x ts_cnt: %d current_ts: %lld update_ts: %llu latency: %lld",
+			ts_index, ts_index_cnt[ts_index], data->ts_stacked_cnt, ts_flag,
+			ts_cnt, current_timestamp, update_timestamp, current_timestamp - time_delta_ns);
+	} else {
 		ssp_debug_time("[SSP_DEBUG_TIME] sensor_type: %2d update_ts: %lld current_ts: %lld diff: %lld latency: %lld\n",
 			sensor_type, update_timestamp, current_timestamp,
 			update_timestamp - data->lastTimestamp[sensor_type], current_timestamp - update_timestamp);
@@ -238,44 +230,27 @@ static void get_step_det_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	*iDataIdx += 1;
 }
 
+static void get_uncal_light_sensordata(char *pchRcvDataFrame, int *iDataIdx,
+	struct sensor_value *sensorsdata)
+{
+	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 29);
+	*iDataIdx += 29;
+}
+
+
 static void get_light_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	struct sensor_value *sensorsdata)
 {
-#ifdef CONFIG_SENSORS_SSP_LIGHT_REPORT_LUX
-#ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_GAIN_2BYTE
-#ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_ATIME_2BYTE
-#ifdef CONFIG_SENSORS_SSP_LIGHT_ADDING_LUMINANCE
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 21);
-	*iDataIdx += 21;
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 20);
-	*iDataIdx += 20;
-#endif
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 19);
-	*iDataIdx += 19;
-#endif
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 18);
-	*iDataIdx += 18;
-#endif
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 10);
-	*iDataIdx += 10;
-#endif
+	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 30);
+	*iDataIdx += 30;
 }
 
 #ifdef CONFIG_SENSORS_SSP_IRDATA_FOR_CAMERA
 static void get_light_ir_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	struct sensor_value *sensorsdata)
 {
-#ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_GAIN_2BYTE
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 13);
-	*iDataIdx += 13;
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 12);
-	*iDataIdx += 12;
-#endif
+	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 23);
+	*iDataIdx += 23;
 }
 #endif
 
@@ -288,24 +263,8 @@ static void get_light_flicker_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 static void get_light_cct_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	struct sensor_value *sensorsdata)
 {
-#ifdef CONFIG_SENSORS_SSP_LIGHT_REPORT_LUX
-#ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_GAIN_2BYTE
-#ifdef CONFIG_SENSORS_SSP_LIGHT_LUX_RAW
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 25);
-	*iDataIdx += 25;
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 19);
-	*iDataIdx += 19;
-#endif
-
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 18);
-	*iDataIdx += 18;
-#endif
-#else
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 10);
-	*iDataIdx += 10;
-#endif
+	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 35);
+	*iDataIdx += 35;
 }
 static void get_pressure_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	struct sensor_value *sensorsdata)
@@ -458,8 +417,8 @@ static void get_ucal_accel_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 static void get_pocket_mode_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	struct sensor_value *sensorsdata)
 {
-	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 26);
-	*iDataIdx += 26;
+	memcpy(sensorsdata, pchRcvDataFrame + *iDataIdx, 62);
+	*iDataIdx += 62;
 }
 static void get_led_cover_event_sensordata(char *pchRcvDataFrame, int *iDataIdx,
 	struct sensor_value *sensorsdata)
@@ -652,10 +611,10 @@ void ssp_batch_report(struct ssp_data *data)
 		//ssp_dbg("[SSP_BAT] cnt %d\n", count);
 		data->get_sensor_data[sensor_type](data->batch_event.batch_data, &idx_data, &sensor_data);
 
-		get_timestamp(data, data->batch_event.batch_data, &idx_data, &sensor_data, BATCH_MODE_RUN, sensor_type);
+		get_timestamp(data, data->batch_event.batch_data, &idx_data,
+		&sensor_data, BATCH_MODE_RUN, MSG2AP_INST_BYPASS_DATA, sensor_type);
 		ssp_debug_time("[SSP_BAT]: sensor %d, AP %lld MCU %lld, diff %lld, count: %d\n",
 			sensor_type, timestamp, sensor_data.timestamp, timestamp - sensor_data.timestamp, count);
-
 		data->report_sensor_data[sensor_type](data, sensor_type, &sensor_data);
 		data->reportedData[sensor_type] = true;
 		count++;
@@ -811,6 +770,7 @@ int parse_dataframe(struct ssp_data *data, char *pchRcvDataFrame, int iLength)
 			complete(&data->hub_data->mcu_init_done);
 			break;
 // HIFI batch
+		case MSG2AP_INST_VDIS_DATA:
 		case MSG2AP_INST_BYPASS_DATA:
 			sensor_type = pchRcvDataFrame[iDataIdx++];
 			if ((sensor_type < 0) || (sensor_type >= SENSOR_MAX)) {
@@ -828,7 +788,7 @@ int parse_dataframe(struct ssp_data *data, char *pchRcvDataFrame, int iLength)
 			data->get_sensor_data[sensor_type](pchRcvDataFrame, &iDataIdx, &sensorsdata);
 			data->skipEventReport = false;
 
-			get_timestamp(data, pchRcvDataFrame, &iDataIdx, &sensorsdata, 0, sensor_type);
+			get_timestamp(data, pchRcvDataFrame, &iDataIdx, &sensorsdata, 0, msg_inst, sensor_type);
 			if (data->skipEventReport == false) {
 				//Check sensor is enabled, before report sensordata
 				u64 AddedSensorState = (u64)atomic64_read(&data->aSensorEnable);
@@ -966,7 +926,7 @@ void initialize_function_pointer(struct ssp_data *data)
 	data->get_sensor_data[GRIP_SENSOR] = get_grip_sensordata;
 #endif
 	data->get_sensor_data[LIGHT_SENSOR] = get_light_sensordata;
-	data->get_sensor_data[UNCAL_LIGHT_SENSOR] = get_light_sensordata;
+	data->get_sensor_data[UNCAL_LIGHT_SENSOR] = get_uncal_light_sensordata;
 #ifdef CONFIG_SENSORS_SSP_IRDATA_FOR_CAMERA
 	data->get_sensor_data[LIGHT_IR_SENSOR] = get_light_ir_sensordata;
 #endif
@@ -1018,7 +978,11 @@ void initialize_function_pointer(struct ssp_data *data)
 	data->report_sensor_data[GRIP_SENSOR] = report_grip_data;
 #endif
 	data->report_sensor_data[LIGHT_SENSOR] = report_light_data;
+#if defined(CONFIG_SENSORS_SABC)
+	data->report_sensor_data[UNCAL_LIGHT_SENSOR] = report_uncal_light_data;
+#else
 	data->report_sensor_data[UNCAL_LIGHT_SENSOR] = report_light_data;
+#endif
 #ifdef CONFIG_SENSORS_SSP_IRDATA_FOR_CAMERA
 	data->report_sensor_data[LIGHT_IR_SENSOR] = report_light_ir_data;
 #endif
@@ -1058,3 +1022,4 @@ void initialize_function_pointer(struct ssp_data *data)
 	data->ssp_big_task[BIG_TYPE_VOICE_PCM] = ssp_pcm_dump_task;
 	data->ssp_big_task[BIG_TYPE_TEMP] = ssp_temp_task;
 }
+

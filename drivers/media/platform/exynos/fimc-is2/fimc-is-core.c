@@ -109,6 +109,8 @@ int debug_time_shot;
 module_param(debug_time_shot, int, 0644);
 int debug_pdp;
 module_param(debug_pdp, int, 0644);
+int debug_rta;
+module_param(debug_rta, int, 0644);
 
 struct fimc_is_device_sensor *fimc_is_get_sensor_device(struct fimc_is_core *core)
 {
@@ -165,12 +167,14 @@ static struct notifier_block exynos_fimc_is_mif_throttling_nb = {
 static int fimc_is_suspend(struct device *dev)
 {
 	pr_debug("FIMC_IS Suspend\n");
+	pinctrl_pm_select_sleep_state(dev);
 	return 0;
 }
 
 static int fimc_is_resume(struct device *dev)
 {
 	pr_debug("FIMC_IS Resume\n");
+	pinctrl_pm_select_default_state(dev);
 	return 0;
 }
 

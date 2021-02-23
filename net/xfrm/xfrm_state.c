@@ -449,6 +449,8 @@ static void xfrm_state_gc_destroy(struct xfrm_state *x)
 		x->type->destructor(x);
 		xfrm_put_type(x->type);
 	}
+	if (x->xfrag.page)
+		put_page(x->xfrag.page);
 	xfrm_dev_state_free(x);
 	security_xfrm_state_free(x);
 	kfree(x);
@@ -2360,8 +2362,7 @@ void xfrm_state_fini(struct net *net)
 	xfrm_hash_free(net->xfrm.state_bydst, sz);
 }
 
-// [ SEC_SELINUX_PORTING_COMMON - remove AUDIT_MAC_IPSEC_EVENT audit log, it conflict with security notification
-#if 0 // #ifdef CONFIG_AUDITSYSCALL
+#ifdef CONFIG_AUDITSYSCALL
 static void xfrm_audit_helper_sainfo(struct xfrm_state *x,
 				     struct audit_buffer *audit_buf)
 {
@@ -2522,4 +2523,3 @@ void xfrm_audit_state_icvfail(struct xfrm_state *x,
 }
 EXPORT_SYMBOL_GPL(xfrm_audit_state_icvfail);
 #endif /* CONFIG_AUDITSYSCALL */
-// ] SEC_SELINUX_PORTING_COMMON - remove AUDIT_MAC_IPSEC_EVENT audit log, it conflict with security notification

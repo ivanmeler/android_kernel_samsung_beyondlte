@@ -321,9 +321,6 @@ static void exynos_reboot(enum reboot_mode mode, const char *cmd)
 	u32 reg_val, soc_id, revision;
 	void __iomem *addr;
 
-
-
-
 	if (!exynos_pmu_base)
 		return;
 #ifdef CONFIG_EXYNOS_ACPM

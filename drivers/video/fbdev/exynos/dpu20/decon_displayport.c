@@ -203,10 +203,6 @@ static int decon_displayport_set_lcd_info(struct decon_device *decon)
 	decon->dt.trig_mode = DECON_HW_TRIG;
 	decon->dt.out_type = DECON_OUT_DP;
 
-	/* set defalut color mode to HAL_COLOR_MODE_NATIVE */
-	decon->lcd_info->color_mode_cnt = 1;
-	decon->lcd_info->color_mode[0] = HAL_COLOR_MODE_NATIVE;
-
 	if (displayport->bpc == BPC_10)
 		decon->lcd_info->bpc = 10; /* 10pbc */
 	else
@@ -248,14 +244,10 @@ int decon_displayport_get_hdr_capa(struct decon_device *decon,
 int decon_displayport_get_hdr_capa_info(struct decon_device *decon,
 		struct decon_hdr_capabilities_info *hdr_capa_info)
 {
-#ifndef CONFIG_EXYNOS_MCD_HDR
-	struct decon_device *decon0 = get_decon_drvdata(0);
-#endif
-
 #if defined(CONFIG_EXYNOS_DISPLAYPORT)
 	struct displayport_device *displayport = get_displayport_drvdata();
+	struct decon_device *decon0 = get_decon_drvdata(0);
 
-	displayport_info("hdr capa info: %d\n", displayport->rx_edid_data.hdr_support);
 	if (displayport->rx_edid_data.hdr_support) {
 		hdr_capa_info->out_num = 1;
 		/* Need CEA-861.3 EDID value calculation on platform part */
@@ -266,25 +258,14 @@ int decon_displayport_get_hdr_capa_info(struct decon_device *decon,
 		hdr_capa_info->min_luminance =
 			displayport->rx_edid_data.min_lumi_data;
 	} else { /* For P version platform */
-#ifdef CONFIG_EXYNOS_MCD_HDR	
 		hdr_capa_info->out_num =
-			decon->hdr_info.hdr_num;
-		hdr_capa_info->max_luminance =
-			decon->hdr_info.hdr_max_luma;
-		hdr_capa_info->max_average_luminance =
-			decon->hdr_info.hdr_max_avg_luma;
-		hdr_capa_info->min_luminance =
-			decon->hdr_info.hdr_min_luma;
-#else
-		hdr_capa_info->out_num = 
 			decon0->lcd_info->dt_lcd_hdr.hdr_num;
-		hdr_capa_info->max_luminance = 
+		hdr_capa_info->max_luminance =
 			decon0->lcd_info->dt_lcd_hdr.hdr_max_luma;
-		hdr_capa_info->max_average_luminance = 
+		hdr_capa_info->max_average_luminance =
 			decon0->lcd_info->dt_lcd_hdr.hdr_max_avg_luma;
-		hdr_capa_info->min_luminance = 
+		hdr_capa_info->min_luminance =
 			decon0->lcd_info->dt_lcd_hdr.hdr_min_luma;
-#endif
 	}
 #else
 	decon_info("Not compiled displayport driver\n");

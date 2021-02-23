@@ -64,16 +64,16 @@ struct hwMSQZ_tune_dc {
  * @brief the tune data of Alpha
  */
 struct hwMSQZ_tune_alpha {
-    short jnd;
-    short dqp;
+	short jnd;
+	short dqp;
 };
 
 /**
  * @brief the tune data of DQP
  */
 struct hwMSQZ_tune_dqp {
-    short dqp_max;
-    short dqp_min;
+	short dqp_max;
+	short dqp_min;
 };
 
 
@@ -87,11 +87,11 @@ struct hwMSQZ_tune_dqp {
  * to the driver through the IOCTL.
  */
 struct hwMSQZ_task {
-    struct hwMSQZ_video_info video_info;   /**< info related to the video sent to the HW for processing */
-    struct hwMSQZ_velocity vel_info;		/**< info related to gyro data sent to the HW for processing */
-    struct hwMSQZ_tune_dc dc_tune;			/**< info related to tuning dc value sent to the HW for processing */
-    struct hwMSQZ_tune_alpha alpha_tune;	/**< info related to tuning alpha value sent to the HW for processing */
-    struct hwMSQZ_tune_dqp dqp_tune;		/**< info related to tuning dqp value sent to the HW for processing */
+	struct hwMSQZ_video_info video_info;   /**< info related to the video sent to the HW for processing */
+	struct hwMSQZ_velocity vel_info;		/**< info related to gyro data sent to the HW for processing */
+	struct hwMSQZ_tune_dc dc_tune;			/**< info related to tuning dc value sent to the HW for processing */
+	struct hwMSQZ_tune_alpha alpha_tune;	/**< info related to tuning alpha value sent to the HW for processing */
+	struct hwMSQZ_tune_dqp dqp_tune;		/**< info related to tuning dqp value sent to the HW for processing */
 	struct hwSQZ_buffer buf_in;           	/**< info related to the input buffer sent to the HW for processing */
 	struct hwSQZ_buffer buf_out;          	/**< info related to the output buffer sent to the HW for processing */
 	int frame_dqp;							/**< frame average dqp */

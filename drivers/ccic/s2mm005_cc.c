@@ -102,15 +102,15 @@ static void ccic_event_notifier(struct work_struct *data)
 	switch(event_work->dest){
 		case CCIC_NOTIFY_DEV_USB :
 			pr_info("usb:%s, dest=%s, id=%s, attach=%s, drp=%s\n", __func__,
-				CCIC_NOTI_DEST_Print[event_work->dest],
-				CCIC_NOTI_ID_Print[event_work->id],
+				pdic_event_dest_string(event_work->dest),
+				pdic_event_id_string(event_work->id),
 				event_work->attach? "Attached": "Detached",
-				CCIC_NOTI_USB_STATUS_Print[event_work->event]);
+				pdic_usbstatus_string(event_work->event));
 			break;
 		default :
 			pr_info("usb:%s, dest=%s, id=%s, attach=%d, event=%d\n", __func__,
-				CCIC_NOTI_DEST_Print[event_work->dest],
-				CCIC_NOTI_ID_Print[event_work->id],
+				pdic_event_dest_string(event_work->dest),
+				pdic_event_id_string(event_work->id),
 				event_work->attach,
 				event_work->event);
 			break;

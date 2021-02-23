@@ -32,6 +32,48 @@
 #include <linux/sti/abc_common.h>
 #endif
 
+#include <linux/string.h>
+
+#undef MODULE_PARAM_PREFIX
+#define MODULE_PARAM_PREFIX "sec_debug."
+
+static int reboot_multicmd = 1;
+module_param(reboot_multicmd, int, 0400);
+
+/* MULTICMD
+ * reserve 9bit | clk_change 1bit | dumpsink 2bit | param 1bit | dram_test 1bit | cp_debugmem 2bit | debuglevel 2bit | forceupload 2bit
+ */
+#define FORCEUPLOAD_ON                          (0x5)
+#define FORCEUPLOAD_OFF                         (0x0)
+#define DEBUGLEVEL_LOW                          (0x4f4c)
+#define DEBUGLEVEL_MID                          (0x494d)
+#define DEBUGLEVEL_HIGH                         (0x4948)
+#define DUMPSINK_USB                            (0x0)
+#define DUMPSINK_BOOTDEV                        (0x42544456)
+#define DUMPSINK_SDCARD                         (0x73646364)
+#define MULTICMD_CNT_MAX                        10
+#define MULTICMD_LEN_MAX                        50
+#define MULTICMD_FORCEUPLOAD_SHIFT              0
+#define MULTICMD_FORCEUPLOAD_ON                 (0x1)
+#define MULTICMD_FORCEUPLOAD_OFF                (0x2)
+#define MULTICMD_DEBUGLEVEL_SHIFT               (MULTICMD_FORCEUPLOAD_SHIFT + 2)
+#define MULTICMD_DEBUGLEVEL_LOW                 (0x1)
+#define MULTICMD_DEBUGLEVEL_MID                 (0x2)
+#define MULTICMD_DEBUGLEVEL_HIGH                (0x3)
+#define MULTICMD_CPMEM_SHIFT                    (MULTICMD_DEBUGLEVEL_SHIFT + 2)
+#define MULTICMD_CPMEM_ON                       (0x1)
+#define MULTICMD_CPMEM_OFF                      (0x2)
+#define MULTICMD_DRAMTEST_SHIFT                 (MULTICMD_CPMEM_SHIFT + 2)
+#define MULTICMD_DRAMTEST_ON                    (0x1)
+#define MULTICMD_PARAM_SHIFT                    (MULTICMD_DRAMTEST_SHIFT + 1)
+#define MULTICMD_PARAM_ON                       (0x1)
+#define MULTICMD_DUMPSINK_SHIFT                 (MULTICMD_PARAM_SHIFT + 1)
+#define MULTICMD_DUMPSINK_USB                   (0x1)
+#define MULTICMD_DUMPSINK_BOOT                  (0x2)
+#define MULTICMD_DUMPSINK_SD                    (0x3)
+#define MULTICMD_CLKCHANGE_SHIFT                (MULTICMD_DUMPSINK_SHIFT + 2)
+#define MULTICMD_CLKCHANGE_ON                   (0x1)
+
 /* function ptr for original arm_pm_restart */
 void (*mach_restart)(enum reboot_mode mode, const char *cmd);
 EXPORT_SYMBOL(mach_restart);
@@ -49,8 +91,10 @@ enum sec_power_flags {
 #define SEC_DUMPSINK_MASK 0x0000FFFF
 
 /* PANIC INFORM */
-#define SEC_RESET_REASON_PREFIX 0x12345670
-#define SEC_RESET_SET_PREFIX    0xabc00000
+#define SEC_RESET_REASON_PREFIX         0x12345670
+#define SEC_RESET_SET_PREFIX            0xabc00000
+#define SEC_RESET_MULTICMD_PREFIX       0xa5600000
+
 enum sec_reset_reason {
 	SEC_RESET_REASON_UNKNOWN   = (SEC_RESET_REASON_PREFIX | 0x0),
 	SEC_RESET_REASON_DOWNLOAD  = (SEC_RESET_REASON_PREFIX | 0x1),
@@ -77,7 +121,98 @@ enum sec_reset_reason {
 	SEC_RESET_SET_PARAM   = (SEC_RESET_SET_PREFIX | 0x70000),
 #endif
 	SEC_RESET_SET_DUMPSINK	   = (SEC_RESET_SET_PREFIX | 0x80000),
+	SEC_RESET_SET_MULTICMD     = SEC_RESET_MULTICMD_PREFIX,
 };
+
+static char * sec_strtok(char *s1, const char *delimit)
+{
+	static char *lastToken = NULL;
+	char *tmp;
+
+	if (s1 == NULL) {
+		s1 = lastToken;
+
+		if (s1 == NULL)
+			return NULL;
+	} else {
+		s1 += strspn(s1, delimit);
+	}
+
+	tmp = strpbrk(s1, delimit);
+	if (tmp) {
+		*tmp = '\0';
+		lastToken = tmp + 1;
+	} else {
+		lastToken = NULL;
+	}
+
+	return s1;
+}
+
+static void sec_multicmd(const char *cmd)
+{
+	unsigned long value = 0;
+	char *multicmd_ptr;
+	char *multicmd_cmd[MULTICMD_CNT_MAX];
+	char copy_cmd[100] = {0,};
+	unsigned long multicmd_value = 0;
+	int i, cnt = 0;
+
+	strcpy(copy_cmd, cmd);
+	multicmd_ptr = sec_strtok(copy_cmd, ":");
+	while (multicmd_ptr != NULL) {
+		if (cnt >= MULTICMD_CNT_MAX)
+			break;
+
+		multicmd_cmd[cnt++] = multicmd_ptr;
+		multicmd_ptr = sec_strtok(NULL, ":");
+	}
+
+	for (i = 1; i < cnt; i++) {
+		if (strlen(multicmd_cmd[i]) < MULTICMD_LEN_MAX) {
+			if (!strncmp(multicmd_cmd[i], "forceupload", 11) && !kstrtoul(multicmd_cmd[i] + 11, 0, &value)) {
+				if (value == FORCEUPLOAD_ON)
+					multicmd_value |= (MULTICMD_FORCEUPLOAD_ON << MULTICMD_FORCEUPLOAD_SHIFT);
+				else if (value == FORCEUPLOAD_OFF)
+					multicmd_value |= (MULTICMD_FORCEUPLOAD_OFF << MULTICMD_FORCEUPLOAD_SHIFT);
+			}
+			else if (!strncmp(multicmd_cmd[i], "debug", 5) && !kstrtoul(multicmd_cmd[i] + 5, 0, &value)) {
+				if (value == DEBUGLEVEL_HIGH)
+					multicmd_value |= (MULTICMD_DEBUGLEVEL_HIGH << MULTICMD_DEBUGLEVEL_SHIFT);
+				else if (value == DEBUGLEVEL_MID)
+					multicmd_value |= (MULTICMD_DEBUGLEVEL_MID << MULTICMD_DEBUGLEVEL_SHIFT);
+				else if (value == DEBUGLEVEL_LOW)
+					multicmd_value |= (MULTICMD_DEBUGLEVEL_LOW << MULTICMD_DEBUGLEVEL_SHIFT);
+			}
+			else if (!strncmp(multicmd_cmd[i], "cpmem_on", 8))
+				multicmd_value |= (MULTICMD_CPMEM_ON << MULTICMD_CPMEM_SHIFT);
+			else if (!strncmp(multicmd_cmd[i], "cpmem_off", 9))
+				multicmd_value |= (MULTICMD_CPMEM_OFF << MULTICMD_CPMEM_SHIFT);
+#if defined(CONFIG_SEC_ABC)
+			else if (!strncmp(multicmd_cmd[i], "user_dram_test", 14) && sec_abc_get_enabled())
+				multicmd_value |= (MULTICMD_DRAMTEST_ON << MULTICMD_DRAMTEST_SHIFT);
+#endif
+#if defined(CONFIG_SEC_SYSUP)
+			else if (!strncmp(multicmd_cmd[i], "param", 5))
+				multicmd_value |= (MULTICMD_PARAM_ON << MULTICMD_PARAM_SHIFT);
+#endif
+			else if (!strncmp(multicmd_cmd[i], "dump_sink", 9) && !kstrtoul(multicmd_cmd[i] + 9, 0, &value)) {
+				if (value == DUMPSINK_USB)
+					multicmd_value |= (MULTICMD_DUMPSINK_USB << MULTICMD_DUMPSINK_SHIFT);
+				else if (value == DUMPSINK_BOOTDEV)
+					multicmd_value |= (MULTICMD_DUMPSINK_BOOT << MULTICMD_DUMPSINK_SHIFT);
+				else if (value == DUMPSINK_SDCARD)
+					multicmd_value |= (MULTICMD_DUMPSINK_SD << MULTICMD_DUMPSINK_SHIFT);
+			}
+#if defined(CONFIG_ARM_EXYNOS_ACME_DISABLE_BOOT_LOCK) && defined(CONFIG_ARM_EXYNOS_DEVFREQ_DISABLE_BOOT_LOCK)
+			else if (!strncmp(multicmd_cmd[i], "clkchange_test", 14))
+				multicmd_value |= (MULTICMD_CLKCHANGE_ON << MULTICMD_CLKCHANGE_SHIFT);
+#endif
+		}
+	}
+	pr_emerg("%s: multicmd_value: %lu\n", __func__, multicmd_value);
+	exynos_pmu_write(SEC_DEBUG_PANIC_INFORM, SEC_RESET_SET_MULTICMD | multicmd_value);
+}
 
 void sec_set_reboot_magic(int magic, int offset, int mask)
 {
@@ -130,7 +265,7 @@ static void sec_power_off(void)
 	pr_info("[%s] AC[%d], USB[%d], WPC[%d], WATER[%d]\n",
 			__func__, ac_val.intval, usb_val.intval, wpc_val.intval, water_val.intval);
 
-	sec_debug_clear_magic_rambase();
+//	sec_debug_clear_magic_rambase();
 
 	flush_cache_all();
 	llc_flush();
@@ -179,7 +314,7 @@ static void sec_reboot(enum reboot_mode reboot_mode, const char *cmd)
 
 	pr_emerg("%s (%d, %s)\n", __func__, reboot_mode, cmd ? cmd : "(null)");
 
-	sec_debug_clear_magic_rambase();
+//	sec_debug_clear_magic_rambase();
 
 	/* LPM mode prevention */
 	sec_set_reboot_magic(SEC_REBOOT_NORMAL, SEC_REBOOT_END_OFFSET, 0xFF);
@@ -220,6 +355,8 @@ static void sec_reboot(enum reboot_mode reboot_mode, const char *cmd)
 			exynos_pmu_write(SEC_DEBUG_PANIC_INFORM, SEC_RESET_SET_SWSEL | value);
 		else if (!strncmp(cmd, "sud", 3) && !kstrtoul(cmd + 3, 0, &value))
 			exynos_pmu_write(SEC_DEBUG_PANIC_INFORM, SEC_RESET_SET_SUD | value);
+		else if (!strncmp(cmd, "multicmd:", 9))
+			sec_multicmd(cmd);
 #if defined(CONFIG_SEC_SYSUP)
 		else if (!strncmp(cmd, "param", 5))
 			exynos_pmu_write(SEC_DEBUG_PANIC_INFORM, SEC_RESET_SET_PARAM);

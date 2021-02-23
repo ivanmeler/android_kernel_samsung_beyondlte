@@ -48,8 +48,10 @@ extern bool force_caldata_dump;
 static u32  rear_sensor_id;
 static u32  rear2_sensor_id;
 static u32  rear3_sensor_id;
+static u32  rear4_sensor_id;
 static u32  front_sensor_id;
 static u32  front2_sensor_id;
+static u32  rear4_sensor_id;
 static u32  rear_tof_sensor_id;
 static u32  front_tof_sensor_id;
 static bool check_sensor_vendor;
@@ -60,7 +62,7 @@ static bool is_hw_init_running = false;
 #if defined(CONFIG_CAMERA_FROM)
 static FRomPowersource f_rom_power;
 #endif
-#ifdef SECURE_CAMERA_IRIS
+#if defined(SECURE_CAMERA_IRIS) || defined(CONFIG_SECURE_CAMERA_USE)
 static u32  secure_sensor_id;
 #endif
 static u32  ois_sensor_index;
@@ -179,6 +181,9 @@ void fimc_is_sec_get_hw_param(struct cam_hw_param **hw_param, u32 position)
 		break;
 	case SENSOR_POSITION_REAR3:
 		*hw_param = &cam_hwparam_collector.rear3_hwparam;
+		break;
+	case SENSOR_POSITION_REAR4:
+		*hw_param = &cam_hwparam_collector.rear4_hwparam;
 		break;
 	case SENSOR_POSITION_FRONT:
 		*hw_param = &cam_hwparam_collector.front_hwparam;
@@ -548,13 +553,17 @@ int fimc_is_vender_probe(struct fimc_is_vender *vender)
 		goto p_err;
 	}
 
-	specific->rear_sensor_id = rear_sensor_id;
-	specific->front_sensor_id = front_sensor_id;
-	specific->rear2_sensor_id = rear2_sensor_id;
-	specific->front2_sensor_id = front2_sensor_id;
-	specific->rear3_sensor_id = rear3_sensor_id;
-	specific->rear_tof_sensor_id = rear_tof_sensor_id;
-	specific->front_tof_sensor_id = front_tof_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_REAR] = rear_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_FRONT] = front_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_REAR2] = rear2_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_FRONT2] = front2_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_REAR3] = rear3_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_REAR4] = rear4_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_REAR_TOF] = rear_tof_sensor_id;
+	specific->sensor_id[SENSOR_POSITION_FRONT_TOF] = front_tof_sensor_id;
+#ifdef CONFIG_SECURE_CAMERA_USE
+	specific->secure_sensor_id = secure_sensor_id;
+#endif
 	specific->check_sensor_vendor = check_sensor_vendor;
 	specific->use_ois = use_ois;
 	specific->use_ois_hsi2c = use_ois_hsi2c;
@@ -641,6 +650,10 @@ int fimc_is_vender_dt(struct device_node *np)
 	ret = of_property_read_u32(np, "rear3_sensor_id", &rear3_sensor_id);
 	if (ret)
 		probe_err("rear3_sensor_id read is fail(%d)", ret);
+
+	ret = of_property_read_u32(np, "rear4_sensor_id", &rear4_sensor_id);
+	if (ret)
+		probe_err("rear4_sensor_id read is fail(%d)", ret);
 
 #ifdef SECURE_CAMERA_IRIS
 	ret = of_property_read_u32(np, "secure_sensor_id", &secure_sensor_id);
@@ -966,6 +979,7 @@ int fimc_is_vendor_rom_parse_dt(struct device_node *dnode, int rom_id)
 	DT_READ_U32_DEFAULT(dnode, "rom_sensor2_awb_module_addr", finfo->rom_sensor2_awb_module_addr, -1);
 
 	DT_READ_U32_DEFAULT(dnode, "rom_af_cal_macro_addr", finfo->rom_af_cal_macro_addr, -1);
+	DT_READ_U32_DEFAULT(dnode, "rom_af_cal_d30_addr", finfo->rom_af_cal_d30_addr, -1);
 	DT_READ_U32_DEFAULT(dnode, "rom_af_cal_d50_addr", finfo->rom_af_cal_d50_addr, -1);
 	DT_READ_U32_DEFAULT(dnode, "rom_af_cal_pan_addr", finfo->rom_af_cal_pan_addr, -1);
 	DT_READ_U32_DEFAULT(dnode, "rom_sensor2_af_cal_macro_addr", finfo->rom_sensor2_af_cal_macro_addr, -1);
@@ -1123,11 +1137,15 @@ void fimc_is_vendor_prepare_retention(struct fimc_is_core *core, int sensor_id, 
 		goto p_err;
 	}
 
+#ifdef CAMERA_USE_COMMON_VDDIO
+	msleep(20);
+#endif
+
 	/* Sensor power on */
 	ret = module->pdata->gpio_cfg(module, scenario, GPIO_SCENARIO_ON);
 	if (ret) {
 		warn("gpio on is fail(%d)", ret);
-		goto p_power_off;
+		goto p_err;
 	}
 
 	sensor_peri = (struct fimc_is_device_sensor_peri *)module->private_data;
@@ -1139,50 +1157,55 @@ void fimc_is_vendor_prepare_retention(struct fimc_is_core *core, int sensor_id, 
 					__func__, __LINE__, core->current_position);
 		} else {
 			warn("%s: wrong cis i2c_channel(%d)", __func__, i2c_channel);
-			goto p_power_off;
+			goto p_err;
 		}
 
 		cis = (struct fimc_is_cis *)v4l2_get_subdevdata(sensor_peri->subdev_cis);
 		ret = CALL_CISOPS(cis, cis_check_rev_on_init, sensor_peri->subdev_cis);
 		if (ret) {
 			warn("v4l2_subdev_call(cis_check_rev_on_init) is fail(%d)", ret);
-			goto p_power_off;
+			goto p_err;
 		}
 
 		ret = CALL_CISOPS(cis, cis_init, sensor_peri->subdev_cis);
 		if (ret) {
 			warn("v4l2_subdev_call(init) is fail(%d)", ret);
-			goto p_power_off;
+			goto p_err;
 		}
 
 		ret = CALL_CISOPS(cis, cis_set_global_setting, sensor_peri->subdev_cis);
 		if (ret) {
 			warn("v4l2_subdev_call(cis_set_global_setting) is fail(%d)", ret);
-			goto p_power_off;
+			goto p_err;
 		}
 
 		ret = CALL_CISOPS(cis, cis_stream_on, sensor_peri->subdev_cis);
 		if (ret) {
 			warn("v4l2_subdev_call(cis_stream_on) is fail(%d)", ret);
-			goto p_power_off;
+			goto p_err;
 		}
 		CALL_CISOPS(cis, cis_wait_streamon, sensor_peri->subdev_cis);
 
 		ret = CALL_CISOPS(cis, cis_stream_off, sensor_peri->subdev_cis);
 		if (ret) {
 			warn("v4l2_subdev_call(cis_stream_off) is fail(%d)", ret);
-			goto p_power_off;
+			goto p_err;
 		}
 		CALL_CISOPS(cis, cis_wait_streamoff, sensor_peri->subdev_cis);
 	}
 
-p_power_off:
 	ret = module->pdata->gpio_cfg(module, scenario, GPIO_SCENARIO_SENSOR_RETENTION_ON);
 	if (ret)
-		warn("gpio off is fail(%d)", ret);
+		warn("gpio off (retention) is fail(%d)", ret);
 
+	info("%s: end %d (retention)\n", __func__, ret);
+	return;
 p_err:
-	info("%s: end %d\n", __func__, ret);
+	ret = module->pdata->gpio_cfg(module, scenario, GPIO_SCENARIO_OFF);
+	if (ret)
+		err("gpio off is fail(%d)", ret);
+
+	warn("%s: end %d\n", __func__, ret);
 }
 #endif
 
@@ -2007,9 +2030,9 @@ int fimc_is_vender_video_s_ctrl(struct v4l2_control *ctrl,
 		device->group_3aa.intent_ctl.vendor_captureCount = captureCount;
 
                 if (captureIntent == AA_CAPTURE_INTENT_STILL_CAPTURE_OIS_MULTI) {
-                        device->group_3aa.remainIntentCount = 2;
+                        device->group_3aa.remainIntentCount = 2 + INTENT_RETRY_CNT;
                 } else {
-                        device->group_3aa.remainIntentCount = 0;
+                        device->group_3aa.remainIntentCount = 0 + INTENT_RETRY_CNT;
                 }
 		minfo("[VENDER] s_ctrl intent(%d) count(%d) remainIntentCount(%d)\n",
 			device, captureIntent, captureCount, device->group_3aa.remainIntentCount);

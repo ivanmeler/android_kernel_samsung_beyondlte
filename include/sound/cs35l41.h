@@ -11,6 +11,8 @@
 #ifndef __CS35L41_H
 #define __CS35L41_H
 
+#include <sound/soc.h>
+
 struct classh_cfg {
 	bool classh_bst_override;
 	bool classh_algo_enable;
@@ -52,9 +54,12 @@ struct cs35l41_platform_data {
 	unsigned int fixed_wl;
 	bool fixed_params;
 	const char * dsp_part_name;
+	const char * mfd_suffix;
 	struct cs35l41_irq_cfg irq_config1;
 	struct cs35l41_irq_cfg irq_config2;
 	struct classh_cfg classh_config;
 };
+
+int cs35l41_reinit(struct snd_soc_codec *codec);
 
 #endif /* __CS35L41_H */

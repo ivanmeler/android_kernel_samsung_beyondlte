@@ -30,7 +30,6 @@ config HDCP2_IIA_ENABLE
 
 config HDCP2_FUNC_TEST_MODE
          bool "HDCP2 DP Default Enabled"
-         depends on SEC_FACTORY
          default n
          help
            Enable HDCP2 DP Function test mode.

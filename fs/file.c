@@ -23,7 +23,6 @@
 #include <linux/spinlock.h>
 #include <linux/rcupdate.h>
 #include <linux/workqueue.h>
-#include "../kernel/rcu/rcu.h"
 
 unsigned int sysctl_nr_open __read_mostly = 1024*1024;
 unsigned int sysctl_nr_open_min = BITS_PER_LONG;
@@ -76,7 +75,7 @@ static void copy_fd_bitmaps(struct fdtable *nfdt, struct fdtable *ofdt,
  */
 static void copy_fdtable(struct fdtable *nfdt, struct fdtable *ofdt)
 {
-	unsigned int cpy, set;
+	size_t cpy, set;
 
 	BUG_ON(nfdt->max_fds < ofdt->max_fds);
 
@@ -163,11 +162,8 @@ static int expand_fdtable(struct files_struct *files, unsigned int nr)
 	/* make sure all __fd_install() have seen resize_in_progress
 	 * or have finished their rcu_read_lock_sched() section.
 	 */
-	if (atomic_read(&files->count) > 1) {
-		rcu_expedite_gp();
+	if (atomic_read(&files->count) > 1)
 		synchronize_sched();
-		rcu_unexpedite_gp();
-	}
 
 	spin_lock(&files->file_lock);
 	if (!new_fdt)
@@ -466,7 +462,7 @@ struct files_struct init_files = {
 		.full_fds_bits	= init_files.full_fds_bits_init,
 	},
 	.file_lock	= __SPIN_LOCK_UNLOCKED(init_files.file_lock),
-	.resize_wait    = __WAIT_QUEUE_HEAD_INITIALIZER(init_files.resize_wait),
+	.resize_wait	= __WAIT_QUEUE_HEAD_INITIALIZER(init_files.resize_wait),
 };
 
 static unsigned int find_next_fd(struct fdtable *fdt, unsigned int start)

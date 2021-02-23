@@ -13,7 +13,7 @@
 #include <uapi/linux/input.h>
 /* Implementation details, userspace should not care about these */
 #define ABS_MT_FIRST		ABS_MT_TOUCH_MAJOR
-#define ABS_MT_LAST		ABS_MT_GRIP
+#define ABS_MT_LAST		ABS_MT_TOOL_Y
 
 /*
  * In-kernel definitions.

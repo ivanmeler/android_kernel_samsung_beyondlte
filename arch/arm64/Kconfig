@@ -25,6 +25,8 @@ config ARM64
 	select ARCH_USE_CMPXCHG_LOCKREF
 	select ARCH_SUPPORTS_MEMORY_FAILURE
 	select ARCH_SUPPORTS_LTO_CLANG
+	select ARCH_SUPPORTS_THINLTO
+	select ARCH_SUPPORTS_SHADOW_CALL_STACK
 	select ARCH_SUPPORTS_ATOMIC_RMW
 	select ARCH_SUPPORTS_NUMA_BALANCING
 	select ARCH_WANT_COMPAT_IPC_PARSE_VERSION
@@ -50,6 +52,7 @@ config ARM64
 	select GENERIC_CLOCKEVENTS
 	select GENERIC_CLOCKEVENTS_BROADCAST
 	select GENERIC_CPU_AUTOPROBE
+	select GENERIC_CPU_VULNERABILITIES
 	select GENERIC_EARLY_IOREMAP
 	select GENERIC_IDLE_POLL_SETUP
 	select GENERIC_IRQ_PROBE
@@ -69,7 +72,8 @@ config ARM64
 	select HAVE_ARCH_BITREVERSE
 	select HAVE_ARCH_HUGE_VMAP
 	select HAVE_ARCH_JUMP_LABEL
-	select HAVE_ARCH_KASAN if SPARSEMEM_VMEMMAP && !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
+	select HAVE_ARCH_KASAN if !(ARM64_16K_PAGES && ARM64_VA_BITS_48)
+	select HAVE_ARCH_KASAN_SW_TAGS if HAVE_ARCH_KASAN
 	select HAVE_ARCH_KGDB
 	select HAVE_ARCH_MMAP_RND_BITS
 	select HAVE_ARCH_MMAP_RND_COMPAT_BITS if COMPAT
@@ -92,7 +96,7 @@ config ARM64
 	select HAVE_EFFICIENT_UNALIGNED_ACCESS
 	select HAVE_FTRACE_MCOUNT_RECORD
 	select HAVE_FUNCTION_TRACER
-	select HAVE_FUNCTION_GRAPH_TRACER
+	select HAVE_FUNCTION_GRAPH_TRACER if !SHADOW_CALL_STACK
 	select HAVE_GCC_PLUGINS
 	select HAVE_GENERIC_DMA_COHERENT
 	select HAVE_HW_BREAKPOINT if PERF_EVENTS
@@ -434,7 +438,6 @@ config ARM64_ERRATUM_845719
 
 config ARM64_ERRATUM_843419
 	bool "Cortex-A53: 843419: A load or store might access an incorrect address"
-	default y if !LTO_CLANG
 	select ARM64_MODULE_CMODEL_LARGE if MODULES
 	help
 	  This option links the kernel with '--fix-cortex-a53-843419' and
@@ -858,6 +861,15 @@ config ARM64_SSBD
 
 	  If unsure, say Y.
 
+config ARM64_TAGGED_ADDR_ABI
+	bool "Enable the tagged user addresses syscall ABI"
+	default y
+	help
+	  When this option is enabled, user applications can opt in to a
+	  relaxed ABI via prctl() allowing tagged addresses to be passed
+	  to system calls as pointer arguments. For details, see
+	  Documentation/arm64/tagged-address-abi.rst.
+
 menuconfig ARMV8_DEPRECATED
 	bool "Emulate deprecated/obsolete ARMv8 instructions"
 	depends on COMPAT
@@ -933,6 +945,39 @@ config ARM64_SW_TTBR0_PAN
 	  zeroed area and reserved ASID. The user access routines
 	  restore the valid TTBR0_EL1 temporarily.
 
+menu "Control Flow Protection"
+
+config RKP_CFP
+	bool "JOPP and ROPP"
+	default n
+	help
+	  Control flow protection, including both JOPP and ROPP. Please do NOT
+	  set this CONFIG, JOPP/ROPP will select it.
+
+config RKP_CFP_JOPP
+	bool "JOP Prevention"
+	select RKP_CFP
+	# depends on TIMA_RKP
+	default n
+	help
+	  Restrict function pointer jumps to function entry points only.
+
+config RKP_CFP_JOPP_MAGIC
+	hex
+	depends on RKP_CFP && RKP_CFP_JOPP
+	default "0x00be7bad"
+
+
+config RKP_CFP_TEST
+	bool "test file, only include in ENG build"
+	depends on RKP_CFP
+	default n
+	help
+	  For test only.
+
+endmenu
+
+
 menu "ARMv8.1 architectural features"
 
 config ARM64_HW_AFDBM
@@ -968,7 +1013,6 @@ config ARM64_PAN
 
 config ARM64_LSE_ATOMICS
 	bool "Atomic instructions"
-	default n
 	help
 	  As part of the Large System Extensions, ARMv8.1 introduces new
 	  atomic instructions that are designed specifically to scale in
@@ -991,22 +1035,6 @@ config ARM64_VHE
 	  Selecting this option allows the VHE feature to be detected
 	  at runtime, and does not affect processors that do not
 	  implement this feature.
-
-config SEC_ARM64_LSE_ATOMICS
-	bool "Use LSE atomic instructions"
-	default n
-	select ARM64_LSE_ATOMICS
-	help
-	  Say Y here to make use of these instructions for the in-kernel
-	  atomic routines not dynamically but statically.
-
-config SEC_ARM64_LSE_SPINLOCK
-	bool "Use LSE atomics for spinlock"
-	depends on !SEC_ARM64_LSE_ATOMICS
-	default y
-	help
-	  Say Y here to make use of LSE instructions for spinlocks regardless
-	  of config ARM64_LSE_ATOMICS.
 
 endmenu
 
@@ -1057,6 +1085,7 @@ config ARM64_MODULE_PLTS
 
 config RELOCATABLE
 	bool
+	select ARCH_HAS_RELR
 	help
 	  This builds the kernel as a Position Independent Executable (PIE),
 	  which retains all relocation metadata required to relocate the
@@ -1213,10 +1242,6 @@ config BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES
 	  Space separated list of names of dtbs to append when
 	  building a concatenated Image.gz-dtb.
 
-config LOD_SEC
-	bool "kernel security re-enforcement for Linux On Dex, including cap re-check and seccomp report"
-	default n
-
 config UH
 	bool "Enable micro hypervisor feature"
 	depends on !SEC_FACTORY
@@ -1227,102 +1252,86 @@ config UH
 	  RKP and etc can be loaded on it.
 	  please check a memory map for it.
 
-config UH_DEBUG
-    bool "Enable micro hypervisor debug feature"
+config RKP
+	bool "Enable RKP(Realtime Kernel Protection) feature"
 	depends on UH
 	default n
 	help
-	  It's for debugging uH.
+	  This solution provides the kernel protection
+	  using a security monitor located within an isolated execution environment.
+	  This isolated execution environment is either the Secure World of ARM TrustZone
+	  or a thin hypervisor that is protected by the hardware virtualization extensions.
 
-config UH_RKP
-	bool "Enable RKP (Realtime Kernel Protection) UH feature"
-	depends on UH
-	default n
-	help
-	  it protects a kernel text and etc.
+config RKP_FIMC_CHECK
+    bool "Enable fimc signing verification"
+    depends on RKP
+    default n
+    help
+      it verifies fimc signing.
 
-config RKP_KDP
-	bool "Protection for credential structure"
+config KDP
+	bool "Enable KDP(Kernel Data Protection) feature"
 	depends on !SEC_VTS_TEST
-	depends on UH_RKP
+	depends on UH
+	depends on RKP
+	select KDP_CRED
+	select KDP_NS
+	select KDP_DMAP
 	default n
 	help
-	  Prevents unauthorized credential modification.
+	  Prevents unauthorized cred modification,
+	  namespace modification, mapping for page table.
 
-config RKP_NS_PROT
-	bool "Protection for namespace structure"
-	depends on RKP_KDP
+config KDP_CRED
+	bool "Enable KDP(Kernel Data Protection) cred feature"
+	depends on !SEC_VTS_TEST
+	depends on UH
 	default n
 	help
-	  Prevents unauthorized namespace modification.
+	  Prevents unauthorized cred modification,
+	  namespace modification, mapping for page table.
 
-config RKP_DMAP_PROT
-	bool "Page Double Mapping protection"
-	depends on RKP_KDP
+config KDP_NS
+	bool "Enable KDP(Kernel Data Protection) namespace feature"
+	depends on !SEC_VTS_TEST
+	depends on UH
+	default n
+	help
+	  Prevents unauthorized cred modification,
+	  namespace modification, mapping for page table.
+
+config KDP_DMAP
+	bool "KDP(Kernel Data Protection) to prevent page Double MAPping"
+	depends on !SEC_VTS_TEST
+	depends on UH
 	default n
 	help
 	  Prevents unauthorized mapping for page table.
 
 config RKP_TEST
 	bool "Enable RKP test"
-	depends on UH_RKP && !SAMSUNG_PRODUCT_SHIP
+	depends on !SAMSUNG_PRODUCT_SHIP && RKP
 	default n
 	help
-	  enable RKP test.
+	  It is a test feature for RKP debugging.
+	  This configuration checks following lists.
+	  USER_PXN
+	  USER_PGTABLE_RO
+	  KERNEL_PGTABLE_RO
+	  KERNEL_L3PGT_RO
+	  KERNEL_RANGE_RWX
 
 config KDP_TEST
 	bool "Enable KDP test"
-	depends on RKP_KDP && RKP_NS_PROT && !SAMSUNG_PRODUCT_SHIP
+	depends on !SAMSUNG_PRODUCT_SHIP && KDP_CRED && KDP_NS
 	default n
 	help
-	  enable KDP test.
-
-config UH_RKP_FIMC_CHECK
-	bool "Select FIMC type"
-	depends on UH_RKP
-	default n
-	help
-	  it protects a kernel text and etc.
-
-config UH_LKMAUTH
-	bool "Enable LKM authentication by micro hypervisor"
-	depends on MODULES
-	help
-	  micro hypervisor authenticates loaded kernel modules. Disable it if you don't
-	  want CONFIG_UH enabled.
-
-config UH_LKM_BLOCK
-	bool "Block LKM by micro hypervisor"
-	help
-	  LKM is disapproved by Samsung security policy.
-
-config RKP_CFP
-	bool "JOPP and ROPP"
-	default n
-	help
-	  Control flow protection, including both JOPP and ROPP. Please do NOT
-	  set this CONFIG, JOPP/ROPP will select it.
-
-config RKP_CFP_JOPP
-	bool "JOP Prevention"
-	select RKP_CFP
-	# depends on TIMA_RKP
-	default n
-	help
-	  Restrict function pointer jumps to function entry points only.
-
-config RKP_CFP_JOPP_MAGIC
-	hex
-	depends on RKP_CFP && RKP_CFP_JOPP
-	default "0x00be7bad"
-
-
-config RKP_CFP_TEST
-	bool "test file, only include in ENG build"
-	depends on RKP_CFP
-	default n
-	help
-	  For test only.
+	  It is a test configuration for KDP debugging.
+	  This configuration checks following lists.
+	  TASK_CRED_RO
+	  TASK_SECURITY_CONTEXT_RO
+	  CRED_MATCH_BACKPOINTERS
+	  SEC_CONTEXT_BACKPOINTER
 
 endmenu
 
@@ -1402,10 +1411,3 @@ source "arch/arm64/crypto/Kconfig"
 endif
 
 source "lib/Kconfig"
-
-config FPSIMD_CORRUPTION_DETECT
-	bool "Detect for fpsimd has corruption"
-	default n
-	help
-	  If FPSIMD has corruption, use this feature for detect problem.
-

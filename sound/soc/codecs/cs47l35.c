@@ -80,7 +80,7 @@ static SOC_ENUM_SINGLE_DECL(cs47l35_outdemux_enum, SND_SOC_NOPM, 0,
 
 static const struct snd_kcontrol_new cs47l35_outdemux =
 	SOC_DAPM_ENUM_EXT("HPOUT1 Demux", cs47l35_outdemux_enum,
-			  madera_out1_demux_get, madera_out1_demux_put);
+			  snd_soc_dapm_get_enum_double, madera_out1_demux_put);
 
 static int cs47l35_adsp_power_ev(struct snd_soc_dapm_widget *w,
 				 struct snd_kcontrol *kcontrol,
@@ -375,10 +375,6 @@ SOC_DOUBLE_R_TLV("SPKDAT1 Digital Volume", MADERA_DAC_DIGITAL_VOLUME_5L,
 SOC_DOUBLE("SPKDAT1 Switch", MADERA_PDM_SPK1_CTRL_1, MADERA_SPK1L_MUTE_SHIFT,
 	   MADERA_SPK1R_MUTE_SHIFT, 1, 1),
 
-SOC_DOUBLE_EXT("HPOUT1 DRE Switch", MADERA_DRE_ENABLE,
-	       MADERA_DRE1L_ENA_SHIFT, MADERA_DRE1R_ENA_SHIFT, 1, 0,
-	       snd_soc_get_volsw, madera_dre_put),
-
 SOC_DOUBLE("HPOUT1 EDRE Switch", MADERA_EDRE_ENABLE,
 	   MADERA_EDRE_OUT1L_THR1_ENA_SHIFT,
 	   MADERA_EDRE_OUT1R_THR1_ENA_SHIFT, 1, 0),
@@ -569,12 +565,20 @@ SND_SOC_DAPM_SUPPLY("FXCLK", SND_SOC_NOPM,
 		    MADERA_DOM_GRP_FX, 0,
 		    madera_domain_clk_ev,
 		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-SND_SOC_DAPM_SUPPLY("ISRC1CLK", SND_SOC_NOPM,
-		    MADERA_DOM_GRP_ISRC1, 0,
+SND_SOC_DAPM_SUPPLY("ISRC1DECCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC1_DEC, 0,
 		    madera_domain_clk_ev,
 		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-SND_SOC_DAPM_SUPPLY("ISRC2CLK", SND_SOC_NOPM,
-		    MADERA_DOM_GRP_ISRC2, 0,
+SND_SOC_DAPM_SUPPLY("ISRC1INTCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC1_INT, 0,
+		    madera_domain_clk_ev,
+		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+SND_SOC_DAPM_SUPPLY("ISRC2DECCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC2_DEC, 0,
+		    madera_domain_clk_ev,
+		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+SND_SOC_DAPM_SUPPLY("ISRC2INTCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC2_INT, 0,
 		    madera_domain_clk_ev,
 		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 SND_SOC_DAPM_SUPPLY("OUTCLK", SND_SOC_NOPM,
@@ -1068,22 +1072,22 @@ static const struct snd_soc_dapm_route cs47l35_dapm_routes[] = {
 	{ "DSP1", NULL, "DSP1CLK" },
 	{ "DSP2", NULL, "DSP2CLK" },
 	{ "DSP3", NULL, "DSP3CLK" },
-	{ "ISRC1DEC1", NULL, "ISRC1CLK" },
-	{ "ISRC1DEC2", NULL, "ISRC1CLK" },
-	{ "ISRC1DEC3", NULL, "ISRC1CLK" },
-	{ "ISRC1DEC4", NULL, "ISRC1CLK" },
-	{ "ISRC1INT1", NULL, "ISRC1CLK" },
-	{ "ISRC1INT2", NULL, "ISRC1CLK" },
-	{ "ISRC1INT3", NULL, "ISRC1CLK" },
-	{ "ISRC1INT4", NULL, "ISRC1CLK" },
-	{ "ISRC2DEC1", NULL, "ISRC2CLK" },
-	{ "ISRC2DEC2", NULL, "ISRC2CLK" },
-	{ "ISRC2DEC3", NULL, "ISRC2CLK" },
-	{ "ISRC2DEC4", NULL, "ISRC2CLK" },
-	{ "ISRC2INT1", NULL, "ISRC2CLK" },
-	{ "ISRC2INT2", NULL, "ISRC2CLK" },
-	{ "ISRC2INT3", NULL, "ISRC2CLK" },
-	{ "ISRC2INT4", NULL, "ISRC2CLK" },
+	{ "ISRC1DEC1", NULL, "ISRC1DECCLK" },
+	{ "ISRC1DEC2", NULL, "ISRC1DECCLK" },
+	{ "ISRC1DEC3", NULL, "ISRC1DECCLK" },
+	{ "ISRC1DEC4", NULL, "ISRC1DECCLK" },
+	{ "ISRC1INT1", NULL, "ISRC1INTCLK" },
+	{ "ISRC1INT2", NULL, "ISRC1INTCLK" },
+	{ "ISRC1INT3", NULL, "ISRC1INTCLK" },
+	{ "ISRC1INT4", NULL, "ISRC1INTCLK" },
+	{ "ISRC2DEC1", NULL, "ISRC2DECCLK" },
+	{ "ISRC2DEC2", NULL, "ISRC2DECCLK" },
+	{ "ISRC2DEC3", NULL, "ISRC2DECCLK" },
+	{ "ISRC2DEC4", NULL, "ISRC2DECCLK" },
+	{ "ISRC2INT1", NULL, "ISRC2INTCLK" },
+	{ "ISRC2INT2", NULL, "ISRC2INTCLK" },
+	{ "ISRC2INT3", NULL, "ISRC2INTCLK" },
+	{ "ISRC2INT4", NULL, "ISRC2INTCLK" },
 
 	{ "AIF2 Capture", NULL, "DBVDD2" },
 	{ "AIF2 Playback", NULL, "DBVDD2" },
@@ -1568,10 +1572,6 @@ static int cs47l35_codec_probe(struct snd_soc_codec *codec)
 	if (ret)
 		return ret;
 
-	ret = madera_init_aif(codec);
-	if (ret)
-		return ret;
-
 	snd_soc_dapm_disable_pin(madera->dapm, "HAPTICS");
 
 	ret = snd_soc_add_codec_controls(codec, madera_adsp_rate_controls,
@@ -1615,7 +1615,7 @@ static struct regmap *cs47l35_get_regmap(struct device *dev)
 	return priv->core.madera->regmap;
 }
 
-static const struct snd_soc_codec_driver soc_codec_dev_cs47l35 = {
+static struct snd_soc_codec_driver soc_codec_dev_cs47l35 = {
 	.probe = cs47l35_codec_probe,
 	.remove = cs47l35_codec_remove,
 	.get_regmap = cs47l35_get_regmap,
@@ -1635,7 +1635,7 @@ static const struct snd_soc_codec_driver soc_codec_dev_cs47l35 = {
 	},
 };
 
-static const struct snd_compr_ops cs47l35_compr_ops = {
+static struct snd_compr_ops cs47l35_compr_ops = {
 	.open = cs47l35_open,
 	.free = wm_adsp_compr_free,
 	.set_params = wm_adsp_compr_set_params,
@@ -1645,7 +1645,7 @@ static const struct snd_compr_ops cs47l35_compr_ops = {
 	.copy = wm_adsp_compr_copy,
 };
 
-static const struct snd_soc_platform_driver cs47l35_compr_platform = {
+static struct snd_soc_platform_driver cs47l35_compr_platform = {
 	.compr_ops = &cs47l35_compr_ops,
 };
 
@@ -1683,19 +1683,15 @@ static int cs47l35_probe(struct platform_device *pdev)
 
 	ret = madera_init_overheat(&cs47l35->core);
 	if (ret)
-		goto error_core;
+		return ret;
 
 	ret = madera_request_irq(madera, MADERA_IRQ_DSP_IRQ1,
 				 "ADSP2 Compressed IRQ", cs47l35_adsp2_irq,
 				 cs47l35);
 	if (ret != 0) {
 		dev_err(&pdev->dev, "Failed to request DSP IRQ: %d\n", ret);
-		goto error_overheat;
+		return ret;
 	}
-
-	ret = madera_set_irq_wake(madera, MADERA_IRQ_DSP_IRQ1, 1);
-	if (ret)
-		dev_warn(&pdev->dev, "Failed to set DSP IRQ wake: %d\n", ret);
 
 	for (i = 0; i < CS47L35_NUM_ADSP; i++) {
 		cs47l35->core.adsp[i].part = "cs47l35";
@@ -1714,7 +1710,7 @@ static int cs47l35_probe(struct platform_device *pdev)
 		if (ret != 0) {
 			for (--i; i >= 0; --i)
 				wm_adsp2_remove(&cs47l35->core.adsp[i]);
-			goto error_dsp_irq;
+			goto error_core;
 		}
 	}
 
@@ -1734,7 +1730,7 @@ static int cs47l35_probe(struct platform_device *pdev)
 	ret = snd_soc_register_platform(&pdev->dev, &cs47l35_compr_platform);
 	if (ret < 0) {
 		dev_err(&pdev->dev, "Failed to register platform: %d\n", ret);
-		goto error_pm_runtime;
+		goto error;
 	}
 
 	ret = snd_soc_register_codec(&pdev->dev, &soc_codec_dev_cs47l35,
@@ -1744,23 +1740,14 @@ static int cs47l35_probe(struct platform_device *pdev)
 			"Failed to register codec: %d\n",
 			ret);
 		snd_soc_unregister_platform(&pdev->dev);
-		goto error_platform;
+		goto error;
 	}
 
 	return ret;
 
-error_platform:
-	snd_soc_unregister_platform(&pdev->dev);
-error_pm_runtime:
-	pm_runtime_disable(&pdev->dev);
-
+error:
 	for (i = 0; i < CS47L35_NUM_ADSP; i++)
 		wm_adsp2_remove(&cs47l35->core.adsp[i]);
-error_dsp_irq:
-	madera_set_irq_wake(cs47l35->core.madera, MADERA_IRQ_DSP_IRQ1, 0);
-	madera_free_irq(madera, MADERA_IRQ_DSP_IRQ1, cs47l35);
-error_overheat:
-	madera_free_overheat(&cs47l35->core);
 error_core:
 	madera_core_destroy(&cs47l35->core);
 
@@ -1779,7 +1766,6 @@ static int cs47l35_remove(struct platform_device *pdev)
 	for (i = 0; i < CS47L35_NUM_ADSP; i++)
 		wm_adsp2_remove(&cs47l35->core.adsp[i]);
 
-	madera_set_irq_wake(cs47l35->core.madera, MADERA_IRQ_DSP_IRQ1, 0);
 	madera_free_irq(cs47l35->core.madera, MADERA_IRQ_DSP_IRQ1, cs47l35);
 	madera_free_overheat(&cs47l35->core);
 	madera_core_destroy(&cs47l35->core);
@@ -1790,7 +1776,6 @@ static int cs47l35_remove(struct platform_device *pdev)
 static struct platform_driver cs47l35_codec_driver = {
 	.driver = {
 		.name = "cs47l35-codec",
-		.suppress_bind_attrs = true,
 	},
 	.probe = cs47l35_probe,
 	.remove = cs47l35_remove,

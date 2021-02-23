@@ -31,7 +31,6 @@
 /* dma_buf_debugfs_dir is defined in dma-buf.c */
 struct dentry;
 extern struct dentry *dma_buf_debugfs_dir;
-
 #ifdef CONFIG_DMABUF_TRACE
 int dmabuf_trace_alloc(struct dma_buf *dmabuf);
 void dmabuf_trace_free(struct dma_buf *dmabuf);
@@ -49,7 +48,7 @@ static inline int dmabuf_trace_track_buffer(struct dma_buf *dmabuf)
 {
 	return -ENOTTY;
 }
-static inline int dmabuf_trace_untrack_bufer(struct dma_buf *dmabuf)
+static inline int dmabuf_trace_untrack_buffer(struct dma_buf *dmabuf)
 {
 	return -ENOTTY;
 }

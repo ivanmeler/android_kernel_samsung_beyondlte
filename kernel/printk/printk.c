@@ -433,14 +433,6 @@ static u32 console_idx;
 static u64 clear_seq;
 static u32 clear_idx;
 
-/* { SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
-/* the next printk record to read after the last 'clear_knox' command */
-static u64 clear_seq_knox;
-static u32 clear_idx_knox;
-
-#define SYSLOG_ACTION_READ_CLEAR_KNOX 99
-/* } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
-
 #ifdef CONFIG_PRINTK_PROCESS
 #define PREFIX_MAX		48
 #else
@@ -454,6 +446,7 @@ static u32 clear_idx_knox;
 /* record buffer */
 #define LOG_ALIGN __alignof__(struct printk_log)
 #define __LOG_BUF_LEN (1 << CONFIG_LOG_BUF_SHIFT)
+#define LOG_BUF_LEN_MAX (u32)(1 << 31)
 static char __log_buf[__LOG_BUF_LEN] __aligned(LOG_ALIGN);
 static char *log_buf = __log_buf;
 static u32 log_buf_len = __LOG_BUF_LEN;
@@ -553,14 +546,6 @@ static int log_make_free_space(u32 msg_size)
 		clear_idx = log_first_idx;
 	}
 
-	/* { SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
-	/* messages are gone, move to first available one */
-	if (clear_seq_knox < log_first_seq) {
-		clear_seq_knox = log_first_seq;
-		clear_idx_knox = log_first_idx;
-	}
-	/* } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
-
 	/* sequence numbers are equal, so the log buffer is empty */
 	if (logbuf_has_space(msg_size, log_first_seq == log_next_seq))
 		return 0;
@@ -658,7 +643,7 @@ void register_hook_logbuf(void (*func)(const char *buf, size_t size))
 EXPORT_SYMBOL(register_hook_logbuf);
 #endif
 
-#if CONFIG_SEC_DEBUG_FIRST_KMSG
+#ifdef CONFIG_SEC_DEBUG_FIRST_KMSG
 static void (*func_hook_first_kmsg)(const char *buf, size_t size);
 void register_first_kmsg_hook_func(void (*func)(const char *buf, size_t size))
 {
@@ -669,10 +654,11 @@ void register_first_kmsg_hook_func(void (*func)(const char *buf, size_t size))
 	 * In register hooking function,  we should check messages already
 	 * printed on log_buf. If so, they will be copyied to backup
 	 * first_kmsg buffer
-	 * */
+	 */
 	if (log_first_seq != log_next_seq) {
 		unsigned int step_seq, step_idx, start, end;
 		struct printk_log *msg;
+
 		start = log_first_seq;
 		end = log_next_seq;
 		step_idx = log_first_idx;
@@ -796,12 +782,11 @@ static int log_store(int facility, int level,
 #endif
 
 #ifdef CONFIG_SEC_DEBUG_INIT_LOG
-		if (task_pid_nr(current) == 1 && func_hook_init_log) {
+		if (task_pid_nr(current) == 1 && func_hook_init_log)
 			func_hook_init_log(hook_text, hook_size);
-		}
 #endif
 
-#if CONFIG_SEC_DEBUG_FIRST_KMSG
+#ifdef CONFIG_SEC_DEBUG_FIRST_KMSG
 		if (func_hook_first_kmsg)
 			func_hook_first_kmsg(hook_text, hook_size);
 #endif
@@ -1211,18 +1196,23 @@ void log_buf_vmcoreinfo_setup(void)
 static unsigned long __initdata new_log_buf_len;
 
 /* we practice scaling the ring buffer by powers of 2 */
-static void __init log_buf_len_update(unsigned size)
+static void __init log_buf_len_update(u64 size)
 {
+	if (size > (u64)LOG_BUF_LEN_MAX) {
+		size = (u64)LOG_BUF_LEN_MAX;
+		pr_err("log_buf over 2G is not supported.\n");
+	}
+
 	if (size)
 		size = roundup_pow_of_two(size);
 	if (size > log_buf_len)
-		new_log_buf_len = size;
+		new_log_buf_len = (unsigned long)size;
 }
 
 /* save requested log_buf_len since it's too early to process it */
 static int __init log_buf_len_setup(char *str)
 {
-	unsigned int size;
+	u64 size;
 
 	if (!str)
 		return -EINVAL;
@@ -1272,7 +1262,7 @@ void __init setup_log_buf(int early)
 {
 	unsigned long flags;
 	char *new_log_buf;
-	int free;
+	unsigned int free;
 
 	if (log_buf != __log_buf)
 		return;
@@ -1294,7 +1284,7 @@ void __init setup_log_buf(int early)
 	set_memsize_kernel_type(MEMSIZE_KERNEL_OTHERS);
 
 	if (unlikely(!new_log_buf)) {
-		pr_err("log_buf_len: %ld bytes not available\n",
+		pr_err("log_buf_len: %lu bytes not available\n",
 			new_log_buf_len);
 		return;
 	}
@@ -1307,8 +1297,8 @@ void __init setup_log_buf(int early)
 	memcpy(log_buf, __log_buf, __LOG_BUF_LEN);
 	logbuf_unlock_irqrestore(flags);
 
-	pr_info("log_buf_len: %d bytes\n", log_buf_len);
-	pr_info("early log buf free: %d(%d%%)\n",
+	pr_info("log_buf_len: %u bytes\n", log_buf_len);
+	pr_info("early log buf free: %u(%u%%)\n",
 		free, (free * 100) / __LOG_BUF_LEN);
 }
 
@@ -1531,7 +1521,7 @@ static int syslog_print(char __user *buf, int size)
 	return len;
 }
 
-static int syslog_print_all(char __user *buf, int size, bool clear, bool knox)
+static int syslog_print_all(char __user *buf, int size, bool clear)
 {
 	char *text;
 	int len = 0;
@@ -1550,15 +1540,8 @@ static int syslog_print_all(char __user *buf, int size, bool clear, bool knox)
 		 * Find first record that fits, including all following records,
 		 * into the user-provided buffer for this dump.
 		 */
-		/* { SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
-		if (!knox) {
-			seq = clear_seq;
-			idx = clear_idx;
-		} else { //MDM edmaudit
-			seq = clear_seq_knox;
-			idx = clear_idx_knox;
-		}
-		/* } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
+		seq = clear_seq;
+		idx = clear_idx;
 		while (seq < log_next_seq) {
 			struct printk_log *msg = log_from_idx(idx);
 
@@ -1567,16 +1550,9 @@ static int syslog_print_all(char __user *buf, int size, bool clear, bool knox)
 			seq++;
 		}
 
-		/* { SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
 		/* move first record forward until length fits into the buffer */
-		if (!knox) {
-			seq = clear_seq;
-			idx = clear_idx;
-		} else { // MDM edmaudit
-			seq = clear_seq_knox;
-			idx = clear_idx_knox;
-		}
-		/* } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
+		seq = clear_seq;
+		idx = clear_idx;
 		while (len > size && seq < log_next_seq) {
 			struct printk_log *msg = log_from_idx(idx);
 
@@ -1617,18 +1593,10 @@ static int syslog_print_all(char __user *buf, int size, bool clear, bool knox)
 		}
 	}
 
-	/* { SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
 	if (clear) {
-		if (!knox) {
-			clear_seq = log_next_seq;
-			clear_idx = log_next_idx;
-		} else { //MDM edmaudit
-			clear_seq_knox = log_next_seq;
-			clear_idx_knox = log_next_idx;
-		}
+		clear_seq = log_next_seq;
+		clear_idx = log_next_idx;
 	}
-	/* } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
-
 	logbuf_unlock_irq();
 
 	kfree(text);
@@ -1675,11 +1643,11 @@ int do_syslog(int type, char __user *buf, int len, int source)
 			return 0;
 		if (!access_ok(VERIFY_WRITE, buf, len))
 			return -EFAULT;
-		error = syslog_print_all(buf, len, clear, false);
+		error = syslog_print_all(buf, len, clear);
 		break;
 	/* Clear ring buffer */
 	case SYSLOG_ACTION_CLEAR:
-		syslog_print_all(NULL, 0, true, false);
+		syslog_print_all(NULL, 0, true);
 		break;
 	/* Disable logging to console */
 	case SYSLOG_ACTION_CONSOLE_OFF:
@@ -1739,26 +1707,11 @@ int do_syslog(int type, char __user *buf, int len, int source)
 	case SYSLOG_ACTION_SIZE_BUFFER:
 		error = log_buf_len;
 		break;
-	/* { SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM edmaudit Read last kernel messages */
-	case SYSLOG_ACTION_READ_CLEAR_KNOX:
-		error = -EINVAL;
-		if (!buf || len < 0)
-			goto out;
-		error = 0;
-		if (!len)
-			goto out;
-		if (!access_ok(VERIFY_WRITE, buf, len)) {
-			error = -EFAULT;
-			goto out;
-		}
-		error = syslog_print_all(buf, len, /* clear */ true, /* knox */true);
-		break;
-	/* } SecProductFeature_KNOX.SEC_PRODUCT_FEATURE_KNOX_SUPPORT_MDM */
 	default:
 		error = -EINVAL;
 		break;
 	}
-out:
+
 	return error;
 }
 
@@ -3426,7 +3379,7 @@ bool kmsg_dump_get_buffer(struct kmsg_dumper *dumper, bool syslog,
 	/* move first record forward until length fits into the buffer */
 	seq = dumper->cur_seq;
 	idx = dumper->cur_idx;
-	while (l > size && seq < dumper->next_seq) {
+	while (l >= size && seq < dumper->next_seq) {
 		struct printk_log *msg = log_from_idx(idx);
 
 		l -= msg_print_text(msg, true, NULL, 0);

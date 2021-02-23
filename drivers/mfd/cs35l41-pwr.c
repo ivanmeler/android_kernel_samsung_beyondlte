@@ -40,6 +40,8 @@ static int cs35l41_pwr_probe(struct platform_device *pdev)
 	struct device_node *pwr_params;
 	unsigned int reg, target_temp = 0, exit_temp = 0;
 	bool right_channel_amp, global_enable;
+	const char *dsp_part_name;
+	const char *mfd_suffix;
 	int ret;
 
 	regmap_read(cs35l41->regmap, 0x00000000, &reg);
@@ -48,8 +50,17 @@ static int cs35l41_pwr_probe(struct platform_device *pdev)
 
 	right_channel_amp = of_property_read_bool(cs35l41->dev->of_node,
 					"cirrus,right-channel-amp");
+	ret = of_property_read_string(cs35l41->dev->of_node,
+						"cirrus,dsp-part-name",
+						&dsp_part_name);
+	if (ret < 0)
+		dsp_part_name = "cs35l41";
 
-	ret = cirrus_pwr_amp_add(cs35l41->regmap, right_channel_amp);
+	ret = of_property_read_string(cs35l41->dev->of_node,
+						"cirrus,mfd-suffix",
+						&mfd_suffix);
+
+	ret = cirrus_pwr_amp_add(cs35l41->regmap, mfd_suffix, dsp_part_name);
 
 	if (ret < 0) {
 		dev_info(&pdev->dev,
@@ -72,7 +83,7 @@ static int cs35l41_pwr_probe(struct platform_device *pdev)
 		if (ret >= 0)
 			exit_temp = reg;
 
-		cirrus_pwr_set_params(global_enable, right_channel_amp,
+		cirrus_pwr_set_params(global_enable, mfd_suffix,
 					target_temp, exit_temp);
 	}
 	of_node_put(pwr_params);

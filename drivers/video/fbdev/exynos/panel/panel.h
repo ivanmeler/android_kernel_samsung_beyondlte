@@ -601,6 +601,9 @@ enum PANEL_SEQ {
 	PANEL_GCT_IMG_1_UPDATE_SEQ,
 	PANEL_GCT_EXIT_SEQ,
 #endif
+#if defined(CONFIG_SUPPORT_FAST_DISCHARGE)
+	PANEL_FD_SEQ,
+#endif
 #ifdef CONFIG_SUPPORT_GRAYSPOT_TEST
 	PANEL_GRAYSPOT_ON_SEQ,
 	PANEL_GRAYSPOT_OFF_SEQ,
@@ -631,6 +634,8 @@ enum PANEL_SEQ {
 #endif
 #ifdef CONFIG_DYNAMIC_FREQ
 	PANEL_DYNAMIC_FFC_SEQ,
+	PANEL_DYNAMIC_FFC_OFF_SEQ,
+	PANEL_COMP_LTPS_SEQ,
 #endif
 	PANEL_GAMMA_INTER_CONTROL_SEQ,
 	PANEL_PARTIAL_DISP_ON_SEQ,
@@ -638,6 +643,11 @@ enum PANEL_SEQ {
 	PANEL_DUMP_SEQ,
 	PANEL_CHECK_CONDITION_SEQ,
 	PANEL_DIA_ONOFF_SEQ,
+#ifdef CONFIG_SUPPORT_MASK_LAYER
+	PANEL_MASK_LAYER_STOP_DIMMING_SEQ,
+	PANEL_MASK_LAYER_BEFORE_SEQ,
+	PANEL_MASK_LAYER_AFTER_SEQ,
+#endif
 	PANEL_DUMMY_SEQ,
 	MAX_PANEL_SEQ,
 };
@@ -658,6 +668,9 @@ struct seqinfo {
 	.cmdtbl = (_cmdtbl_),				\
 	.size = ARRAY_SIZE((_cmdtbl_)),		\
 }
+
+#define DEFINE_SEQINFO(_name_, _cmdtbl_) \
+struct seqinfo SEQINFO(_name_) = SEQINFO_INIT((#_name_), (_cmdtbl_))
 
 struct brt_map {
 	int brt;
@@ -738,6 +751,12 @@ enum {
 };
 
 enum {
+	SMOOTH_TRANS_OFF,
+	SMOOTH_TRANS_ON,
+	SMOOTH_TRANS_MAX,
+};
+
+enum {
 	ACL_OPR_OFF,
 	ACL_OPR_03P,
 	ACL_OPR_06P,
@@ -753,6 +772,12 @@ enum {
 	HLPM_LOW_BR,
 	ALPM_HIGH_BR,
 	HLPM_HIGH_BR,
+};
+
+enum {
+	PANEL_HBM_OFF,
+	PANEL_HBM_ON,
+	MAX_PANEL_HBM,
 };
 
 #ifdef CONFIG_SUPPORT_XTALK_MODE
@@ -928,6 +953,9 @@ struct panel_properties {
 	u32 dia_mode;
 	u32 ub_con_cnt;
 	u32 conn_det_enable;
+#if defined(CONFIG_SUPPORT_FAST_DISCHARGE)
+	u32 enable_fd;
+#endif
 };
 
 struct panel_info {

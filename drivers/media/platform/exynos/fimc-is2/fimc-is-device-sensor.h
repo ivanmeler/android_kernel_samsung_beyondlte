@@ -213,6 +213,9 @@ enum fimc_is_ex_mode {
 	EX_PDAF_OFF = 5,
 	EX_3DHDR = 6,
 	EX_PDSTAT_OFF = 7,
+	EX_CROP_ZOOM = 8,
+	EX_SEAMLESS_TETRA = 9,	/* for extending to seamless fuction such as 3DHDR + Seamless */
+	EX_LOW_RES_TETRA = 10,	/* For EXTEND_SENSOR_MODE_CROPPED_REMOSAIC */      /* Should add proper code after bringup */
 };
 
 struct fimc_is_sensor_cfg {
@@ -434,6 +437,9 @@ struct fimc_is_device_sensor {
 	float					last_wb[WB_GAIN_COUNT];
 	float					chk_wb[WB_GAIN_COUNT];
 	u32					init_wb_cnt;
+#endif
+#ifdef ENABLE_MODECHANGE_CAPTURE
+	struct fimc_is_frame					*mode_chg_frame;
 #endif
 };
 

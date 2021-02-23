@@ -88,17 +88,8 @@ if INET
 source "net/ipv4/Kconfig"
 source "net/ipv6/Kconfig"
 source "net/netlabel/Kconfig"
-#ifdef CONFIG_MPTCP
-	source "net/mptcp/Kconfig"
-#endif
 
 endif # if INET
-
-config ANDROID_PARANOID_NETWORK
-	bool "Only allow certain groups to create sockets"
-	default y
-	help
-		none
 
 config NETWORK_SECMARK
 	bool "Security Marking"
@@ -243,9 +234,9 @@ source "net/switchdev/Kconfig"
 source "net/l3mdev/Kconfig"
 source "net/qrtr/Kconfig"
 source "net/ncsi/Kconfig"
-# KNOX NPA - START
+# SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
 source "net/ncm/Kconfig"
-# KNOX NPA - END
+# SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
 
 config RPS
 	bool
@@ -296,7 +287,6 @@ config BPF_JIT
 	bool "enable BPF Just In Time compiler"
 	depends on HAVE_CBPF_JIT || HAVE_EBPF_JIT
 	depends on MODULES
-	depends on !CFI
 	---help---
 	  Berkeley Packet Filter filtering capabilities are normally handled
 	  by an interpreter. This option allows kernel to generate a native
@@ -475,9 +465,3 @@ config HAVE_CBPF_JIT
 # Extended BPF JIT (eBPF)
 config HAVE_EBPF_JIT
 	bool
-	
-# Network Pacemaker
-config NETPM
-	bool "Network Pacemaker"
-	---help---
-	This feature implements Network Pacemaker (NETPM)

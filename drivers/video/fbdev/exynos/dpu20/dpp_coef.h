@@ -272,20 +272,22 @@ const s16 v_coef_4t[7][16][4] = {
 	}
 };
 
-/* 3x3 CSC Coefficient for BT2020 : 3.9 format */
+/* 3x3 CSC Coefficient : 7.9 format */
 const u16 csc_3x3_t[16][3][3] = {
-	/* 00: CSC_BT601_625 Limited */
+
+	/* 00: CSC_BT601/625/525 line Limited */
 	{
 		{0x0254, 0x0000, 0x0331},
 		{0x0254, 0xFF37, 0xFE60},
 		{0x0254, 0x0409, 0x0000},
 	},
-	/* 01: CSC_BT601_625 Full */
+	/* 01: CSC_BT601/625/525 line Full */
 	{
 		{0x0200, 0x0000, 0x02BE},
 		{0x0200, 0xFF54, 0xFE9B},
 		{0x0200, 0x0377, 0x0000},
 	},
+
 	/* 02: BT601_625_UNADJUSTED Limited */
 	{
 		{0x0254, 0x0000, 0x038B},
@@ -298,18 +300,20 @@ const u16 csc_3x3_t[16][3][3] = {
 		{0x0200, 0xFFA3, 0xFF0B},
 		{0x0200, 0x03A2, 0x0000},
 	},
-	/* 04: CSC_BT601_525 Limited */
+
+	/* 04: CSC_BT601/625/525 line Limited */
 	{
 		{0x0254, 0x0000, 0x0331},
 		{0x0254, 0xFF37, 0xFE60},
 		{0x0254, 0x0409, 0x0000},
 	},
-	/* 05: CSC_BT601_525 Full */
+	/* 05: CSC_BT601/625/525 line Full */
 	{
 		{0x0200, 0x0000, 0x02BE},
 		{0x0200, 0xFF54, 0xFE9B},
 		{0x0200, 0x0377, 0x0000},
 	},
+
 	/* 06: BT601_525_UNADJUSTE Limited */
 	{
 		{0x0254, 0x0000, 0x0397},
@@ -322,6 +326,7 @@ const u16 csc_3x3_t[16][3][3] = {
 		{0x0200, 0xFF8F, 0xFF11},
 		{0x0200, 0x0392, 0x0000},
 	},
+
 	/* 08: CSC_BT_2020_CONSTANT_LUMINANCE -> CSC_BT601 Limited */
 	{
 		{0x0254, 0x0000, 0x0331},
@@ -334,6 +339,7 @@ const u16 csc_3x3_t[16][3][3] = {
 		{0x0200, 0xFF54, 0xFE9B},
 		{0x0200, 0x0377, 0x0000},
 	},
+
 	/* 10: CSC_BT_470M Limited */
 	{
 		{0x0254, 0x0000, 0x0331},
@@ -346,6 +352,7 @@ const u16 csc_3x3_t[16][3][3] = {
 		{0x0200, 0xFF54, 0xFE9B},
 		{0x0200, 0x0377, 0x0000},
 	},
+
 	/* 12: CSC_FILM Limited */
 	{
 		{0x0254, 0x0000, 0x0366},
@@ -358,6 +365,7 @@ const u16 csc_3x3_t[16][3][3] = {
 		{0x0200, 0xFFA2, 0xFEE8},
 		{0x0200, 0x03A5, 0x0000},
 	},
+
 	/* 14: CSC_ADOBE Limited */
 	{
 		{0x0254, 0x0000, 0x0333},
@@ -370,5 +378,6 @@ const u16 csc_3x3_t[16][3][3] = {
 		{0x0200, 0xFF91, 0xFEB3},
 		{0x0200, 0x039E, 0x0000},
 	},
+
 	/* Add if necessary */
 };

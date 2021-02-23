@@ -13,10 +13,15 @@
 #define CIRRUS_PWR_CSPL_PASSPORT_ENABLE		0x2800448
 #define CIRRUS_PWR_CSPL_OUTPUT_POWER_SQ		0x280044c
 
-void cirrus_pwr_start(bool right_amp);
-void cirrus_pwr_stop(bool right_amp);
-int cirrus_pwr_amp_add(struct regmap *regmap_new, bool right_channel_amp);
-int cirrus_pwr_set_params(bool global_enable, bool right_channel_amp,
+#define CIRRUS_PWR_NUM_ATTRS_BASE	6
+#define CIRRUS_PWR_NUM_ATTRS_AMP	5
+
+void cirrus_pwr_start(const char *mfd_suffix);
+void cirrus_pwr_stop(const char *mfd_suffix);
+int cirrus_pwr_amp_add(struct regmap *regmap_new, const char *mfd_suffix,
+					const char *dsp_part_name);
+int cirrus_pwr_set_params(bool global_enable, const char *mfd_suffix,
 			unsigned int target_temp, unsigned int exit_temp);
-int cirrus_pwr_init(struct class *cirrus_amp_class);
+int cirrus_pwr_init(struct class *cirrus_amp_class, int num_amps,
+					const char **mfd_suffixes);
 void cirrus_pwr_exit(void);

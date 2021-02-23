@@ -105,13 +105,6 @@ int mfc_set_dec_codec_buffers(struct mfc_ctx *ctx)
 	for (i = 0; i < raw->num_planes; i++) {
 		mfc_debug(2, "[FRAME] buf[%d] size: %d, stride: %d\n",
 				i, raw->plane_size[i], raw->stride[i]);
-		if (!raw->plane_size[i]) {
-			raw->plane_size[i] = mfc_get_min_dpb_size(i);
-			MFC_TRACE_CTX("plane[%d] size zero -> %d\n",
-					i, raw->plane_size[i]);
-			mfc_err_ctx("DPB plane[%d] size is zero, changed to min size: %d\n",
-					i, raw->plane_size[i]);
-		}
 		MFC_WRITEL(raw->plane_size[i], MFC_REG_D_FIRST_PLANE_DPB_SIZE + (i * 4));
 		MFC_WRITEL(ctx->raw_buf.stride[i],
 				MFC_REG_D_FIRST_PLANE_DPB_STRIDE_SIZE + (i * 4));
@@ -363,16 +356,14 @@ int mfc_set_enc_stream_buffer(struct mfc_ctx *ctx,
 		struct mfc_buf *mfc_buf)
 {
 	struct mfc_dev *dev = ctx->dev;
-	dma_addr_t addr = 0;
-	unsigned int size = 0, offset = 0, index = -1;
+	dma_addr_t addr;
+	unsigned int size, offset, index;
 
-	if (mfc_buf) {
-		index = mfc_buf->vb.vb2_buf.index;
-		addr = mfc_buf->addr[0][0];
-		offset = mfc_buf->vb.vb2_buf.planes[0].data_offset;
-		size = (unsigned int)vb2_plane_size(&mfc_buf->vb.vb2_buf, 0);
-		size = ALIGN(size, 512);
-	}
+	index = mfc_buf->vb.vb2_buf.index;
+	addr = mfc_buf->addr[0][0];
+	offset = mfc_buf->vb.vb2_buf.planes[0].data_offset;
+	size = (unsigned int)vb2_plane_size(&mfc_buf->vb.vb2_buf, 0);
+	size = ALIGN(size, 512);
 
 	MFC_WRITEL(addr, MFC_REG_E_STREAM_BUFFER_ADDR); /* 16B align */
 	MFC_WRITEL(size, MFC_REG_E_STREAM_BUFFER_SIZE);

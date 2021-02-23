@@ -262,9 +262,6 @@ unsigned long sec_debug_get_kevent_index_addr(int type)
 	case DSS_KEVENT_ACPM:
 		return virt_to_phys(&(dss_idx.acpm_log_idx));
 
-	case DSS_KEVENT_MFRQ:
-		return virt_to_phys(&(dss_idx.freq_misc_log_idx));
-
 	default:
 		return 0;
 	}
@@ -1467,58 +1464,6 @@ void dbg_snapshot_printkl(size_t msg, size_t val)
 }
 #endif
 
-#ifdef CONFIG_SEC_PM_DEBUG
-static ssize_t dss_log_work_lookup(char *buf, ssize_t n, int cpu, int idx)
-{
-	char work_fn[KSYM_NAME_LEN];
-	unsigned long sec, msec;
-	u64 ts;
-	int en;
-
-	if (!(dss_log->work[cpu][idx].fn))
-		return n;
-
-	lookup_symbol_name((unsigned long)dss_log->work[cpu][idx].fn, work_fn);
-
-	ts = dss_log->work[cpu][idx].time;
-	sec = ts / NSEC_PER_SEC;
-	msec = (ts % NSEC_PER_SEC) / USEC_PER_MSEC;
-
-	en = dss_log->work[cpu][idx].en;
-
-	n += scnprintf(buf + n, 100,
-			"%d: %10lu.%06lu task:%16s, fn:%32s, %1s\n",
-			cpu, sec, msec, dss_log->work[cpu][idx].task_comm,
-			work_fn, en == DSS_FLAG_IN ? "I" : "O");
-
-	return n;
-}
-
-ssize_t dss_log_work_print(char *buf)
-{
-	int cpu, array_size;
-	ssize_t n = 0;
-
-	if (!dss_log)
-		return 0;
-
-	array_size = ARRAY_SIZE(dss_log->work[0]) - 1;
-
-	for_each_possible_cpu(cpu) {
-		int i, idx;
-
-		idx = atomic_read(&dss_idx.work_log_idx[cpu]);
-
-		for (i = 0; i < 5 && i < array_size; i++, idx--) {
-			idx &= array_size;
-			n = dss_log_work_lookup(buf, n, cpu, idx);
-		}
-	}
-
-	return n;
-}
-#endif /* CONFIG_SEC_PM_DEBUG */
-
 #if defined(CONFIG_DEBUG_SNAPSHOT_THERMAL) && defined(CONFIG_SEC_PM_DEBUG)
 #include <linux/debugfs.h>
 
@@ -1589,11 +1534,11 @@ static int __init exynos_ss_debugfs_init(void)
 late_initcall(exynos_ss_debugfs_init);
 #endif /* CONFIG_DEBUG_SNAPSHOT_THERMAL && CONFIG_SEC_PM_DEBUG */
 
-#if defined(CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU)			\
+#if defined(CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU)	\
 	&& defined(CONFIG_SEC_DEBUG)
-#define for_each_generated_irq_in_snapshot(idx, i, max, base, cpu)							\
-	for (i = 0, idx = base; i < max; ++i, idx = (base - i) & (ARRAY_SIZE(dss_log->irq[0]) - 1))		\
-		if (dss_log->irq[cpu][idx].en == DSS_FLAG_IN)
+#define for_each_generated_irq_in_snapshot(idx, i, max, base, cpu)	\
+	for ((i) = 0, (idx) = (base); (i) < (max); ++(i), (idx) = ((base) - (i)) & (ARRAY_SIZE(dss_log->irq[0]) - 1))	\
+		if (dss_log->irq[(cpu)][(idx)].en == DSS_FLAG_IN)
 
 static inline void dbg_snapshot_get_busiest_irq(struct hardlockup_info *hl_info, unsigned long start_idx, int cpu)
 {

@@ -602,9 +602,9 @@ static int fimc_is_3aa_video_s_ctrl(struct file *file, void *priv,
 		device->group_3aa.intent_ctl.captureIntent = captureIntent;
 		device->group_3aa.intent_ctl.vendor_captureCount = captureCount;
 		if (captureIntent == AA_CAPTURE_INTENT_STILL_CAPTURE_OIS_MULTI) {
-			device->group_3aa.remainIntentCount = 2;
+			device->group_3aa.remainIntentCount = 2 + INTENT_RETRY_CNT;
 		} else {
-			device->group_3aa.remainIntentCount = 0;
+			device->group_3aa.remainIntentCount = 0 + INTENT_RETRY_CNT;
 		}
 
 		minfo("[3AA:V] s_ctrl intent(%d) count(%d) remainIntentCount(%d)\n",
@@ -709,9 +709,9 @@ static int fimc_is_3aa_video_s_ext_ctrl(struct file *file, void *priv,
 			head->intent_ctl.vendor_captureEV = info.captureEV;
 
 			if (info.captureIntent == AA_CAPTURE_INTENT_STILL_CAPTURE_OIS_MULTI) {
-				head->remainIntentCount = 2;
+				head->remainIntentCount = 2 + INTENT_RETRY_CNT;
 			} else {
-				head->remainIntentCount = 0;
+				head->remainIntentCount = 0 + INTENT_RETRY_CNT;
 			}
 
 			info("s_ext_ctrl SET_CAPTURE_INTENT_INFO, intent(%d) count(%d) captureEV(%d) remainIntentCount(%d)\n",

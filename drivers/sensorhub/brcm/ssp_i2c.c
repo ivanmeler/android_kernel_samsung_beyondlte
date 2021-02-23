@@ -309,7 +309,7 @@ int send_instruction(struct ssp_data *data, u8 uInst,
 		if (uLength >= 9)
 			BatchTimeforReset = *(unsigned int *)(&uSendBuf[4]);// Add / change normal case, not factory.
 	//pr_info("[SSP] %s timeForRest %d", __func__, BatchTimeforReset);
-			data->IsBypassMode[uSensorType] = (BatchTimeforReset == 0);
+		data->IsBypassMode[uSensorType] = (BatchTimeforReset == 0);
 	//pr_info("[SSP] sensor%d mode%d Time %lld\n", uSensorType, data->IsBypassMode[uSensorType], current_Ts);
 	}
 	return iRet;
@@ -1116,7 +1116,7 @@ void set_gyro_cal_lib_enable(struct ssp_data *data, bool bEnable)
 
 }
 
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
+#if defined(CONFIG_SEC_VIB_NOTIFIER)
 int send_motor_state(struct ssp_data *data)
 {
 	int iRet = 0;
@@ -1143,6 +1143,7 @@ int send_motor_state(struct ssp_data *data)
 	return data->motor_state;
 }
 #endif
+
 u8 get_accel_range(struct ssp_data *data)
 {
 	int iRet = 0;
@@ -1167,5 +1168,6 @@ u8 get_accel_range(struct ssp_data *data)
 	pr_info("[SSP] %s - Range : %u\n", __func__, rxbuffer[0]);
 	return rxbuffer[0];
 }
+
 
 

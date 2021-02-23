@@ -761,13 +761,6 @@ bool jd_submit_atom(struct kbase_context *kctx, const struct base_jd_atom_v2 *us
 
 	katom->age = kctx->age_count++;
 
-	if (!(katom->core_req & BASE_JD_REQ_SOFT_JOB)) {
-		if (!kbase_js_is_atom_valid(kctx->kbdev, katom)) {
-			katom->event_code = BASE_JD_EVENT_JOB_INVALID;
-			return jd_done_nolock(katom, NULL);
-		}
-	}
-
 	INIT_LIST_HEAD(&katom->queue);
 	INIT_LIST_HEAD(&katom->jd_item);
 #ifdef CONFIG_MALI_DMA_FENCE
@@ -1148,10 +1141,6 @@ while (false)
 
 KBASE_EXPORT_TEST_API(kbase_jd_submit);
 
-#if defined(CONFIG_SEC_ABC)
-#include <linux/sti/abc_common.h>
-#endif
-
 void kbase_jd_done_worker(struct work_struct *data)
 {
 	struct kbase_jd_atom *katom = container_of(data, struct kbase_jd_atom, work);
@@ -1211,15 +1200,11 @@ void kbase_jd_done_worker(struct work_struct *data)
 	}
 
 	if ((katom->event_code != BASE_JD_EVENT_DONE) &&
-			(!kbase_ctx_flag(katom->kctx, KCTX_DYING))) {
+			(!kbase_ctx_flag(katom->kctx, KCTX_DYING)))
 		dev_err(kbdev->dev,
 			"t6xx: GPU fault 0x%02lx from job slot %d\n",
 					(unsigned long)katom->event_code,
 								katom->slot_nr);
-#if defined(CONFIG_SEC_ABC)
-		sec_abc_send_event("MODULE=gpu@ERROR=gpu_fault");
-#endif
-	}
 
 	if (kbase_hw_has_issue(kbdev, BASE_HW_ISSUE_8316))
 		kbase_as_poking_timer_release_atom(kbdev, kctx, katom);

@@ -36,10 +36,10 @@ int band_play_cpu(struct task_struct *p)
 	unsigned long min_util = ULONG_MAX;
 
 	band = lookup_band(p);
-	if (!band || cpumask_empty(&band->playable_cpus))
+	if (!band)
 		return -1;
 
-	for_each_cpu_and(cpu, cpu_online_mask, &band->playable_cpus) {
+	for_each_cpu(cpu, &band->playable_cpus) {
 		if (!cpu_rq(cpu)->nr_running)
 			return cpu;
 
@@ -52,80 +52,12 @@ int band_play_cpu(struct task_struct *p)
 	return min_cpu;
 }
 
-static int can_play_one_stage(const struct cpumask *stages, int ratio, int type)
-{
-	unsigned long capacity, util;
-	int cpu;
-
-	for_each_cpu(cpu, stages) {
-		capacity = capacity_orig_of(cpu);
-		util = ml_cpu_util(cpu);
-		trace_ems_band_schedule(*(unsigned int *)cpumask_bits(stages),
-					cpu, ratio, capacity, util, type);
-
-		/* can't play here */
-		if (util * 100 > capacity * ratio)
-			return 0;
-	}
-
-	return 1;
-}
-
-static int can_play_all_stage(const struct cpumask *stages, int ratio, int type)
-{
-	unsigned long capacity = 0, util = 0;
-	int cpu;
-
-	for_each_cpu(cpu, stages) {
-		capacity += capacity_orig_of(cpu);
-		util += ml_cpu_util(cpu);
-	}
-
-	trace_ems_band_schedule(*(unsigned int *)cpumask_bits(stages),
-					-1, ratio, capacity, util, type);
-	/* can't play here */
-	if (util * 100 > capacity * ratio)
-		return 0;
-
-	return 1;
-}
-
-#define BAND_SCHEDULE_ONE_STAGE		1
-#define BAND_SCHEDULE_ALL_STAGE		2
-
-static int can_play(const struct cpumask *stages, int ratio, int type)
-{
-	if (type == BAND_SCHEDULE_ONE_STAGE)
-		return can_play_one_stage(stages, ratio, type);
-
-	if (type == BAND_SCHEDULE_ALL_STAGE)
-		return can_play_all_stage(stages, ratio, type);
-
-	return 0;
-}
-
-struct band_schedule {
-	struct list_head list;
-	int number;
-	struct cpumask stage;
-	unsigned int crowd;
-	int type;
-};
-
-LIST_HEAD(schedule_list);
-
 static void pick_playable_cpus(struct task_band *band)
 {
-	struct band_schedule *bs;
+	if (!band->sse)
+		return;
 
-	cpumask_clear(&band->playable_cpus);
-
-	list_for_each_entry(bs, &schedule_list, list) {
-		if (can_play(&bs->stage, bs->crowd, bs->type)) {
-			cpumask_copy(&band->playable_cpus, &bs->stage);
-			return;
-		}
-	}
+	cpumask_and(&band->playable_cpus, cpu_online_mask, cpu_coregroup_mask(4));
 }
 
 static unsigned long out_of_time = 100000000;	/* 100ms */
@@ -147,6 +79,7 @@ static void __update_band(struct task_band *band, unsigned long now)
 
 	pick_playable_cpus(band);
 
+	task = list_first_entry(&band->members, struct task_struct, band_members);
 	trace_ems_update_band(band->id, band->util, band->member_count,
 		*(unsigned int *)cpumask_bits(&band->playable_cpus));
 }
@@ -188,12 +121,10 @@ static void join_band(struct task_struct *p)
 	int pos, empty = -1;
 	char event[30] = "join band";
 
-	write_lock(&band_rwlock);
-
-	if (lookup_band(p)) {
-		write_unlock(&band_rwlock);
+	if (lookup_band(p))
 		return;
-	}
+
+	write_lock(&band_rwlock);
 
 	/*
 	 * Find the band assigned to the tasks's thread group in the
@@ -216,14 +147,8 @@ static void join_band(struct task_struct *p)
 	}
 
 	/* failed to find band, organize the new band */
-	if (pos == MAX_NUM_BAND_ID) {
-		/* band pool is full */
-		if (empty < 0) {
-			write_unlock(&band_rwlock);
-			return;
-		}
+	if (pos == MAX_NUM_BAND_ID)
 		band = bands[empty];
-	}
 
 	raw_spin_lock(&band->lock);
 	if (!band_playing(band)) {
@@ -246,13 +171,11 @@ static void leave_band(struct task_struct *p)
 	struct task_band *band;
 	char event[30] = "leave band";
 
-	write_lock(&band_rwlock);
-
-	band = lookup_band(p);
-	if (!band) {
-		write_unlock(&band_rwlock);
+	if (!lookup_band(p))
 		return;
-	}
+
+	write_lock(&band_rwlock);
+	band = p->band;
 
 	raw_spin_lock(&band->lock);
 	list_del_init(&p->band_members);
@@ -308,93 +231,6 @@ void newbie_join_band(struct task_struct *newbie)
 	write_unlock_irqrestore(&band_rwlock, flags);
 }
 
-static ssize_t show_band_schedule(struct kobject *kobj,
-		struct kobj_attribute *attr, char *buf)
-{
-	struct band_schedule *bs;
-	int len = 0;
-
-	list_for_each_entry(bs, &schedule_list, list)
-		len += sprintf(buf + len,
-			"[band-schedule%d stage(%#x)] crowd:%d\n",
-			bs->number, *(unsigned int *)cpumask_bits(&bs->stage),
-			bs->crowd);
-
-	return len;
-}
-
-static ssize_t store_band_schedule(struct kobject *kobj,
-		struct kobj_attribute *attr, const char *buf,
-		size_t count)
-{
-	struct band_schedule *bs;
-	int number, crowd;
-
-	if (sscanf(buf, "%d %d", &number, &crowd) != 2)
-		return -EINVAL;
-
-	if (crowd < 0 || crowd > 100)
-		return -EINVAL;
-
-	list_for_each_entry(bs, &schedule_list, list)
-		if (number == bs->number)
-			bs->crowd = crowd;
-
-	return count;
-}
-
-static struct kobj_attribute band_schedule_attr =
-__ATTR(band_schedule, 0644, show_band_schedule, store_band_schedule);
-
-static int __init init_band_sysfs(void)
-{
-	int ret;
-
-	ret = sysfs_create_file(ems_kobj, &band_schedule_attr.attr);
-	if (ret)
-		pr_err("%s: faile to create sysfs file\n", __func__);
-
-	return 0;
-}
-late_initcall(init_band_sysfs);
-
-static void __init init_band_schedule(void)
-{
-	struct device_node *dn, *child;
-	struct band_schedule *bs;
-	const char *buf;
-	int number = 0;
-
-	dn = of_find_node_by_name(NULL, "ems");
-	dn = of_find_node_by_name(dn, "band");
-
-	for_each_child_of_node(dn, child) {
-		bs = kzalloc(sizeof(struct band_schedule), GFP_KERNEL);
-		if (!bs)
-			goto init_fail;
-
-		bs->number = number;
-		if (!of_property_read_string(child, "stage", &buf))
-			cpulist_parse(buf, &bs->stage);
-		of_property_read_u32(child, "crowd", &bs->crowd);
-		of_property_read_u32(child, "type", &bs->type);
-
-		list_add_tail(&bs->list, &schedule_list);
-		number++;
-	}
-
-	list_for_each_entry(bs, &schedule_list, list)
-		pr_info("[band schedule%d] stage=%#x, crowd=%d\n",
-			bs->number, *(unsigned int *)cpumask_bits(&bs->stage),
-			bs->crowd);
-
-	return;
-
-init_fail:
-	list_for_each_entry(bs, &schedule_list, list)
-		kfree(bs);
-}
-
 int alloc_bands(void)
 {
 	struct task_band *band;
@@ -417,8 +253,6 @@ int alloc_bands(void)
 
 		bands[pos] = band;
 	}
-
-	init_band_schedule();
 
 	return 0;
 

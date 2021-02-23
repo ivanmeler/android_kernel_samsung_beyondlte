@@ -48,10 +48,10 @@ static int __init exynos_protect_kernel_text(void)
 	ktext_start_pa = (unsigned long)__pa_symbol(_text);
 	ktext_end_pa = (unsigned long)__pa_symbol(_etext);
 
-	pr_info("%s: Kernel text start VA(%pK), PA(%pK)\n",
-			__func__, (void *)ktext_start_va, (void *)ktext_start_pa);
-	pr_info("%s: Kernel text end VA(%pK), PA(%pK)\n",
-			__func__, (void *)ktext_end_va, (void *)ktext_end_pa);
+	pr_info("%s: Kernel text start VA(%#lx), PA(%#lx)\n",
+			__func__, ktext_start_va, ktext_start_pa);
+	pr_info("%s: Kernel text end VA(%#lx), PA(%#lx)\n",
+			__func__, ktext_end_va, ktext_end_pa);
 
 	/* I-cache flush to the PoC */
 	flush_icache_range_poc(ktext_start_va, ktext_end_va);
@@ -106,7 +106,7 @@ static int  __init exynos_set_debug_mem(void)
 	__flush_dcache_area(smc_debug_mem, size);
 
 	phys = (char *)virt_to_phys(smc_debug_mem);
-	pr_err("%s: alloc kmem for smc_dbg virt: 0x%pK phys: 0x%pK size: %d.\n",
+	pr_err("%s: alloc kmem for smc_dbg virt: 0x%p phys: 0x%p size: %d.\n",
 			__func__, smc_debug_mem, phys, size);
 	ret = exynos_smc(SMC_CMD_SET_DEBUG_MEM, (u64)phys, (u64)size, 0);
 

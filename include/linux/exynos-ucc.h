@@ -17,7 +17,6 @@ struct ucc_req {
 	char name[20];
 };
 
-extern int filter_cstate(int cpu, int index);
 extern void __init init_exynos_ucc(void);
 
 #ifdef CONFIG_ARM64_EXYNOS_CPUIDLE

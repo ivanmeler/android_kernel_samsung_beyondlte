@@ -148,6 +148,12 @@ config CAMERA_DNS_V02
         default n
         help
           This camera is dns_v02.
+config CAMERA_FMU_V62
+        bool "This camera is fmu_v62"
+        depends on VENDER_MCD
+        default n
+        help
+          This camera is fmu_v62.
 config OIS_USE_RUMBA_S6
         bool "Use RUMBA S6 ois driver IC"
         depends on OIS_USE

@@ -24,70 +24,160 @@ static struct ccic_notifier_struct ccic_notifier;
 
 extern struct device *ccic_device;
 static int ccic_notifier_init_done;
-int ccic_notifier_init(void);
 
-char CCIC_NOTI_DEST_Print[CCIC_NOTI_DEST_NUM][10] = {
-    {"INITIAL"},
-    {"USB"},
-    {"BATTERY"},
-    {"PDIC"},
-    {"MUIC"},
-    {"CCIC"},
-    {"MANAGER"},
-    {"DP"},
-    {"DPUSB"},
-    {"BATTERY2"},
-    {"MUIC2"},
-    {"ALL"},
-};
+const char *pdic_event_src_string(ccic_notifier_device_t src)
+{
+	/* enum pdic_notifier_device */
+	switch (src) {
+	case CCIC_NOTIFY_DEV_INITIAL:
+		return "INITIAL";
+	case CCIC_NOTIFY_DEV_USB:
+		return "USB";
+	case CCIC_NOTIFY_DEV_BATTERY:
+		return "BATTERY";
+	case CCIC_NOTIFY_DEV_PDIC:
+		return "PDIC";
+	case CCIC_NOTIFY_DEV_MUIC:
+		return "MUIC";
+	case CCIC_NOTIFY_DEV_CCIC:
+		return "CCIC";
+	case CCIC_NOTIFY_DEV_MANAGER:
+		return "MANAGER";
+	case CCIC_NOTIFY_DEV_DP:
+		return "DP";
+	case CCIC_NOTIFY_DEV_USB_DP:
+		return "USBDP";
+	case CCIC_NOTIFY_DEV_SUB_BATTERY:
+		return "BATTERY2";
+	case CCIC_NOTIFY_DEV_SECOND_MUIC:
+		return "MUIC2";
+	case CCIC_NOTIFY_DEV_DEDICATED_MUIC:
+		return "DMUIC";
+	case CCIC_NOTIFY_DEV_ALL:
+		return "ALL";
+	default:
+		return "UNDEFINED";
+	}
+}
+EXPORT_SYMBOL(pdic_event_src_string);
 
-char CCIC_NOTI_ID_Print[CCIC_NOTI_ID_NUM][20] = {
-    {"ID_INITIAL"},
-    {"ID_ATTACH"},
-    {"ID_RID"},
-    {"ID_USB"},
-    {"ID_POWER_STATUS"},
-    {"ID_WATER"},
-    {"ID_VCONN"},
-    {"ID_DP_CONNECT"},
-    {"ID_DP_HPD"},
-    {"ID_DP_LINK_CONF"},
-    {"ID_DP_USB"},
-    {"ID_ROLE_SWAP"},
-    {"ID_FAC"},
-    {"ID_PIN_STATUS"},
-    {"ID_WATER_CABLE"},
-};
+const char *pdic_event_dest_string(ccic_notifier_device_t dest)
+{
+	return pdic_event_src_string(dest);
+}
+EXPORT_SYMBOL(pdic_event_dest_string);
 
-char CCIC_NOTI_RID_Print[CCIC_NOTI_RID_NUM][15] = {
-    {"RID_UNDEFINED"},
-    {"RID_000K"},
-    {"RID_001K"},
-    {"RID_255K"},
-    {"RID_301K"},
-    {"RID_523K"},
-    {"RID_619K"},
-    {"RID_OPEN"},
-};
+const char *pdic_event_id_string(ccic_notifier_id_t id)
+{
+	/* enum pdic_notifier_id_t */
+	switch (id) {
+	case CCIC_NOTIFY_ID_INITIAL:
+		return "ID_INITIAL";
+	case CCIC_NOTIFY_ID_ATTACH:
+		return "ID_ATTACH";
+	case CCIC_NOTIFY_ID_RID:
+		return "ID_RID";
+	case CCIC_NOTIFY_ID_USB:
+		return "ID_USB";
+	case CCIC_NOTIFY_ID_POWER_STATUS:
+		return "ID_POWER_STATUS";
+	case CCIC_NOTIFY_ID_WATER:
+		return "ID_WATER";
+	case CCIC_NOTIFY_ID_VCONN:
+		return "ID_VCONN";
+	case CCIC_NOTIFY_ID_OTG:
+		return "ID_OTG";
+	case CCIC_NOTIFY_ID_TA:
+		return "ID_TA";
+	case CCIC_NOTIFY_ID_DP_CONNECT:
+		return "ID_DP_CONNECT";
+	case CCIC_NOTIFY_ID_DP_HPD:
+		return "ID_DP_HPD";
+	case CCIC_NOTIFY_ID_DP_LINK_CONF:
+		return "ID_DP_LINK_CONF";
+	case CCIC_NOTIFY_ID_USB_DP:
+		return "ID_USB_DP";
+	case CCIC_NOTIFY_ID_ROLE_SWAP:
+		return "ID_ROLE_SWAP";
+	case CCIC_NOTIFY_ID_FAC:
+		return "ID_FAC";
+	case CCIC_NOTIFY_ID_CC_PIN_STATUS:
+		return "ID_PIN_STATUS";
+	case CCIC_NOTIFY_ID_WATER_CABLE:
+		return "ID_WATER_CABLE";
+	case CCIC_NOTIFY_ID_POFF_WATER:
+		return "ID_POFF_WATER";
+	default:
+		return "UNDEFINED";
+	}
+}
+EXPORT_SYMBOL(pdic_event_id_string);
 
-char CCIC_NOTI_USB_STATUS_Print[CCIC_NOTI_USB_STATUS_NUM][20] = {
-    {"USB_DETACH"},
-    {"USB_ATTACH_DFP"},
-    {"USB_ATTACH_UFP"},
-    {"USB_ATTACH_DRP"},
-    {"USB_ATTACH_NO_USB"},
-};
+const char *pdic_rid_string(ccic_notifier_rid_t rid)
+{
+	switch (rid) {
+	case RID_UNDEFINED:
+		return "RID_UNDEFINED";
+	case RID_000K:
+		return "RID_000K";
+	case RID_001K:
+		return "RID_001K";
+	case RID_255K:
+		return "RID_255K";
+	case RID_301K:
+		return "RID_301K";
+	case RID_523K:
+		return "RID_523K";
+	case RID_619K:
+		return "RID_619K";
+	case RID_OPEN:
+		return "RID_OPEN";
+	default:
+		return "RID_UNDEFINED";
+	}
+}
+EXPORT_SYMBOL(pdic_rid_string);
 
-char CCIC_NOTI_PIN_STATUS_Print[CCIC_NOTI_PIN_STATUS_NUM][20] = {
-    {"NO_DETERMINATION"},
-    {"CC1_ACTIVE"},
-    {"CC2_ACTIVE"},
-    {"AUDIO_ACCESSORY"},
-    {"DEBUG_ACCESSORY"},
-    {"CCIC_ERROR"},
-    {"DISABLED"},
-    {"RFU"},
-};
+const char *pdic_usbstatus_string(USB_STATUS usbstatus)
+{
+	switch (usbstatus) {
+	case USB_STATUS_NOTIFY_DETACH:
+		return "USB_DETACH";
+	case USB_STATUS_NOTIFY_ATTACH_DFP:
+		return "USB_ATTACH_DFP";
+	case USB_STATUS_NOTIFY_ATTACH_UFP:
+		return "USB_ATTACH_UFP";
+	case USB_STATUS_NOTIFY_ATTACH_DRP:
+		return "USB_ATTACH_DRP";
+	default:
+		return "UNDEFINED";
+	}
+}
+EXPORT_SYMBOL(pdic_usbstatus_string);
+
+const char *pdic_ccpinstatus_string(ccic_notifier_pin_status_t ccpinstatus)
+{
+	switch (ccpinstatus) {
+	case CCIC_NOTIFY_PIN_STATUS_NO_DETERMINATION:
+		return "NO_DETERMINATION";
+	case CCIC_NOTIFY_PIN_STATUS_CC1_ACTIVE:
+		return "CC1_ACTIVE";
+	case CCIC_NOTIFY_PIN_STATUS_CC2_ACTIVE:
+		return "CC2_ACTIVE";
+	case CCIC_NOTIFY_PIN_STATUS_AUDIO_ACCESSORY:
+		return "AUDIO_ACCESSORY";
+	case CCIC_NOTIFY_PIN_STATUS_DEBUG_ACCESSORY:
+		return "DEBUG_ACCESSORY";
+	case CCIC_NOTIFY_PIN_STATUS_CCIC_ERROR:
+		return "CCIC_ERROR";
+	case CCIC_NOTIFY_PIN_STATUS_DISABLED:
+		return "DISABLED";
+	case CCIC_NOTIFY_PIN_STATUS_RFU:
+		return "RFU";
+	default:
+		return "NO_DETERMINATION";
+	}
+}
 
 int ccic_notifier_register(struct notifier_block *nb, notifier_fn_t notifier,
 			ccic_notifier_device_t listener)
@@ -147,7 +237,7 @@ static void ccic_uevent_work(int id, int state)
 	char *pinStat[2] = {ccicPinStat, NULL};
 #endif
 
-	pr_info("usb: %s: id=%s state=%d\n", __func__, CCIC_NOTI_ID_Print[id], state);
+	pr_info("usb: %s: id=%s state=%d\n", __func__, pdic_event_id_string(id), state);
 
 	switch (id) {
 	case CCIC_NOTIFY_ID_WATER:
@@ -161,19 +251,15 @@ static void ccic_uevent_work(int id, int state)
 		break;
 #if defined(CONFIG_SEC_FACTORY)
 	case CCIC_NOTIFY_ID_RID:
-		snprintf(ccicrid, sizeof(ccicrid), "%s",
-			(state < CCIC_NOTI_RID_NUM) ? CCIC_NOTI_RID_Print[state] : CCIC_NOTI_RID_Print[0]);
+		snprintf(ccicrid, sizeof(ccicrid), "%s", pdic_rid_string(state));
 		kobject_uevent_env(&ccic_device->kobj, KOBJ_CHANGE, rid);
 		break;
 	case CCIC_NOTIFY_ID_FAC:
-		snprintf(ccicFacErr, sizeof(ccicFacErr), "%s:%d",
-			"ERR_STATE", state);
+		snprintf(ccicFacErr, sizeof(ccicFacErr), "%s:%d", "ERR_STATE", state);
 		kobject_uevent_env(&ccic_device->kobj, KOBJ_CHANGE, facErr);
 		break;
 	case CCIC_NOTIFY_ID_CC_PIN_STATUS:
-		snprintf(ccicPinStat, sizeof(ccicPinStat), "%s",
-			(state < CCIC_NOTI_PIN_STATUS_NUM) ?
-				CCIC_NOTI_PIN_STATUS_Print[state] : CCIC_NOTI_PIN_STATUS_Print[0]);
+		snprintf(ccicPinStat, sizeof(ccicPinStat), "%s", pdic_ccpinstatus_string(state));
 		kobject_uevent_env(&ccic_device->kobj, KOBJ_CHANGE, pinStat);
 		break;
 #endif
@@ -186,11 +272,12 @@ static void ccic_uevent_work(int id, int state)
 int ccic_notifier_notify(CC_NOTI_TYPEDEF *p_noti, void *pd, int pdic_attach)
 {
 	int ret = 0;
+
 	ccic_notifier.ccic_template = *p_noti;
 
 	switch (p_noti->id) {
 #ifdef CONFIG_USB_TYPEC_MANAGER_NOTIFIER
-	case CCIC_NOTIFY_ID_POWER_STATUS:		// PDIC_NOTIFY_EVENT_PD_SINK
+	case CCIC_NOTIFY_ID_POWER_STATUS:
 		pr_info("%s: src:%01x dest:%01x id:%02x "
 			"attach:%02x cable_type:%02x rprd:%01x\n", __func__,
 			((CC_NOTI_ATTACH_TYPEDEF *)p_noti)->src,
@@ -231,7 +318,7 @@ int ccic_notifier_notify(CC_NOTI_TYPEDEF *p_noti, void *pd, int pdic_attach)
 			((CC_NOTI_RID_TYPEDEF *)p_noti)->id,
 			((CC_NOTI_RID_TYPEDEF *)p_noti)->rid);
 #if defined(CONFIG_SEC_FACTORY)
-			ccic_uevent_work(CCIC_NOTIFY_ID_RID,((CC_NOTI_RID_TYPEDEF *)p_noti)->rid);
+			ccic_uevent_work(CCIC_NOTIFY_ID_RID, ((CC_NOTI_RID_TYPEDEF *)p_noti)->rid);
 #endif
 		break;
 #ifdef CONFIG_SEC_FACTORY
@@ -278,7 +365,8 @@ int ccic_notifier_notify(CC_NOTI_TYPEDEF *p_noti, void *pd, int pdic_attach)
 		break;
 	}
 #ifdef CONFIG_USB_NOTIFY_PROC_LOG
-	store_usblog_notify(NOTIFY_CCIC_EVENT, (void *)p_noti, NULL);
+	if (p_noti->id != CCIC_NOTIFY_ID_POWER_STATUS)
+		store_usblog_notify(NOTIFY_CCIC_EVENT, (void *)p_noti, NULL);
 #endif
 	ret = blocking_notifier_call_chain(&(ccic_notifier.notifier_call_chain),
 			p_noti->id, &(ccic_notifier.ccic_template));

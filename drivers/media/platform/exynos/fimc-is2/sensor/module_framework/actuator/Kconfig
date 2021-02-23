@@ -99,3 +99,11 @@ config CAMERA_ACT_ZC569_OBJ
         default n
         help
           Use to build ZC569 driver.
+
+config CAMERA_ACT_DW9818_OBJ
+        bool "Use actuator DW9818"
+        depends on USE_DIRECT_IS_CONTROL
+        depends on CAMERA_ACT_SELECT
+        default n
+        help
+          Use to build DW9818 driver.

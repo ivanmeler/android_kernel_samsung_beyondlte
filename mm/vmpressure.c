@@ -46,7 +46,7 @@ static const unsigned long vmpressure_win = SWAP_CLUSTER_MAX * 16;
  * essence, they are percents: the higher the value, the more number
  * unsuccessful reclaims there were.
  */
-static const unsigned int vmpressure_level_med = CONFIG_VMPRESSURE_LEVEL_MED;
+static const unsigned int vmpressure_level_med = 60;
 static const unsigned int vmpressure_level_critical = 95;
 
 /*
@@ -122,7 +122,7 @@ static enum vmpressure_levels vmpressure_level(unsigned long pressure)
 }
 
 static enum vmpressure_levels vmpressure_calc_level(unsigned long scanned,
-						    unsigned long reclaimed, struct vmpressure *vmpr)
+						    unsigned long reclaimed)
 {
 	unsigned long scale = scanned + reclaimed;
 	unsigned long pressure = 0;
@@ -144,7 +144,6 @@ static enum vmpressure_levels vmpressure_calc_level(unsigned long scanned,
 	pressure = scale - (reclaimed * scale / scanned);
 	pressure = pressure * 100 / scale;
 
-	vmpr->pressure = pressure;
 out:
 	pr_debug("%s: %3lu  (s: %lu  r: %lu)\n", __func__, pressure,
 		 scanned, reclaimed);
@@ -211,7 +210,7 @@ static void vmpressure_work_fn(struct work_struct *work)
 	vmpr->tree_reclaimed = 0;
 	spin_unlock(&vmpr->sr_lock);
 
-	level = vmpressure_calc_level(scanned, reclaimed, vmpr);
+	level = vmpressure_calc_level(scanned, reclaimed);
 
 	do {
 		if (vmpressure_event(vmpr, level, ancestor, signalled))
@@ -297,7 +296,7 @@ void vmpressure(gfp_t gfp, struct mem_cgroup *memcg, bool tree,
 		vmpr->scanned = vmpr->reclaimed = 0;
 		spin_unlock(&vmpr->sr_lock);
 
-		level = vmpressure_calc_level(scanned, reclaimed, vmpr);
+		level = vmpressure_calc_level(scanned, reclaimed);
 
 		if (level > VMPRESSURE_LOW) {
 			/*

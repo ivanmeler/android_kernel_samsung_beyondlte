@@ -1658,6 +1658,10 @@ static int csi_stream_on(struct v4l2_subdev *subdev,
 
 	/* if sensor's output otf was enabled, enable line irq */
 	if (!test_bit(FIMC_IS_SENSOR_OTF_OUTPUT, &device->state)) {
+		/* update line_fcount for sensor_notify_by_line */
+		device->line_fcount = atomic_read(&csi->fcount) + 1;
+		minfo("[CSI] start line irq cnt(%d)\n", csi, device->line_fcount);
+	
 		csi_hw_s_control(base_reg, CSIS_CTRL_LINE_RATIO, csi->image.window.height * CSI_LINE_RATIO / 20);
 		csi_hw_s_control(base_reg, CSIS_CTRL_ENABLE_LINE_IRQ, 0x1);
 		tasklet_init(&csi->tasklet_csis_line, tasklet_csis_line, (unsigned long)subdev);

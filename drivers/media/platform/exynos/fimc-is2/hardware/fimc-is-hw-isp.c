@@ -317,6 +317,13 @@ static void fimc_is_hw_isp_update_param(struct fimc_is_hw_ip *hw_ip, struct is_r
 		memcpy(&param_set->dma_output_yuv, &param->vdma5_output,
 			sizeof(struct param_dma_output));
 	}
+
+#ifdef CHAIN_USE_STRIPE_PROCESSING
+	if (lindex & LOWBIT_OF(PARAM_ISP_STRIPE_INPUT)) {
+		memcpy(&param_set->stripe_input, &param->stripe_input,
+			sizeof(struct param_stripe_input));
+	}
+#endif
 }
 
 static int fimc_is_hw_isp_shot(struct fimc_is_hw_ip *hw_ip, struct fimc_is_frame *frame,

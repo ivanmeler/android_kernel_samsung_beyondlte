@@ -1522,7 +1522,7 @@ static void dsim_reg_set_config(u32 id, struct decon_lcd *lcd_info,
 
 	if (lcd_info->mode == DECON_MIPI_COMMAND_MODE) {
 		/* DSU_MODE_1 is used in stead of 1 in MCD */
-		idx = lcd_info->mres_mode - DSU_MODE_1;
+		idx = lcd_info->mres_mode;
 		dsim_reg_set_cm_underrun_lp_ref(id,
 				lcd_info->cmd_underrun_lp_ref[idx]);
 	}
@@ -2187,7 +2187,7 @@ void dsim_reg_set_mres(u32 id, struct decon_lcd *lcd_info)
 		return;
 	}
 
-	idx = lcd_info->mres_mode - DSU_MODE_1;
+	idx = lcd_info->mres_mode;
 	dsim_reg_set_cm_underrun_lp_ref(id, lcd_info->cmd_underrun_lp_ref[idx]);
 
 	if (lcd_info->dsc_enabled) {

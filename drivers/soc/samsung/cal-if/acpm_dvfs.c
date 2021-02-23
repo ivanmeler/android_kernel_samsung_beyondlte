@@ -100,9 +100,10 @@ unsigned long exynos_acpm_get_rate(unsigned int id)
 	return config.cmd[1];
 }
 
-char margin_list[MAX_MARGIN_ID][10] = {"MIF", "INT", "BIG", "MID", "LIT", "G3D",
+const char *margin_list[MAX_MARGIN_ID] = {
+		"MIF", "INT", "BIG", "LIT", "G3D",
 		"INTCAM", "CAM", "DISP", "G3DM",
-		"CP", "FSYS0", "AUD", "IVA", "SCORE", "NPU", "MFC"};
+		"CP", "FSYS0", "AUD", "IVA", "SCORE"};
 
 int exynos_acpm_set_volt_margin(unsigned int id, int volt)
 {
@@ -129,11 +130,7 @@ int exynos_acpm_set_volt_margin(unsigned int id, int volt)
 			__func__, id, latency, ret);
 
 	vclk = cmucal_get_node(id);
-	if (!vclk)
-		pr_err("%s:[%d] can't find cmucal node ",
-			__func__, id);
-	else
-		pr_auto(ASL5, "%s: [%s] +margin %d uV\n", __func__, margin_list[vclk->margin_id], volt);
+	pr_auto(ASL5, "%s: [%s] +margin %d uV\n", __func__, margin_list[vclk->margin_id], volt);
 
 	return ret;
 }

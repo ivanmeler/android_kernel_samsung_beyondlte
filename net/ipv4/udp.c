@@ -115,9 +115,9 @@
 #include "udp_impl.h"
 #include <net/sock_reuseport.h>
 #include <net/addrconf.h>
-// KNOX NPA - START
+// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
 #include <net/ncm.h>
-// KNOX NPA - END
+// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
 
 struct udp_table udp_table __read_mostly;
 EXPORT_SYMBOL(udp_table);
@@ -422,7 +422,7 @@ static int compute_score(struct sock *sk, struct net *net,
 			score += 4;
 	}
 
-	if (sk->sk_incoming_cpu == raw_smp_processor_id())
+	if (READ_ONCE(sk->sk_incoming_cpu) == raw_smp_processor_id())
 		score++;
 	return score;
 }
@@ -1198,6 +1198,20 @@ static void udp_set_dev_scratch(struct sk_buff *skb)
 		scratch->_tsize_state |= UDP_SKB_IS_STATELESS;
 }
 
+static void udp_skb_csum_unnecessary_set(struct sk_buff *skb)
+{
+	/* We come here after udp_lib_checksum_complete() returned 0.
+	 * This means that __skb_checksum_complete() might have
+	 * set skb->csum_valid to 1.
+	 * On 64bit platforms, we can set csum_unnecessary
+	 * to true, but only if the skb is not shared.
+	 */
+#if BITS_PER_LONG == 64
+	if (!skb_shared(skb))
+		udp_skb_scratch(skb)->csum_unnecessary = true;
+#endif
+}
+
 static int udp_skb_truesize(struct sk_buff *skb)
 {
 	return udp_skb_scratch(skb)->_tsize_state & ~UDP_SKB_IS_STATELESS;
@@ -1327,7 +1341,7 @@ int __udp_enqueue_schedule_skb(struct sock *sk, struct sk_buff *skb)
 	 * queue contains some other skb
 	 */
 	rmem = atomic_add_return(size, &sk->sk_rmem_alloc);
-	if (rmem > (size + sk->sk_rcvbuf))
+	if (rmem > (size + (unsigned int)sk->sk_rcvbuf))
 		goto uncharge_drop;
 
 	spin_lock(&list->lock);
@@ -1434,10 +1448,7 @@ static struct sk_buff *__first_packet_length(struct sock *sk,
 			*total += skb->truesize;
 			kfree_skb(skb);
 		} else {
-			/* the csum related bits could be changed, refresh
-			 * the scratch area
-			 */
-			udp_set_dev_scratch(skb);
+			udp_skb_csum_unnecessary_set(skb);
 			break;
 		}
 	}
@@ -1461,7 +1472,7 @@ static int first_packet_length(struct sock *sk)
 
 	spin_lock_bh(&rcvq->lock);
 	skb = __first_packet_length(sk, rcvq, &total);
-	if (!skb && !skb_queue_empty(sk_queue)) {
+	if (!skb && !skb_queue_empty_lockless(sk_queue)) {
 		spin_lock(&sk_queue->lock);
 		skb_queue_splice_tail_init(sk_queue, rcvq);
 		spin_unlock(&sk_queue->lock);
@@ -1536,7 +1547,7 @@ struct sk_buff *__skb_recv_udp(struct sock *sk, unsigned int flags,
 				return skb;
 			}
 
-			if (skb_queue_empty(sk_queue)) {
+			if (skb_queue_empty_lockless(sk_queue)) {
 				spin_unlock_bh(&queue->lock);
 				goto busy_check;
 			}
@@ -1563,7 +1574,7 @@ busy_check:
 				break;
 
 			sk_busy_loop(sk, flags & MSG_DONTWAIT);
-		} while (!skb_queue_empty(sk_queue));
+		} while (!skb_queue_empty_lockless(sk_queue));
 
 		/* sk_queue is empty, reader_queue may contain peeked packets */
 	} while (timeo &&
@@ -2142,18 +2153,17 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 	if (sk) {
 		struct dst_entry *dst = skb_dst(skb);
 		int ret;
-		// KNOX NPA - START
+		// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
 		struct nf_conn *ct = NULL;
 		enum ip_conntrack_info ctinfo;
 		struct nf_conntrack_tuple *tuple = NULL;
 		char srcaddr[INET6_ADDRSTRLEN_NAP];
 		char dstaddr[INET6_ADDRSTRLEN_NAP];
-		// KNOX NPA - END
+		// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
 
 		if (unlikely(sk->sk_rx_dst != dst))
 			udp_sk_rx_dst_set(sk, dst);
-
-		// KNOX NPA - START
+		// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
 		/* function to handle open flows with incoming udp packets */
 		if (check_ncm_flag()) {
 			if ( (sk) && (sk->sk_protocol == IPPROTO_UDP) ) {
@@ -2200,7 +2210,7 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 				}
 			}
 		}
-		// KNOX NPA - END
+		// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
 
 		ret = udp_unicast_rcv_skb(sk, skb, uh);
 		sock_put(sk);
@@ -2213,14 +2223,12 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 
 	sk = __udp4_lib_lookup_skb(skb, uh->source, uh->dest, udptable);
 	if (sk) {
-		// KNOX NPA - START
+		// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA {
 		struct nf_conn *ct = NULL;
 		enum ip_conntrack_info ctinfo;
 		struct nf_conntrack_tuple *tuple = NULL;
 		char srcaddr[INET6_ADDRSTRLEN_NAP];
 		char dstaddr[INET6_ADDRSTRLEN_NAP];
-		// KNOX NPA - END
-		// KNOX NPA - START
 		/* function to handle open flows with incoming udp packets */
 		if (check_ncm_flag()) {
 			if ( (sk) && (sk->sk_protocol == IPPROTO_UDP) ) {
@@ -2267,7 +2275,7 @@ int __udp4_lib_rcv(struct sk_buff *skb, struct udp_table *udptable,
 				}
 			}
 		}
-		// KNOX NPA - END
+		// SEC_PRODUCT_FEATURE_KNOX_SUPPORT_NPA }
 		return udp_unicast_rcv_skb(sk, skb, uh);
 	}
 
@@ -2663,7 +2671,7 @@ unsigned int udp_poll(struct file *file, struct socket *sock, poll_table *wait)
 	unsigned int mask = datagram_poll(file, sock, wait);
 	struct sock *sk = sock->sk;
 
-	if (!skb_queue_empty(&udp_sk(sk)->reader_queue))
+	if (!skb_queue_empty_lockless(&udp_sk(sk)->reader_queue))
 		mask |= POLLIN | POLLRDNORM;
 
 	sock_rps_record_flow(sk);

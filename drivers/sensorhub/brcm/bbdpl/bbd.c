@@ -36,8 +36,9 @@
 #ifdef CONFIG_SENSORS_SSP
 #include <linux/spi/spi.h>	//Needs because SSP is tightly coupled with SPI
 //#include <linux/spidev.h>
+#ifdef CONFIG_SPU_VERIFY
 #include <linux/spu-verify.h>
-
+#endif
 extern struct spi_driver *pssp_driver;
 extern bool ssp_dbg;
 extern bool ssp_pkt_dbg;
@@ -132,9 +133,12 @@ static struct bbd_device bbd;
 /*
  * Embedded patch file provided as /dev/bbd_patch
  */
+
 static unsigned char bbd_patch_old[] = {
 #if defined(CONFIG_SENSORS_SSP_BEYOND)
 #include "p_os/bbd_patch_file_beyond_old.h"
+#elif defined(CONFIG_SENSORS_SSP_F62)
+#include "r_os/bbd_patch_file_f62.h"
 #else
 #include "p_os/bbd_patch_file_beyond_old.h"
 #endif
@@ -142,13 +146,9 @@ static unsigned char bbd_patch_old[] = {
 
 static unsigned char bbd_patch_new_old[] = { // hw_rev 20 ~ hw_rev 23
 #if defined(CONFIG_SENSORS_SSP_BEYOND)
-#if ANDROID_VERSION < 100000
-#include "p_os/bbd_patch_file_beyond_new_old.h"
-#elif ANDROID_VERSION < 110000
-#include "q_os/bbd_patch_file_beyond_new_old.h"
-#else
 #include "r_os/bbd_patch_file_beyond_new_old.h"
-#endif
+#elif defined(CONFIG_SENSORS_SSP_F62)
+#include "r_os/bbd_patch_file_f62.h"
 #else
 #include "p_os/bbd_patch_file_beyond_new_old.h"
 #endif
@@ -156,25 +156,17 @@ static unsigned char bbd_patch_new_old[] = { // hw_rev 20 ~ hw_rev 23
 
 static unsigned char bbd_patch[] = {
 #if defined(CONFIG_SENSORS_SSP_BEYOND)
-#if ANDROID_VERSION < 100000
-#include "p_os/bbd_patch_file_beyond.h"
-#elif ANDROID_VERSION < 110000
-#include "q_os/bbd_patch_file_beyond.h"
-#else
 #include "r_os/bbd_patch_file_beyond.h"
-#endif
 #elif defined(CONFIG_SENSORS_SSP_DAVINCI)
-#if ANDROID_VERSION < 100000
-#include "p_os/bbd_patch_file_davinci.h"
-#elif ANDROID_VERSION < 110000
-#include "q_os/bbd_patch_file_davinci.h"
-#else
 #include "r_os/bbd_patch_file_davinci.h"
-#endif
+#elif defined(CONFIG_SENSORS_SSP_F62)
+#include "r_os/bbd_patch_file_f62.h"
 #else
 #include "p_os/bbd_patch_file_beyond.h"
 #endif
 };
+
+
 
 /* Function to push read data into any bbd device's read buf */
 ssize_t bbd_on_read(unsigned int minor, const unsigned char *buf, size_t size);
@@ -836,7 +828,7 @@ ssize_t bbd_patch_read(struct file *filp, char __user *buf, size_t size, loff_t 
 
 	return rd_size;
 }
-
+#ifdef CONFIG_SPU_VERIFY
 #define URGENT_FIRMWARE_PATH "/spu/sensorhub/urgent.patch"
 
 static bool is_signed = false;
@@ -902,22 +894,22 @@ ssize_t bbd_urgent_patch_read(struct file *user_filp, char __user *buf, size_t s
 		} else
 			is_signed = true;
 
-			if (is_signed == false) {
-				pr_err("[SSPBBD] %s : urgent_patch is not signed", __func__);
-				kfree(urgent_buffer);
-				return 0;
-			}
+		if (is_signed == false) {
+			pr_err("[SSPBBD] %s : urgent_patch is not signed", __func__);
+			kfree(urgent_buffer);
+			return 0;
+		}
 
-			urgent_patch_size = ret;
-			pr_err("[SSPBBD] %s : total: %d  patch size: %d", __func__, fsize, urgent_patch_size);
+		urgent_patch_size = ret;
+		pr_err("[SSPBBD] %s : total: %d  patch size: %d", __func__, fsize, urgent_patch_size);
 
-			if (offset >= urgent_patch_size) {	// signal EOF 
-				pr_err("[SSPBBD] %s : signal EOF", __func__);
+		if (offset >= urgent_patch_size) {	// signal EOF 
+			pr_err("[SSPBBD] %s : signal EOF", __func__);
 
-				*ppos = 0;
-				kfree(urgent_buffer);
-				return 0;
-			}
+			*ppos = 0;
+			kfree(urgent_buffer);
+			return 0;
+		}
 
 		if (offset + size > urgent_patch_size)
 			rd_size = urgent_patch_size - offset;
@@ -938,7 +930,7 @@ ssize_t bbd_urgent_patch_read(struct file *user_filp, char __user *buf, size_t s
 
 	return rd_size;
 }
-
+#endif 
 //--------------------------------------------------------------
 //
 //			   Sysfs
@@ -1227,7 +1219,11 @@ static const struct file_operations bbd_fops[BBD_DEVICE_INDEX] = {
 		.owner		=  THIS_MODULE,
 		.open		=  bbd_common_open,
 		.release	=  bbd_common_release,
+#ifdef CONFIG_SPU_VERIFY
 		.read		=  bbd_urgent_patch_read,
+#else
+		.read		=  NULL,
+#endif
 		.write		=  NULL, /* /dev/bbd_patch is read-only */
 		.poll		=  NULL,
 	},
@@ -1418,3 +1414,4 @@ MODULE_AUTHOR("Broadcom");
 MODULE_LICENSE("Dual BSD/GPL");
 //subsys_initcall(bbd_init);
 //module_exit(bbd_exit);
+

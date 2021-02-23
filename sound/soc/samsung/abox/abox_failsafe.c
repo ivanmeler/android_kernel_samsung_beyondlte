@@ -19,6 +19,7 @@
 
 #include "abox_util.h"
 #include "abox.h"
+#include "abox_proc.h"
 #include "abox_log.h"
 
 #define SMART_FAILSAFE
@@ -141,22 +142,30 @@ static DEVICE_INT_ATTR(reset_count, 0660, abox_failsafe_reset_count);
 
 void abox_failsafe_init(struct device *dev)
 {
+	struct proc_dir_entry *dir;
 	int ret;
 
 	abox_failsafe_dev_abox = dev;
 	abox_failsafe_abox_data = (struct abox_data *)dev_get_drvdata(dev);
 
+	dir = abox_proc_mkdir("failsafe", NULL);
+
 	ret = device_create_file(dev, &dev_attr_reset);
 	if (ret < 0)
 		dev_warn(dev, "%s: %s file creation failed: %d\n",
 				__func__, "reset", ret);
+	abox_proc_symlink_attr(dev, "reset", dir);
+
 	ret = device_create_file(dev, &dev_attr_service.attr);
 	if (ret < 0)
 		dev_warn(dev, "%s: %s file creation failed: %d\n",
 				__func__, "service", ret);
+	abox_proc_symlink_attr(dev, "service", dir);
+
 	ret = device_create_file(dev, &dev_attr_reset_count.attr);
 	if (ret < 0)
 		dev_warn(dev, "%s: %s file creation failed: %d\n",
 				__func__, "reset_count", ret);
+	abox_proc_symlink_attr(dev, "reset_count", dir);
 }
 

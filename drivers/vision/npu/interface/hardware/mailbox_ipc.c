@@ -38,8 +38,7 @@ static u32 get_logging_time_ms(void);
 int mailbox_init(volatile struct mailbox_hdr *header)
 {
 	//Memory Alloc, and Wait Sig.
-	int ret = 0;
-	int i;
+	int ret, i;
 	u32 cur_ofs;
 	volatile struct mailbox_ctrl ctrl[MAX_MAILBOX];
 

@@ -235,6 +235,7 @@ int mfc_bufcon_get_daddr(struct mfc_ctx *ctx, struct mfc_buf *mfc_buf,
 		if (IS_ERR(mfc_buf->dmabufs[i][plane])) {
 			mfc_err_ctx("[BUFCON] Failed to get dma_buf (err %ld)",
 					PTR_ERR(mfc_buf->dmabufs[i][plane]));
+			call_dop(dev, dump_and_stop_debug_mode, dev);
 			goto err_get_daddr;
 		}
 
@@ -242,6 +243,7 @@ int mfc_bufcon_get_daddr(struct mfc_ctx *ctx, struct mfc_buf *mfc_buf,
 		if (IS_ERR(mfc_buf->attachments[i][plane])) {
 			mfc_err_ctx("[BUFCON] Failed to get dma_buf_attach (err %ld)",
 					PTR_ERR(mfc_buf->attachments[i][plane]));
+			call_dop(dev, dump_and_stop_debug_mode, dev);
 			goto err_get_daddr;
 		}
 
@@ -250,6 +252,7 @@ int mfc_bufcon_get_daddr(struct mfc_ctx *ctx, struct mfc_buf *mfc_buf,
 		if (IS_ERR_VALUE(mfc_buf->addr[i][plane])) {
 			mfc_err_ctx("[BUFCON] Failed to allocate iova (err %pa)",
 					&mfc_buf->addr[i][plane]);
+			call_dop(dev, dump_and_stop_debug_mode, dev);
 			goto err_get_daddr;
 		}
 

@@ -239,9 +239,9 @@ int fscrypt_sdp_ioctl_remove_chamber_directory(struct inode *inode)
 	return result;
 }
 
+#ifdef CONFIG_SDP_KEY_DUMP
 int fscrypt_sdp_ioctl_dump_file_key(struct inode *inode)
 {
-#ifdef CONFIG_SDP_KEY_DUMP
 	int rc = 0;
 
 	DEK_LOGE("%s(ino:%ld)\n", __func__, inode->i_ino);
@@ -257,10 +257,26 @@ int fscrypt_sdp_ioctl_dump_file_key(struct inode *inode)
 		}
 	}
 	return rc;
-#else
-	return 0;
-#endif
 }
+
+int fscrypt_sdp_ioctl_trace_file(struct inode *inode)
+{
+	int rc = 0;
+
+	DEK_LOGI("%s(ino:%ld)\n", __func__, inode->i_ino);
+	if (inode->i_crypt_info == NULL) {
+		DEK_LOGE("no encryption context to the target..\n");
+		rc = -EOPNOTSUPP;
+	} else {
+		rc = fscrypt_sdp_trace_file(inode);
+		if (rc) {
+			DEK_LOGE("trace_file: operation failed (err:%d)\n", rc);
+			rc = -EFAULT;
+		}
+	}
+	return rc;
+}
+#endif // End of CONFIG_SDP_KEY_DUMP
 
 /*
  * -ENOTTY will be returned if this ioctl is not related to SDP
@@ -287,8 +303,12 @@ int fscrypt_sdp_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		return fscrypt_sdp_ioctl_add_chamber_directory(inode, arg);
 	case FS_IOC_REMOVE_CHAMBER:
 		return fscrypt_sdp_ioctl_remove_chamber_directory(inode);
+#ifdef CONFIG_SDP_KEY_DUMP
 	case FS_IOC_DUMP_FILE_KEY:
 		return fscrypt_sdp_ioctl_dump_file_key(inode);
+	case FS_IOC_TRACE_FILE:
+		return fscrypt_sdp_ioctl_trace_file(inode);
+#endif
 	default:
 		return -ENOTTY;
 	}

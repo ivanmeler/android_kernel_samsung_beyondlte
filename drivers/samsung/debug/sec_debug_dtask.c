@@ -21,7 +21,7 @@ static void sec_debug_print_mutex_info(struct task_struct *task, struct sec_debu
 {
 	struct mutex *wmutex = (struct mutex *)winfo->data;
 	struct task_struct *owner_task = __owner_task(atomic_long_read(&wmutex->owner));
-	
+
 	pr_info("Mutex: %pS", wmutex);
 	if (owner_task) {
 		if (raw)
@@ -55,7 +55,7 @@ void sec_debug_wtsk_print_info(struct task_struct *task, bool raw)
 void sec_debug_wtsk_set_data(int type, void *data)
 {
 	struct sec_debug_wait *cur_wait = &current->ssdbg_wait;
-	
+
 	cur_wait->type = type;
 	cur_wait->data = data;
 }

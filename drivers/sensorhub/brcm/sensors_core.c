@@ -11,6 +11,7 @@
 #include <linux/fs.h>
 #include <linux/err.h>
 #include <linux/input.h>
+#include <linux/sysfs.h>
 
 struct class *sensors_class;
 EXPORT_SYMBOL_GPL(sensors_class);
@@ -20,6 +21,28 @@ static atomic_t sensor_count;
 static struct device *symlink_dev;
 static struct device *sensor_dev;
 static struct input_dev *meta_input_dev;
+
+static ssize_t set_flush(struct device *dev, struct device_attribute *attr,
+			 const char *buf, size_t size)
+{
+	u8 sensor_type = 0;
+
+	if (kstrtou8(buf, 10, &sensor_type) < 0)
+		return -EINVAL;
+
+	input_report_rel(meta_input_dev, REL_DIAL, 1);	/*META_DATA_FLUSH_COMPLETE*/
+	input_report_rel(meta_input_dev, REL_HWHEEL, sensor_type + 1);
+	input_sync(meta_input_dev);
+
+	pr_info("[SENSOR CORE] flush %d\n", sensor_type);
+	return size;
+}
+
+static DEVICE_ATTR(flush, 0220, NULL, set_flush);
+static struct device_attribute *ap_sensor_attr[] = {
+	&dev_attr_flush,
+	NULL,
+};
 
 /*
  * Create sysfs interface
@@ -123,28 +146,6 @@ void destroy_sensor_class(void)
 }
 EXPORT_SYMBOL_GPL(destroy_sensor_class);
 
-static ssize_t set_flush(struct device *dev, struct device_attribute *attr,
-	const char *buf, size_t size)
-{
-	u8 sensor_type = 0;
-
-	if (kstrtou8(buf, 10, &sensor_type) < 0)
-		return -EINVAL;
-
-	input_report_rel(meta_input_dev, REL_DIAL,
-		1);	/*META_DATA_FLUSH_COMPLETE*/
-	input_report_rel(meta_input_dev, REL_HWHEEL, sensor_type + 1);
-	input_sync(meta_input_dev);
-
-	pr_info("[SENSOR CORE] flush %d\n", sensor_type);
-	return size;
-}
-static DEVICE_ATTR(flush, 0220, NULL, set_flush);
-static struct device_attribute *ap_sensor_attr[] = {
-	&dev_attr_flush,
-	NULL,
-};
-
 int sensors_meta_input_init(void)
 {
 	int ret;
@@ -212,11 +213,12 @@ static int __init sensors_class_init(void)
 		return PTR_ERR(symlink_dev);
 	}
 
+	/* For flush sysfs */
 	sensor_dev = device_create(sensors_class, NULL, 0, NULL,
-		"%s", "sensor_dev");
+				   "%s", "sensor_dev");
 	if (IS_ERR(sensor_dev)) {
 		pr_err("[SENSORS CORE] sensor_dev create failed![%d]\n",
-			IS_ERR(sensor_dev));
+		       IS_ERR(sensor_dev));
 	} else {
 		if ((device_create_file(sensor_dev, *ap_sensor_attr)) < 0)
 			pr_err("[SENSOR CORE] failed flush device_file\n");
@@ -224,9 +226,7 @@ static int __init sensors_class_init(void)
 
 	atomic_set(&sensor_count, 0);
 	sensors_class->dev_uevent = NULL;
-
 	sensors_meta_input_init();
-
 	pr_info("[SENSORS CORE] %s  succcess\n", __func__);
 
 	return 0;

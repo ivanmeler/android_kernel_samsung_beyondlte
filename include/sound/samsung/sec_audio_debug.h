@@ -42,6 +42,11 @@ enum abox_debug_err_type {
 };
 
 #ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
+
+void abox_log_extra_copy(char *src_base, unsigned int index_reader,
+					unsigned int index_writer, unsigned int src_buff_size);
+void abox_log_extra_update(void);
+
 int is_abox_rdma_enabled(int id);
 int is_abox_wdma_enabled(int id);
 void abox_debug_string_update(enum abox_debug_err_type type, void *addr);
@@ -53,7 +58,6 @@ void adev_dbg(struct device *dev, const char *fmt, ...);
 
 int register_debug_mixer(struct snd_soc_card *card);
 int alloc_sec_audio_log(struct sec_audio_log_data *p_dbg_log_data, size_t buffer_len);
-void free_sec_audio_log(struct sec_audio_log_data *p_dbg_log_data);
 
 void sec_audio_log(int level, struct device *dev, const char *fmt, ...);
 void sec_audio_bootlog(int level, struct device *dev, const char *fmt, ...);

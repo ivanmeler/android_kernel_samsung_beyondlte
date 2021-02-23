@@ -59,8 +59,6 @@
 
 extern int panel_log_level;
 
-#define CONFIG_DISP_PMIC_SSD
-
 void clear_pending_bit(int irq);
 
 #define panel_err(fmt, ...)							\
@@ -130,6 +128,7 @@ struct panel_gpio {
 	unsigned int irq_type;
 	void __iomem *irq_pend_reg;
 	int irq_pend_bit;
+	bool irq_enable;
 };
 
 struct panel_regulator {
@@ -296,6 +295,7 @@ struct panel_work {
 
 #define MAX_DYNAMIC_FREQ	5
 #define DF_CONTEXT_RIL		1
+#define DF_CONTEXT_INIT		2
 
 #endif
 
@@ -449,6 +449,9 @@ int panel_wake_lock(struct panel_device *panel);
 void panel_wake_unlock(struct panel_device *panel);
 bool panel_gpio_valid(struct panel_gpio *gpio);
 void panel_send_ubconn_uevent(struct panel_device *panel);
+#if defined(CONFIG_SUPPORT_FAST_DISCHARGE)
+int panel_fast_discharge_set(struct panel_device *panel);
+#endif
 
 #define PANEL_DRV_NAME "panel-drv"
 
@@ -496,5 +499,6 @@ void panel_send_ubconn_uevent(struct panel_device *panel);
 
 #define PANEL_IOC_GET_DF_STATUS			_IOR(PANEL_IOC_BASE, 85, int *)
 #define PANEL_IOC_DYN_FREQ_FFC			_IOR(PANEL_IOC_BASE, 82, int *)
+#define PANEL_IOC_DYN_FREQ_FFC_OFF			_IOR(PANEL_IOC_BASE, 83, int *)
 #endif
 #endif //__PANEL_DRV_H__

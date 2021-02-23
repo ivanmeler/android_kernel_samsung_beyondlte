@@ -1871,6 +1871,7 @@ int copy_sensor_ctl(struct fimc_is_sensor_interface *itf,
 		}
 #endif
 		cis_data->video_mode = shot->ctl.aa.vendor_videoMode;
+		cis_data->is_data.scene_mode = shot->ctl.aa.sceneMode;
 
 		if (shot->uctl.isModeUd.wdr_mode == CAMERA_WDR_ON ||
 				shot->uctl.isModeUd.wdr_mode == CAMERA_WDR_AUTO ||
@@ -2418,6 +2419,75 @@ int request_flash(struct fimc_is_sensor_interface *itf,
 	}
 
 p_err:
+	return ret;
+}
+
+int request_direct_flash(struct fimc_is_sensor_interface *itf,
+				u32 mode,
+				bool on,
+				u32 intensity,
+				u32 time)
+{
+	int ret = 0;
+	struct fimc_is_device_sensor_peri *sensor_peri = NULL;
+	u32 vsync_cnt = 0;
+
+	FIMC_BUG(!itf);
+	FIMC_BUG(itf->magic != SENSOR_INTERFACE_MAGIC);
+
+	sensor_peri = container_of(itf, struct fimc_is_device_sensor_peri, sensor_interface);
+	FIMC_BUG(!sensor_peri);
+
+	vsync_cnt = get_vsync_count(itf);
+
+	dbg_flash("[%s] mode(%d), on(%d), intensity(%d), time(%d)\n", __func__, mode, on, intensity, time);
+
+	if (mode == CAM2_FLASH_MODE_SINGLE && on == true)
+	{
+		sensor_peri->flash->flash_data.mode = mode;
+		sensor_peri->flash->flash_data.intensity = intensity;
+		sensor_peri->flash->flash_data.firing_time_us = time;
+		/* New variable. Add code in fimc-is-device-sensor-peri.c for it */
+		sensor_peri->flash->flash_data.high_resolution_flash = true;
+#ifndef USE_HIGH_RES_FLASH_FIRE_BEFORE_STREAM_ON
+		ret = fimc_is_sensor_flash_fire(sensor_peri, sensor_peri->flash->flash_data.intensity);
+		if (ret) {
+			err("failed to turn off flash at flash expired handler\n");
+		}
+#endif
+
+		set_flash(itf, vsync_cnt + 2, CAM2_FLASH_MODE_OFF, 0, time);
+		if (ret < 0) {
+			pr_err("[%s] set_flash fail(%d)\n", __func__, ret);
+		}
+	}
+	else if (mode == CAM2_FLASH_MODE_TORCH && on == true)
+	{
+		sensor_peri->flash->flash_data.mode = mode;
+		sensor_peri->flash->flash_data.intensity = intensity;
+		sensor_peri->flash->flash_data.firing_time_us = time;
+		sensor_peri->flash->flash_data.high_resolution_flash = false;
+
+		ret = fimc_is_sensor_flash_fire(sensor_peri, sensor_peri->flash->flash_data.intensity);
+		if (ret) {
+			err("failed to turn off flash at flash expired handler\n");
+		}
+	}
+	else
+	{
+		sensor_peri->flash->flash_data.mode = mode;
+		sensor_peri->flash->flash_data.intensity = 0;
+		sensor_peri->flash->flash_data.firing_time_us = time;
+		sensor_peri->flash->flash_data.high_resolution_flash = false;
+
+		ret = fimc_is_sensor_flash_fire(sensor_peri, sensor_peri->flash->flash_data.intensity);
+		if (ret) {
+			err("failed to turn off flash at flash expired handler\n");
+		}
+	}
+
+	info("[%s] high_resolution_flash(%d)", __func__, sensor_peri->flash->flash_data.high_resolution_flash);
+
 	return ret;
 }
 
@@ -3319,6 +3389,134 @@ int paf_reserved(struct fimc_is_sensor_interface *itf)
 	return -EINVAL;
 }
 
+int request_wb_gain(struct fimc_is_sensor_interface *itf,
+		u32 gr_gain, u32 r_gain, u32 b_gain, u32 gb_gain)
+{
+	struct fimc_is_device_sensor_peri *sensor_peri = NULL;
+	struct fimc_is_device_sensor *sensor;
+	struct fimc_is_sensor_ctl *sensor_ctl = NULL;
+	int i;
+	u32 frame_count = 0, num_of_frame = 1;
+
+	BUG_ON(!itf);
+	BUG_ON(itf->magic != SENSOR_INTERFACE_MAGIC);
+
+	sensor_peri = container_of(itf, struct fimc_is_device_sensor_peri, sensor_interface);
+
+	sensor = get_device_sensor(itf);
+	if (!sensor) {
+		err("%s, failed to get sensor device", __func__);
+		return -1;
+	}
+
+	if (!test_bit(FIMC_IS_SENSOR_FRONT_START, &sensor->state)) {
+		sensor_peri->cis.mode_chg_wb_gains.gr = gr_gain;
+		sensor_peri->cis.mode_chg_wb_gains.r = r_gain;
+		sensor_peri->cis.mode_chg_wb_gains.b = b_gain;
+		sensor_peri->cis.mode_chg_wb_gains.gb = gb_gain;
+	}
+
+	frame_count = get_frame_count(itf);
+	get_num_of_frame_per_one_3aa(itf, &num_of_frame);
+
+	for (i = 0; i < num_of_frame; i++) {
+		sensor_ctl = get_sensor_ctl_from_module(itf, frame_count + i);
+		BUG_ON(!sensor_ctl);
+
+		sensor_ctl->wb_gains.gr = gr_gain;
+		sensor_ctl->wb_gains.r = r_gain;
+		sensor_ctl->wb_gains.b = b_gain;
+		sensor_ctl->wb_gains.gb = gb_gain;
+
+		if (i == 0)
+			sensor_ctl->update_wb_gains = true;
+	}
+
+	dbg_sensor(1, "[%s] stream %s, wb gains(gr:%d, r:%d, b:%d, gb:%d)\n",
+		__func__,
+		test_bit(FIMC_IS_SENSOR_FRONT_START, &sensor->state) ? "on" : "off",
+		gr_gain, r_gain, b_gain, gb_gain);
+
+	return 0;
+}
+
+int set_sensor_info_mfhdr_mode_change(struct fimc_is_sensor_interface *itf,
+		u32 count, u32 *long_expo, u32 *long_again, u32 *long_dgain,
+		u32 *expo, u32 *again, u32 *dgain, u32 *sensitivity)
+{
+	struct fimc_is_device_sensor_peri *sensor_peri;
+	struct fimc_is_device_sensor *sensor;
+	camera2_sensor_uctl_t *sensor_uctl;
+	struct fimc_is_sensor_ctl *sensor_ctl;
+	int idx;
+
+	BUG_ON(!itf);
+	BUG_ON(itf->magic != SENSOR_INTERFACE_MAGIC);
+	sensor_peri = container_of(itf, struct fimc_is_device_sensor_peri, sensor_interface);
+
+	sensor = get_device_sensor(itf);
+	if (!sensor) {
+		err("%s, failed to get sensor device", __func__);
+		return -1;
+	}
+
+	if (test_bit(FIMC_IS_SENSOR_FRONT_START, &sensor->state))
+		warn("[%s] called during stream on", __func__);
+
+	if (count < 1) {
+		err("[%s] wrong request count(%d)", __func__, count);
+		return -1;
+	}
+
+	/* set index 0 values to mode_chg_xxx variables
+	 * for applying values before stream on
+	 */
+	sensor_peri->cis.mode_chg_expo = expo[0];
+	sensor_peri->cis.mode_chg_again = again[0];
+	sensor_peri->cis.mode_chg_dgain = dgain[0];
+	sensor_peri->cis.mode_chg_long_expo = long_expo[0];
+	sensor_peri->cis.mode_chg_long_again = long_again[0];
+	sensor_peri->cis.mode_chg_long_dgain = long_dgain[0];
+
+	/* set index 0 ~ cnt-1 values to sensor uctl variables
+	 * for applying values during streaming.
+	 * (index 0 is set for code clean(not updated during streaming)
+	 * set "use_sensor_work" to true for call sensor_work_thread
+	 * to apply sensor settings
+	 */
+	sensor_peri->use_sensor_work = true;
+	for (idx = 0; idx < count; idx++) {
+		sensor_ctl = get_sensor_ctl_from_module(itf, get_frame_count(itf) + idx);
+		sensor_ctl->force_update = true;
+
+		sensor_uctl = get_sensor_uctl_from_module(itf, get_frame_count(itf) + idx);
+		BUG_ON(!sensor_uctl);
+
+		sensor_uctl->exposureTime = fimc_is_sensor_convert_us_to_ns(long_expo[idx]);
+		sensor_uctl->longExposureTime = fimc_is_sensor_convert_us_to_ns(long_expo[idx]);
+		sensor_uctl->shortExposureTime = fimc_is_sensor_convert_us_to_ns(expo[idx]);
+
+		sensor_uctl->sensitivity = sensitivity ? sensitivity[idx] : 0;
+		sensor_uctl->analogGain = again[idx];
+		sensor_uctl->digitalGain = dgain[idx];
+		sensor_uctl->longAnalogGain = long_again[idx];
+		sensor_uctl->shortAnalogGain = again[idx];
+		sensor_uctl->longDigitalGain = long_dgain[idx];
+		sensor_uctl->shortDigitalGain = dgain[idx];
+
+		set_sensor_uctl_valid(itf, idx);
+
+		dbg_sensor(1, "[%s][%d]: exp(%d), again(%d), dgain(%d), "
+			KERN_CONT "long_exp(%d), long_again(%d), long_dgain(%d), sensitivity(%d)\n",
+			__func__, idx,
+			expo[idx], again[idx], dgain[idx],
+			long_expo[idx], long_again[idx], long_dgain[idx], sensitivity[idx]);
+	}
+
+	return 0;
+}
+
+
 int init_sensor_interface(struct fimc_is_sensor_interface *itf)
 {
 	int ret = 0;
@@ -3481,6 +3679,10 @@ int init_sensor_interface(struct fimc_is_sensor_interface *itf)
 	itf->dual_itf_ops.set_reuse_ae_exposure = set_reuse_ae_exposure;
 	itf->dual_itf_ops.reserved[0] = dual_reserved_0;
 	itf->dual_itf_ops.reserved[1] = dual_reserved_1;
+	
+	itf->cis_ext2_itf_ops.request_wb_gain = request_wb_gain;
+	itf->cis_ext2_itf_ops.request_direct_flash = request_direct_flash;
+	itf->cis_ext2_itf_ops.set_sensor_info_mfhdr_mode_change = set_sensor_info_mfhdr_mode_change;
 
 	return ret;
 }

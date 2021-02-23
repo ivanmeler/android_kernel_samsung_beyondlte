@@ -153,6 +153,7 @@ enum fimc_is_frame_state {
 	FS_REQUEST,
 	FS_PROCESS,
 	FS_COMPLETE,
+	FS_STRIPE_PROCESS,
 	FS_INVALID
 };
 
@@ -173,6 +174,7 @@ enum fimc_is_frame_mem_state {
 
 #ifndef ENABLE_IS_CORE
 #define MAX_FRAME_INFO		(4)
+#define MAX_STRIPE_REGION_NUM	(5)
 enum fimc_is_frame_info_index {
 	INFO_FRAME_START,
 	INFO_CONFIG_LOCK,
@@ -185,6 +187,30 @@ struct fimc_is_frame_info {
 	unsigned long long	when;
 };
 #endif
+
+struct fimc_is_stripe_size {
+	/* Horizontal pixel ratio how much stripe processing is done. */
+	u32	h_pix_ratio;
+	/* Horizontal pixel count which stripe processing is done for. */
+	u32	h_pix_num;
+	/* Horizontal pixel count which stripe processing is done for before h_pix_num is processed. */
+	u32	prev_h_pix_num;
+};
+
+struct fimc_is_stripe_info {
+	/* Region index. */
+	u32				region_id;
+	/* Total region num. */
+	u32				region_num;
+	/* Frame base address of Y, UV plane */
+	u32				region_base_addr[2];
+	/* Stripe size for incrop/otcrop */
+	struct fimc_is_stripe_size	in;
+	struct fimc_is_stripe_size	out;
+	/* For image dump */
+	ulong                           kva[MAX_STRIPE_REGION_NUM][FIMC_IS_MAX_PLANES];
+	size_t                          size[MAX_STRIPE_REGION_NUM][FIMC_IS_MAX_PLANES];
+};
 
 struct fimc_is_frame {
 	struct list_head	list;
@@ -275,6 +301,7 @@ struct fimc_is_frame {
 	u32			width;
 	u32			height;
 #endif
+	struct fimc_is_stripe_info	stripe_info;
 };
 
 struct fimc_is_framemgr {
@@ -320,7 +347,8 @@ struct fimc_is_frame *find_frame(struct fimc_is_framemgr *this,
 			ulong (*fn)(struct fimc_is_frame *, void *), void *data);
 void print_frame_queue(struct fimc_is_framemgr *this,
 			enum fimc_is_frame_state state);
-
+struct fimc_is_frame *find_stripe_process_frame(struct fimc_is_framemgr *this,
+			u32 fcount);
 int frame_manager_probe(struct fimc_is_framemgr *this, u32 id, const char *name);
 int frame_manager_open(struct fimc_is_framemgr *this, u32 buffers);
 int frame_manager_close(struct fimc_is_framemgr *this);

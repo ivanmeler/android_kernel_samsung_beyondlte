@@ -90,20 +90,8 @@ static int slave_alloc (struct scsi_device *sdev)
 	sdev->inquiry_len = 36;
 
 	/*
-	 * USB has unusual DMA-alignment requirements: Although the
-	 * starting address of each scatter-gather element doesn't matter,
-	 * the length of each element except the last must be divisible
-	 * by the Bulk maxpacket value.  There's currently no way to
-	 * express this by block-layer constraints, so we'll cop out
-	 * and simply require addresses to be aligned at 512-byte
-	 * boundaries.  This is okay since most block I/O involves
-	 * hardware sectors that are multiples of 512 bytes in length,
-	 * and since host controllers up through USB 2.0 have maxpacket
-	 * values no larger than 512.
-	 *
-	 * But it doesn't suffice for Wireless USB, where Bulk maxpacket
-	 * values can be as large as 2048.  To make that work properly
-	 * will require changes to the block layer.
+	 * Some host controllers may have alignment requirements.
+	 * We'll play it safe by requiring 512-byte alignment always.
 	 */
 	blk_queue_update_dma_alignment(sdev->request_queue, (512 - 1));
 
@@ -383,7 +371,7 @@ static int queuecommand_lck(struct scsi_cmnd *srb,
 
 	/* check for state-transition errors */
 	if (us->srb != NULL) {
-		printk(KERN_ERR USB_STORAGE "Error in %s: us->srb = %p\n",
+		printk(KERN_ERR "usb-storage: Error in %s: us->srb = %p\n",
 			__func__, us->srb);
 		return SCSI_MLQUEUE_HOST_BUSY;
 	}
@@ -391,10 +379,6 @@ static int queuecommand_lck(struct scsi_cmnd *srb,
 	/* fail the command if we are disconnecting */
 	if (test_bit(US_FLIDX_DISCONNECTING, &us->dflags)) {
 		usb_stor_dbg(us, "Fail command during disconnect\n");
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-		printk(KERN_ERR USB_STORAGE "%s, Fail command during disconnect\n",
-				__func__);
-#endif
 		srb->result = DID_NO_CONNECT << 16;
 		done(srb);
 		return 0;
@@ -429,9 +413,7 @@ static int command_abort(struct scsi_cmnd *srb)
 	struct us_data *us = host_to_us(srb->device->host);
 
 	usb_stor_dbg(us, "%s called\n", __func__);
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-	printk(KERN_ERR USB_STORAGE "%s scsi_lock +\n", __func__);
-#endif
+
 	/*
 	 * us->srb together with the TIMED_OUT, RESETTING, and ABORTING
 	 * bits are protected by the host lock.
@@ -442,10 +424,6 @@ static int command_abort(struct scsi_cmnd *srb)
 	if (us->srb != srb) {
 		scsi_unlock(us_to_host(us));
 		usb_stor_dbg(us, "-- nothing to abort\n");
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-		printk(KERN_ERR USB_STORAGE "%s -- nothing to abort -\n",
-				__func__);
-#endif		
 		return FAILED;
 	}
 
@@ -462,15 +440,9 @@ static int command_abort(struct scsi_cmnd *srb)
 		usb_stor_stop_transport(us);
 	}
 	scsi_unlock(us_to_host(us));
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-	printk(KERN_ERR USB_STORAGE "%s scsi_unlock\n", __func__);
-#endif
 
 	/* Wait for the aborted command to finish */
 	wait_for_completion(&us->notify);
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-	printk(KERN_ERR USB_STORAGE "%s -\n", __func__);
-#endif
 	return SUCCESS;
 }
 
@@ -530,15 +502,10 @@ void usb_stor_report_device_reset(struct us_data *us)
 void usb_stor_report_bus_reset(struct us_data *us)
 {
 	struct Scsi_Host *host = us_to_host(us);
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-	printk(KERN_ERR USB_STORAGE "%s scsi_lock\n", __func__);
-#endif
+
 	scsi_lock(host);
 	scsi_report_bus_reset(host, 0);
 	scsi_unlock(host);
-#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
-	printk(KERN_ERR USB_STORAGE "%s scsi_unlock\n", __func__);
-#endif
 }
 
 /***********************************************************************

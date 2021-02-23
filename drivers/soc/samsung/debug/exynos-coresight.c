@@ -181,8 +181,7 @@ static int exynos_cs_lockup_handler(struct notifier_block *nb,
 	if (!exception)
 		return 0;
 
-	pr_auto(ASL5, "CPU[%d] saved pc value\n", *cpu);
-
+	pr_err("CPU[%d] saved pc value\n", *cpu);
 	for (iter = 0; iter < ITERATION; iter++) {
 #ifdef CONFIG_EXYNOS_PMU
 		if (!exynos_cpu.power_state(*cpu))
@@ -196,10 +195,8 @@ static int exynos_cs_lockup_handler(struct notifier_block *nb,
 
 		val = exynos_cs_pc[*cpu][iter].pc;
 		sprint_symbol(buf, val);
-		pr_auto(ASL5, "      0x%016zx : %s\n",	val, buf);
+		pr_err("      0x%016zx : %s\n",	val, buf);
 	}
-
-	pr_auto(ASL5, "\n");
 
 	return 0;
 }

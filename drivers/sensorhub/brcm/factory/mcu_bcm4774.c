@@ -18,7 +18,13 @@
 /* factory Sysfs                                                         */
 /*************************************************************************/
 
-#define MODEL_NAME	"BCM47752KUB1G"
+#define MODEL_NAME	"BCM47755KUB1G"
+
+char* get_mcu_name(struct device *dev)
+{
+
+	return MODEL_NAME;
+}
 
 ssize_t mcu_revision_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
@@ -32,7 +38,7 @@ ssize_t mcu_revision_show(struct device *dev,
 ssize_t mcu_model_name_show(struct device *dev,
 	struct device_attribute *attr, char *buf)
 {
-	return sprintf(buf, "%s\n", MODEL_NAME);
+	return sprintf(buf, "%s\n", get_mcu_name(dev));
 }
 
 ssize_t mcu_reset_show(struct device *dev,
@@ -108,7 +114,7 @@ ssize_t mcu_factorytest_show(struct device *dev,
 	ssp_dbg("[SSP]: MCU Factory Test Result - %s, %s, %s\n", MODEL_NAME,
 		(bMcuTestSuccessed ? "OK" : "NG"), "OK");
 
-	return sprintf(buf, "%s,%s,%s\n", MODEL_NAME,
+	return sprintf(buf, "%s,%s,%s\n", get_mcu_name(dev),
 		(bMcuTestSuccessed ? "OK" : "NG"), "OK");
 }
 
@@ -195,8 +201,8 @@ exit:
 		fsb[TEMPERATURE_HUMIDITY_SENSOR].x,
 		fsb[TEMPERATURE_HUMIDITY_SENSOR].y,
 		fsb[TEMPERATURE_HUMIDITY_SENSOR].z,
-		fsb[LIGHT_SENSOR].r, fsb[LIGHT_SENSOR].g, fsb[LIGHT_SENSOR].b,
-		fsb[LIGHT_SENSOR].w, fsb[LIGHT_SENSOR].a_time, fsb[LIGHT_SENSOR].a_gain
+		fsb[LIGHT_SENSOR].light_t.r, fsb[LIGHT_SENSOR].light_t.g, fsb[LIGHT_SENSOR].light_t.b,
+		fsb[LIGHT_SENSOR].light_t.w, fsb[LIGHT_SENSOR].light_t.a_time, fsb[LIGHT_SENSOR].light_t.a_gain
 		);
 
 	return sprintf(buf, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u,%u,%u,%u,%u,%u,%u,%d,%d,%d,%d,%d,%d\n",
@@ -207,8 +213,8 @@ exit:
 		fsb[GEOMAGNETIC_SENSOR].cal_x, fsb[GEOMAGNETIC_SENSOR].cal_y,
 		fsb[GEOMAGNETIC_SENSOR].cal_z, fsb[PRESSURE_SENSOR].pressure,
 		fsb[PRESSURE_SENSOR].temperature, fsb[PROXIMITY_SENSOR].prox_adc,
-		fsb[LIGHT_SENSOR].r, fsb[LIGHT_SENSOR].g, fsb[LIGHT_SENSOR].b,
-		fsb[LIGHT_SENSOR].w, fsb[LIGHT_SENSOR].a_time, fsb[LIGHT_SENSOR].a_gain,
+		fsb[LIGHT_SENSOR].light_t.r, fsb[LIGHT_SENSOR].light_t.g, fsb[LIGHT_SENSOR].light_t.b,
+		fsb[LIGHT_SENSOR].light_t.w, fsb[LIGHT_SENSOR].light_t.a_time, fsb[LIGHT_SENSOR].light_t.a_gain,
 
 		fsb[GESTURE_SENSOR].data[0], fsb[GESTURE_SENSOR].data[1],
 		fsb[GESTURE_SENSOR].data[2], fsb[GESTURE_SENSOR].data[3],

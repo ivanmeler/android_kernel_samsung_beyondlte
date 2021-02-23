@@ -324,6 +324,7 @@ static int pcal6524_parse_dt(struct device *dev,
 		struct pcal6524_platform_data *pdata)
 {
 	struct device_node *np = dev->of_node;
+	struct pinctrl *reset_pinctrl;
 	int ret, i, j;
 	u32 pull_reg[3];
 
@@ -339,6 +340,16 @@ static int pcal6524_parse_dt(struct device *dev,
 		return ret;
 	}
 	pdata->reset_gpio = of_get_named_gpio(np, "pcal6524,reset-gpio", 0);
+	/* Get pinctrl if target uses pinctrl */
+	reset_pinctrl = devm_pinctrl_get_select(dev, "expander_reset_setting");
+	if (IS_ERR(reset_pinctrl)) {
+		if (PTR_ERR(reset_pinctrl) == -EPROBE_DEFER)
+			return -EPROBE_DEFER;
+
+		pr_debug("Target does not use pinctrl\n");
+		reset_pinctrl = NULL;
+	}
+
 	ret = of_property_read_u32(np, "pcal6524,support_initialize", (u32 *)&pdata->support_init);
 	if (ret < 0) {
 		pr_err("[%s]: Unable to read pcal6524,support_init\n", __func__);
@@ -866,8 +877,11 @@ static int pcal6524_gpio_probe(struct i2c_client *client,
 		if (retry++ > 5) {
 			dev_err(&client->dev,
 					"Failed to expander retry[%d]\n", retry);
+
 			panic("pcal6524 i2c fail, check HW!\n");
+
 			goto err;
+
 		}
 		usleep_range(100, 200);
 	}
@@ -948,7 +962,6 @@ static int pcal6524_gpio_remove(struct i2c_client *client)
 #ifdef CONFIG_OF
 static const struct of_device_id pcal6524_dt_ids[] = {
 	{ .compatible = "pcal6524,gpio-expander",},
-	{ /* sentinel */ },
 };
 #endif
 static const struct i2c_device_id pcal6524_gpio_id[] = {
@@ -974,7 +987,7 @@ static int __init pcal6524_gpio_init(void)
 	return i2c_add_driver(&pcal6524_gpio_driver);
 }
 
-subsys_initcall(pcal6524_gpio_init);
+subsys_initcall_sync(pcal6524_gpio_init);
 
 static void __exit pcal6524_gpio_exit(void)
 {

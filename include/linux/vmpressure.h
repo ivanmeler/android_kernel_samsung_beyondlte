@@ -13,7 +13,6 @@
 struct vmpressure {
 	unsigned long scanned;
 	unsigned long reclaimed;
-	unsigned long pressure;
 
 	unsigned long tree_scanned;
 	unsigned long tree_reclaimed;

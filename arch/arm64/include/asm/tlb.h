@@ -67,7 +67,7 @@ static inline void __pmd_free_tlb(struct mmu_gather *tlb, pmd_t *pmdp,
 				  unsigned long addr)
 {
 	__flush_tlb_pgtable(tlb->mm, addr);
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	if (is_rkp_ro_page((unsigned long)pmdp))
 		rkp_ro_free((void *)pmdp);
 	else
@@ -81,7 +81,7 @@ static inline void __pud_free_tlb(struct mmu_gather *tlb, pud_t *pudp,
 				  unsigned long addr)
 {
 	__flush_tlb_pgtable(tlb->mm, addr);
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	if (is_rkp_ro_page((unsigned long)pudp))
 		rkp_ro_free((void *)pudp);
 	else

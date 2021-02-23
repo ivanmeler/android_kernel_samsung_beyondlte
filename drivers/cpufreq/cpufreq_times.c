@@ -497,8 +497,18 @@ void cpufreq_times_create_policy(struct cpufreq_policy *policy)
 	freqs = tmp;
 	freqs->max_state = count;
 
+#ifdef CONFIG_SEC_PM
+	index = count;
+	cpufreq_for_each_valid_entry(pos, table) {
+		if (index <= 0)
+			break;
+
+		freqs->freq_table[--index] = pos->frequency;
+	}
+#else
 	cpufreq_for_each_valid_entry(pos, table)
 		freqs->freq_table[index++] = pos->frequency;
+#endif /* CONFIG_SEC_PM */
 
 	index = cpufreq_times_get_index(freqs, policy->cur);
 	if (index >= 0)

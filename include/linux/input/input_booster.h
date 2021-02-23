@@ -285,9 +285,6 @@ extern unsigned int debug_flag;
 extern unsigned int enable_event_booster;
 extern spinlock_t ib_type_lock;
 
-extern struct workqueue_struct *ev_unbound_wq;
-extern struct workqueue_struct *ib_unbound_highwq;
-
 extern int trigger_cnt;
 // @ ib_trigger : input trigger starts input booster in evdev.c.
 extern struct t_ib_trigger *ib_trigger;

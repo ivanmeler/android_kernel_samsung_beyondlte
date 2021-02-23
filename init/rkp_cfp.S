@@ -17,6 +17,7 @@
 
 #include <linux/linkage.h>
 #include <asm/assembler.h>
+#include <asm/memory.h>
 
 .section .hyperdrive, "ax"
 .global _start_hyperdrive
@@ -29,6 +30,8 @@ nop
 
 #define RRX x16
 #define RRX_32 w16
+#define JOPP_EXCETPION_FIMC_START 	(0xffffff80fa000000)
+#define JOPP_EXCETPION_FIMC_END 	(0xffffff80fa780000)
 
 /*
  * Load the word just before the function instructions.
@@ -41,51 +44,34 @@ nop
 	ldr	RRX_32, [\reg, #-4]
 	subs	RRX_32, RRX_32, #0xbe7, lsl #12
 	cmp	RRX_32, #0xbad
-	b.eq	1f
-
-	/* 
-	 * DDK/VRA/RTA	0xffffff80fa000000 ~ 0xffffff80fa780000
-	 * Should match FIMC_VA and FIMC_SIZE
-	 */
-	mov	RRX, #0xffffff8000000000
-	movk	RRX, 0xfa00, lsl #16
-	cmp 	\reg, RRX
-	b.ls	2f
-	movk	RRX, #0xfa78, lsl #16
-	cmp 	\reg, RRX
-	b.hs	2f
-1: // Fail
+	b.ne	1f
 	pop	RRX, xzr
 	br 	\reg
-2: // Pass
-#if 0
-	//Test code
-	push	x0, x1
-	push	x2, x3
-	push	x4, x5
-	push	x6, x7
-	push	x8, x9
-	push	x10, x11
-	push	x12, x13
-	push	x14, x15
-	push	RRX, x17
-	push	x29, x30
-	mov	x0, \reg
-	mov	x1, x30
-	bl	cfp_record_jopp
-	pop	x29, x30
-	pop	RRX, x17
-	pop	x14, x15
-	pop	x12, x13
-	pop	x10, x11
-	pop	x8, x9
-	pop	x6, x7
-	pop	x4, x5
-	pop	x2, x3
-	pop	x0, x1
-#else
+
+	/* 
+	 * JOPP for FIMC region
+	 */
+1:	mov_q	RRX, JOPP_EXCETPION_FIMC_START
+	cmp 	\reg, RRX
+	b.lt	1f
+	mov_q	RRX, JOPP_EXCETPION_FIMC_END
+	cmp 	\reg, RRX
+	b.hs	1f
+	pop	RRX, xzr
+	br 	\reg
+	/* 
+	 * JOPP for MODULE region
+	 */
+1:	mov_q	RRX, MODULES_VADDR
+	cmp 	\reg, RRX
+	b.lt	2f
+	mov_q	RRX, MODULES_END
+	cmp 	\reg, RRX
+	b.hs	2f
+	pop	RRX, xzr
+	br 	\reg
+2: // dead
 	.inst	0xdeadc0de //crash for sure
-#endif
 	.endm
 
 	// Only add springboards for a register rX if there exists a "BLR rX" instruction in vmlinux to instrument

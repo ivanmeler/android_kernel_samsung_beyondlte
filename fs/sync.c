@@ -16,12 +16,24 @@
 #include <linux/pagemap.h>
 #include <linux/quotaops.h>
 #include <linux/backing-dev.h>
+#include <linux/version.h>
 #include "internal.h"
 
 #define VALID_FLAGS (SYNC_FILE_RANGE_WAIT_BEFORE|SYNC_FILE_RANGE_WRITE| \
 			SYNC_FILE_RANGE_WAIT_AFTER)
 
 /* Interruptible sync for Samsung Mobile Device */
+/* @fs.sec -- 30cbf83784121f91517b701d9706bccd -- */
+
+static inline int sec_sys_sync() {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 0)
+	ksys_sync();
+	return 0;
+#else
+	return sys_sync();
+#endif
+}
+
 #ifdef CONFIG_INTERRUPTIBLE_SYNC
 
 #include <linux/workqueue.h>
@@ -35,8 +47,6 @@
 #else
 #define dbg_print(...)
 #endif
-
-static unsigned long fsync_time_cnt[4];
 
 enum {
 	INTR_SYNC_STATE_IDLE = 0,
@@ -91,7 +101,7 @@ static void do_intr_sync(struct work_struct *work)
 
 	/* if no one waits, do not call sync() */
 	if (waiter) {
-		ret = sys_sync();
+		ret = sec_sys_sync();
 		dbg_print("\nintr_sync: %s: done sys_sync on work[%d]-%ld\n",
 			__func__, sync_work->id, sync_work->version);
 	} else {
@@ -258,7 +268,7 @@ find_idle:
 		goto enqueue_sync_wait;
 
 	printk("\nintr_sync: allocation failed, just call sync()\n");
-	ret = sys_sync();
+	ret = sec_sys_sync();
 	if (sync_ret)
 		*sync_ret = ret;
 	return 0;
@@ -266,7 +276,7 @@ find_idle:
 #else /* CONFIG_INTERRUPTIBLE_SYNC */
 int intr_sync(int *sync_ret)
 {
-	int ret = sys_sync();
+	int ret = sec_sys_sync();
 	if (sync_ret)
 		*sync_ret = ret;
 	return 0;
@@ -463,39 +473,15 @@ int vfs_fsync(struct file *file, int datasync)
 }
 EXPORT_SYMBOL(vfs_fsync);
 
-unsigned long read_fsync_time_cnt(int idx)
-{
-	return fsync_time_cnt[idx];
-}
-
-static void inc_fsync_time_cnt(unsigned long end, unsigned long start)
-{
-	unsigned int time = jiffies_to_msecs(end - start);
-	const int FSYNC_TIME_SLOW 	= 1000;
-	const int FSYNC_TIME_ANR 	= 10000;
-	const int FSYNC_TIME_WATCHDOG 	= 30000;
-
-	if (time < FSYNC_TIME_SLOW)
-		fsync_time_cnt[0]++;
-	else if (time < FSYNC_TIME_ANR)
-		fsync_time_cnt[1]++;
-	else if (time < FSYNC_TIME_WATCHDOG)
-		fsync_time_cnt[2]++;
-	else
-		fsync_time_cnt[3]++;
-}
-
 static int do_fsync(unsigned int fd, int datasync)
 {
 	struct fd f = fdget(fd);
 	int ret = -EBADF;
-	unsigned long stamp = jiffies;
 
 	if (f.file) {
 		ret = vfs_fsync(f.file, datasync);
 		fdput(f);
 		inc_syscfs(current);
-		inc_fsync_time_cnt(jiffies, stamp);
 	}
 	return ret;
 }

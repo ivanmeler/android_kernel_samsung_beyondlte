@@ -40,8 +40,9 @@
 #define S3C2410_UERSTAT	  (0x14)
 #define S3C2410_UFSTAT	  (0x18)
 #define S3C2410_UMSTAT	  (0x1C)
-#define S3C2410_UINTM	  (0x38)
-#define S3C2410_UINTP	  (0x30)
+#define S3C2410_UINTP	(0x30)
+#define S3C2410_UINTS	(0x34)
+#define S3C2410_UINTM	(0x38)
 
 #define USI_CON	  		(0xC4)
 #define USI_OPTION		(0xC8)

@@ -19,17 +19,48 @@
  */
 #include <linux/sti/abc_common.h>
 
-
 #define DEBUG_ABC
 #define ABC_WARNING_REPORT
 
-static struct device *sec_abc;
+struct device *sec_abc;
 static int abc_enabled;
 static int abc_init;
 
-#define ABC_PRINT(format, ...) pr_info("[sec_abc] " format, ##__VA_ARGS__)
+#if IS_ENABLED(CONFIG_OF)
+static int parse_mipi_overflow_data(struct device *dev,
+			  struct abc_platform_data *pdata,
+			  struct device_node *np)
+{
+	struct abc_qdata *cmipi_overflow;
 
-#ifdef CONFIG_OF
+	cmipi_overflow = pdata->mipi_overflow_items;
+	cmipi_overflow->desc = of_get_property(np, "mipi_overflow,label", NULL);
+
+	if (of_property_read_u32(np, "mipi_overflow,threshold_count", &cmipi_overflow->threshold_cnt)) {
+		dev_err(dev, "Failed to get mipi_overflow threshold count: node not exist\n");
+		return -EINVAL;
+	}
+	pr_info("%s: mipi_overflow, threshold_count : %d\n", __func__, cmipi_overflow->threshold_cnt);
+
+	if (of_property_read_u32(np, "mipi_overflow,threshold_time", &cmipi_overflow->threshold_time)) {
+		dev_err(dev, "Failed to get mipi_overflow threshold time: node not exist\n");
+		return -EINVAL;
+	}
+	pr_info("%s: mipi_overflow, threshold_time : %d\n", __func__, cmipi_overflow->threshold_time);
+	cmipi_overflow->buffer.abc_element = kzalloc(sizeof(cmipi_overflow->buffer.abc_element[0]) *
+						(cmipi_overflow->threshold_cnt + 1), GFP_KERNEL);
+
+	if (!cmipi_overflow->buffer.abc_element)
+		return -ENOMEM;
+
+	cmipi_overflow->buffer.size = cmipi_overflow->threshold_cnt + 1;
+	cmipi_overflow->buffer.rear = 0;
+	cmipi_overflow->buffer.front = 0;
+	cmipi_overflow->fail_cnt = 0;
+
+	return 0;
+}
+
 static int parse_gpu_data(struct device *dev,
 			  struct abc_platform_data *pdata,
 			  struct device_node *np)
@@ -58,6 +89,39 @@ static int parse_gpu_data(struct device *dev,
 	cgpu->buffer.rear = 0;
 	cgpu->buffer.front = 0;
 	cgpu->fail_cnt = 0;
+
+	return 0;
+}
+
+static int parse_gpu_page_data(struct device *dev,
+			       struct abc_platform_data *pdata,
+			       struct device_node *np)
+{
+	struct abc_qdata *cgpu_page;
+
+	cgpu_page = pdata->gpu_page_items;
+	cgpu_page->desc = of_get_property(np, "gpu_page,label", NULL);
+
+	if (of_property_read_u32(np, "gpu_page,threshold_count", &cgpu_page->threshold_cnt)) {
+		dev_err(dev, "Failed to get gpu_page threshold count: node not exist\n");
+		return -EINVAL;
+	}
+
+	if (of_property_read_u32(np, "gpu_page,threshold_time", &cgpu_page->threshold_time)) {
+		dev_err(dev, "Failed to get gpu_page threshold time: node not exist\n");
+		return -EINVAL;
+	}
+
+	cgpu_page->buffer.abc_element = kzalloc(sizeof(cgpu_page->buffer.abc_element[0]) *
+						(cgpu_page->threshold_cnt + 1), GFP_KERNEL);
+
+	if (!cgpu_page->buffer.abc_element)
+		return -ENOMEM;
+
+	cgpu_page->buffer.size = cgpu_page->threshold_cnt + 1;
+	cgpu_page->buffer.rear = 0;
+	cgpu_page->buffer.front = 0;
+	cgpu_page->fail_cnt = 0;
 
 	return 0;
 }
@@ -100,7 +164,12 @@ static int abc_parse_dt(struct device *dev)
 	struct abc_platform_data *pdata = dev->platform_data;
 	struct device_node *np;
 	struct device_node *gpu_np;
+	struct device_node *gpu_page_np;
 	struct device_node *aicl_np;
+	struct device_node *mipi_overflow_np;
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+	struct device_node *motto_np;
+#endif
 
 	np = dev->of_node;
 	pdata->nItem = of_get_child_count(np);
@@ -122,6 +191,19 @@ static int abc_parse_dt(struct device *dev)
 	if (gpu_np)
 		parse_gpu_data(dev, pdata, gpu_np);
 
+	gpu_page_np = of_find_node_by_name(np, "gpu_page");
+	pdata->nGpuPage = of_get_child_count(gpu_page_np);
+	pdata->gpu_page_items = devm_kzalloc(dev,
+					     sizeof(struct abc_qdata), GFP_KERNEL);
+
+	if (!pdata->gpu_page_items) {
+		dev_err(dev, "Failed to allocate GPU PAGE memory\n");
+		return -ENOMEM;
+	}
+
+	if (gpu_page_np)
+		parse_gpu_page_data(dev, pdata, gpu_page_np);
+
 	aicl_np = of_find_node_by_name(np, "aicl");
 	pdata->nAicl = of_get_child_count(aicl_np);
 	pdata->aicl_items = devm_kzalloc(dev,
@@ -135,11 +217,34 @@ static int abc_parse_dt(struct device *dev)
 	if (aicl_np)
 		parse_aicl_data(dev, pdata, aicl_np);
 
+	mipi_overflow_np = of_find_node_by_name(np, "mipi_overflow");
+	pdata->nMipiOverflow = of_get_child_count(mipi_overflow_np);
+	pdata->mipi_overflow_items = devm_kzalloc(dev,
+					 sizeof(struct abc_qdata), GFP_KERNEL);
+
+	if (!pdata->mipi_overflow_items) {
+		dev_err(dev, "Failed to allocate MIPI Overflow memory\n");
+		return -ENOMEM;
+	}
+
+	if (mipi_overflow_np)
+		parse_mipi_overflow_data(dev, pdata, mipi_overflow_np);
+
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+	motto_np = of_find_node_by_name(np, "motto");
+	pdata->motto_data = devm_kzalloc(dev,
+					 sizeof(struct abc_motto_data), GFP_KERNEL);
+	if (pdata->motto_data == NULL)
+		return -ENOMEM;
+	if (motto_np)
+		parse_motto_data(dev, pdata, motto_np);
+#endif
+
 	return 0;
 }
 #endif
 
-#ifdef CONFIG_OF
+#if IS_ENABLED(CONFIG_OF)
 static const struct of_device_id sec_abc_dt_match[] = {
 	{ .compatible = "samsung,sec_abc" },
 	{ }
@@ -169,6 +274,15 @@ static void sec_abc_reset_gpu_buffer(void)
 	pinfo->pdata->gpu_items->fail_cnt = 0;
 }
 
+static void sec_abc_reset_gpu_page_buffer(void)
+{
+	struct abc_info *pinfo = dev_get_drvdata(sec_abc);
+
+	pinfo->pdata->gpu_page_items->buffer.rear = 0;
+	pinfo->pdata->gpu_page_items->buffer.front = 0;
+	pinfo->pdata->gpu_page_items->fail_cnt = 0;
+}
+
 static void sec_abc_reset_aicl_buffer(void)
 {
 	struct abc_info *pinfo = dev_get_drvdata(sec_abc);
@@ -176,6 +290,15 @@ static void sec_abc_reset_aicl_buffer(void)
 	pinfo->pdata->aicl_items->buffer.rear = 0;
 	pinfo->pdata->aicl_items->buffer.front = 0;
 	pinfo->pdata->aicl_items->fail_cnt = 0;
+}
+
+static void sec_abc_reset_mipi_overflow_buffer(void)
+{
+	struct abc_info *pinfo = dev_get_drvdata(sec_abc);
+
+	pinfo->pdata->mipi_overflow_items->buffer.rear = 0;
+	pinfo->pdata->mipi_overflow_items->buffer.front = 0;
+	pinfo->pdata->mipi_overflow_items->fail_cnt = 0;
 }
 
 static ssize_t store_abc_enabled(struct device *dev,
@@ -187,16 +310,24 @@ static ssize_t store_abc_enabled(struct device *dev,
 	if (!strncmp(buf, "1", 1)) {
 		ABC_PRINT("ABC driver enabled.\n");
 		abc_enabled = ABC_TYPE1_ENABLED;
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+		init_motto_magic();
+#endif
 		complete(&pinfo->enable_done);
 	} else if (!strncmp(buf, "2", 1)) {
 		ABC_PRINT("Common driver enabled.\n");
 		abc_enabled = ABC_TYPE2_ENABLED;
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+		init_motto_magic();
+#endif
 		complete(&pinfo->enable_done);
 	} else if (!strncmp(buf, "0", 1)) {
 		ABC_PRINT("ABC/Common driver disabled.\n");
 		if (abc_enabled == ABC_TYPE1_ENABLED) {
 			sec_abc_reset_gpu_buffer();
+			sec_abc_reset_gpu_page_buffer();
 			sec_abc_reset_aicl_buffer();
+			sec_abc_reset_mipi_overflow_buffer();
 		}
 
 		abc_enabled = ABC_DISABLED;
@@ -211,6 +342,22 @@ static ssize_t show_abc_enabled(struct device *dev,
 	return sprintf(buf, "%d\n", abc_enabled);
 }
 static DEVICE_ATTR(enabled, 0644, show_abc_enabled, store_abc_enabled);
+
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+static ssize_t show_abc_motto_info(struct device *dev,
+				struct device_attribute *attr,
+				char *buf)
+{
+	u32 info_boot = 0;
+	u32 info_device = 0;
+
+	get_motto_info(dev, &info_boot, &info_device);
+	ABC_PRINT("info_boot = 0x%08x , info_device = 0x%08x\n", info_boot, info_device);
+
+	return sprintf(buf, "%d info_boot = 0x%08x info_device = 0x%08x\n", abc_enabled, info_boot, info_device);
+}
+static DEVICE_ATTR(motto_info, 0444, show_abc_motto_info, NULL);
+#endif
 
 /* reset abc log_list */
 static ssize_t store_abc_log(struct device *dev,
@@ -318,7 +465,7 @@ EXPORT_SYMBOL(sec_abc_get_enabled);
 static void sec_abc_work_func(struct work_struct *work)
 {
 	struct abc_info *pinfo = container_of(work, struct abc_info, work);
-	struct abc_qdata *pgpu, *paicl;
+	struct abc_qdata *pgpu, *pgpu_page, *paicl, *pmipi_overflow;
 	struct abc_fault_info in, out;
 	struct abc_log_entry *abc_log;
 
@@ -326,9 +473,10 @@ static void sec_abc_work_func(struct work_struct *work)
 	struct rtc_time tm;
 	unsigned long local_time;
 
-	char *c, *p;
+	char *c, *p, *p2;
 	char *uevent_str[ABC_UEVENT_MAX] = {0,};
-	char temp[ABC_BUFFER_MAX], timestamp[ABC_BUFFER_MAX], event_type[ABC_BUFFER_MAX];
+	char temp[ABC_BUFFER_MAX], timestamp[ABC_BUFFER_MAX], temp2[ABC_BUFFER_MAX];
+	char *event_level, *event_type;
 	int idx = 0;
 	int i = 0;
 	u64 ktime;
@@ -338,12 +486,13 @@ static void sec_abc_work_func(struct work_struct *work)
 	strcpy(temp, pinfo->abc_str);
 	p = &temp[0];
 
-	/* Caculate current kernel time */
+	/* Calculate current kernel time */
 	ktime = local_clock();
-	ktime_ms = ktime / NSEC_PER_MSEC;
-	ktime_rem = do_div(ktime, NSEC_PER_SEC);
+	ktime_rem = do_div(ktime, NSEC_PER_MSEC);
+	ktime_ms = (unsigned long)ktime;
+	ktime_rem = do_div(ktime, MSEC_PER_SEC);
 
-	/* Caculate current local time */
+	/* Calculate current local time */
 	getnstimeofday(&ts);
 	local_time = (u32)(ts.tv_sec - (sys_tz.tz_minuteswest * 60));
 	rtc_time_to_tm(local_time, &tm);
@@ -356,9 +505,24 @@ static void sec_abc_work_func(struct work_struct *work)
 	sprintf(timestamp, "TIMESTAMP=%lu", ktime_ms);
 	uevent_str[idx++] = &timestamp[0];
 	uevent_str[idx] = NULL;
-	strlcpy(event_type, uevent_str[1] + 6, sizeof(event_type));
 
-	ABC_PRINT("event type : %s\n", event_type);
+	strcpy(temp2, uevent_str[1]);
+	p2 = &temp2[0];
+	event_level = strsep(&p2, "=");
+	event_type = p2;
+	if (event_level == NULL || event_type == NULL) {
+		ABC_PRINT("invalid event\n");
+		return;
+	}
+
+	ABC_PRINT("event_level : %s, event type : %s\n", event_level, event_type);
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+	motto_send_device_info(event_type);
+#endif
+	if (!strncmp(event_level, "INFO", 4)) {
+		ABC_PRINT("event_level is INFO. Don't Send uevent\n");
+		return;
+	}
 
 #if defined(DEBUG_ABC)
 	/* print except for TIMESTAMP(uevent_str[idx - 1]) */
@@ -391,10 +555,11 @@ static void sec_abc_work_func(struct work_struct *work)
 
 	if (abc_enabled == ABC_TYPE1_ENABLED) {
 		pgpu = pinfo->pdata->gpu_items;
+		pgpu_page = pinfo->pdata->gpu_page_items;
 		paicl = pinfo->pdata->aicl_items;
+		pmipi_overflow = pinfo->pdata->mipi_overflow_items;
 
-		/* GPU fault */
-		if (!strncasecmp(event_type, "gpu_fault", 9)) {
+		if (pgpu->buffer.size && !strncasecmp(event_type, "gpu_fault", 9)) {
 			in.cur_time = (unsigned long)ktime / USEC_PER_SEC;
 			in.cur_cnt = pgpu->fail_cnt++;
 
@@ -426,7 +591,33 @@ static void sec_abc_work_func(struct work_struct *work)
 			strcat(uevent_str[1], "_w");
 			kobject_uevent_env(&sec_abc->kobj, KOBJ_CHANGE, uevent_str);
 #endif
-		} else if (!strncasecmp(event_type, "aicl", 4)) { /* AICL fault */
+		} else if (pgpu_page->buffer.size && !strncasecmp(event_type, "gpu_page_fault", 14)) {
+			in.cur_time = (unsigned long)ktime / USEC_PER_SEC;
+			in.cur_cnt = pgpu_page->fail_cnt++;
+
+			ABC_PRINT("gpu_page fail count : %d\n", pgpu_page->fail_cnt);
+			sec_abc_enqueue(&pgpu_page->buffer, in);
+
+			/* Check gpu_page fault */
+			/* Case 1 : Over threshold count */
+			if (pgpu_page->fail_cnt >= pgpu_page->threshold_cnt) {
+				if (sec_abc_get_diff_time(&pgpu_page->buffer) < pgpu_page->threshold_time) {
+					ABC_PRINT("GPU PAGE fault occurred. Send uevent.\n");
+					kobject_uevent_env(&sec_abc->kobj, KOBJ_CHANGE, uevent_str);
+				}
+				pgpu_page->fail_cnt = 0;
+				sec_abc_dequeue(&pgpu_page->buffer, &out);
+				ABC_PRINT("cur_time : %lu cur_cnt : %d\n", out.cur_time, out.cur_cnt);
+			/* Case 2 : Check front and rear node in queue. Because it's occurred within max count */
+			} else if (sec_abc_is_full(&pgpu_page->buffer)) {
+				if (sec_abc_get_diff_time(&pgpu_page->buffer) < pgpu_page->threshold_time) {
+					ABC_PRINT("GPU PAGE fault occurred. Send uevent.\n");
+					kobject_uevent_env(&sec_abc->kobj, KOBJ_CHANGE, uevent_str);
+				}
+				sec_abc_dequeue(&pgpu_page->buffer, &out);
+				ABC_PRINT("cur_time : %lu cur_cnt : %d\n", out.cur_time, out.cur_cnt);
+			}
+		} else if (paicl->buffer.size && !strncasecmp(event_type, "aicl", 4)) {
 			in.cur_time = (unsigned long)ktime / USEC_PER_SEC;
 			in.cur_cnt = paicl->fail_cnt++;
 
@@ -446,6 +637,32 @@ static void sec_abc_work_func(struct work_struct *work)
 					sec_abc_dequeue(&paicl->buffer, &out);
 					ABC_PRINT("cur_time : %lu cur_cnt : %d\n", out.cur_time, out.cur_cnt);
 				}
+			}
+		} else if (pmipi_overflow->buffer.size && !strncasecmp(event_type, "mipi_overflow", 13)) {
+			in.cur_time = (unsigned long)ktime / USEC_PER_SEC;
+			in.cur_cnt = pmipi_overflow->fail_cnt++;
+
+			ABC_PRINT("mipi_overflow fail count : %d\n", pmipi_overflow->fail_cnt);
+			sec_abc_enqueue(&pmipi_overflow->buffer, in);
+
+			/* Check mipi_overflow fault */
+			/* Case 1 : Over threshold count */
+			if (pmipi_overflow->fail_cnt >= pmipi_overflow->threshold_cnt) {
+				if (sec_abc_get_diff_time(&pmipi_overflow->buffer) < pmipi_overflow->threshold_time) {
+					ABC_PRINT("MIPI Overflow fault occurred. Send uevent.\n");
+					kobject_uevent_env(&sec_abc->kobj, KOBJ_CHANGE, uevent_str);
+				}
+				pmipi_overflow->fail_cnt = 0;
+				sec_abc_dequeue(&pmipi_overflow->buffer, &out);
+				ABC_PRINT("cur_time : %lu cur_cnt : %d\n", out.cur_time, out.cur_cnt);
+			/* Case 2 : Check front and rear node in queue. Because it's occurred within max count */
+			} else if (sec_abc_is_full(&pmipi_overflow->buffer)) {
+				if (sec_abc_get_diff_time(&pmipi_overflow->buffer) < pmipi_overflow->threshold_time) {
+					ABC_PRINT("MIPI Overflow fault occurred. Send uevent.\n");
+					kobject_uevent_env(&sec_abc->kobj, KOBJ_CHANGE, uevent_str);
+				}
+				sec_abc_dequeue(&pmipi_overflow->buffer, &out);
+				ABC_PRINT("cur_time : %lu cur_cnt : %d\n", out.cur_time, out.cur_cnt);
 			}
 		} else {
 			/* Others */
@@ -477,7 +694,7 @@ void sec_abc_send_event(char *str)
 		ABC_PRINT("ABC is disabled!\n");
 		return;
 	}
-
+	pr_info("%s: %s\n", __func__, str);
 	pinfo = dev_get_drvdata(sec_abc);
 
 	strlcpy(pinfo->abc_str, str, sizeof(pinfo->abc_str));
@@ -534,14 +751,15 @@ static int sec_abc_probe(struct platform_device *pdev)
 
 		if (!pdata) {
 			dev_err(&pdev->dev, "Failed to allocate platform data\n");
-			return -ENOMEM;
+			ret = -ENOMEM;
+			goto out;
 		}
 
 		pdev->dev.platform_data = pdata;
 		ret = abc_parse_dt(&pdev->dev);
 		if (ret) {
 			dev_err(&pdev->dev, "Failed to parse dt data\n");
-			return ret;
+			goto err_parse_dt;
 		}
 
 		pr_info("%s: parse dt done\n", __func__);
@@ -551,20 +769,28 @@ static int sec_abc_probe(struct platform_device *pdev)
 
 	if (!pdata) {
 		dev_err(&pdev->dev, "There are no platform data\n");
-		return -EINVAL;
+		ret = -EINVAL;
+		goto out;
 	}
 
 	pinfo = kzalloc(sizeof(*pinfo), GFP_KERNEL);
 
-	if (!pinfo)
-		return -ENOMEM;
+	if (!pinfo) {
+		ret = -ENOMEM;
+		goto err_alloc_pinfo;
+	}
 
+#if IS_ENABLED(CONFIG_DRV_SAMSUNG)
 	pinfo->dev = sec_device_create(pinfo, "sec_abc");
+#else
+	pinfo->dev = device_create(sec_class, NULL, 0, NULL, "sec_abc");
+#endif
 	if (IS_ERR(pinfo->dev)) {
 		pr_err("%s Failed to create device(sec_abc)!\n", __func__);
 		ret = -ENODEV;
-		goto out;
+		goto err_create_device;
 	}
+	sec_abc = pinfo->dev;
 
 	ret = device_create_file(pinfo->dev, &dev_attr_enabled);
 	if (ret) {
@@ -577,6 +803,14 @@ static int sec_abc_probe(struct platform_device *pdev)
 		pr_err("%s: Failed to create device log file\n", __func__);
 		goto err_create_abc_log_sysfs;
 	}
+
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+	ret = device_create_file(pinfo->dev, &dev_attr_motto_info);
+	if (ret) {
+		pr_err("%s: Failed to create device motto_info file\n", __func__);
+		goto err_create_abc_motto_info_sysfs;
+	}
+#endif
 
 	INIT_WORK(&pinfo->work, sec_abc_work_func);
 
@@ -591,7 +825,6 @@ static int sec_abc_probe(struct platform_device *pdev)
 
 	mutex_init(&pinfo->log_mutex);
 
-	sec_abc = pinfo->dev;
 	pinfo->pdata = pdata;
 
 	platform_set_drvdata(pdev, pinfo);
@@ -599,15 +832,26 @@ static int sec_abc_probe(struct platform_device *pdev)
 	abc_init = true;
 	return ret;
 err_create_abc_wq:
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+	device_remove_file(pinfo->dev, &dev_attr_motto_info);
+err_create_abc_motto_info_sysfs:
+#endif
 	device_remove_file(pinfo->dev, &dev_attr_log);
 err_create_abc_log_sysfs:
 	device_remove_file(pinfo->dev, &dev_attr_enabled);
 err_create_abc_enabled_sysfs:
+#if IS_ENABLED(CONFIG_DRV_SAMSUNG)
 	sec_device_destroy(sec_abc->devt);
-out:
+#else
+	device_destroy(sec_class, sec_abc->devt);
+#endif
+err_create_device:
 	kfree(pinfo);
-	kfree(pdata);
-
+err_alloc_pinfo:
+err_parse_dt:
+	devm_kfree(&pdev->dev, pdata);
+	pdev->dev.platform_data = NULL;
+out:
 	return ret;
 }
 
@@ -617,10 +861,10 @@ static struct platform_driver sec_abc_driver = {
 	.driver = {
 		.name = "sec_abc",
 		.owner = THIS_MODULE,
-#if defined(CONFIG_PM)
+#if IS_ENABLED(CONFIG_PM)
 		.pm	= &sec_abc_pm,
 #endif
-#if CONFIG_OF
+#if IS_ENABLED(CONFIG_OF)
 		.of_match_table = of_match_ptr(sec_abc_dt_match),
 #endif
 	},

@@ -22,6 +22,8 @@
 #define CAM2P0_UCTL_LIST_SIZE   (NUM_OF_FRAME_480FPS + 1)	/* This value must be larger than NUM_OF_FRAME */
 #define EXPECT_DM_NUM		(CAM2P0_UCTL_LIST_SIZE)
 
+#define SENSOR_DM_UPDATE_MARGIN	(2)
+
 struct gain_setting {
 	u32 sensitivity;
 	u32 long_again;

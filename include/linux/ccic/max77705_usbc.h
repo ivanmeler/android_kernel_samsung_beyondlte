@@ -29,7 +29,9 @@
 #include <linux/pm_qos.h>
 #endif
 
+#if 0
 #define MAX77705_SYS_FW_UPDATE
+#endif
 
 struct max77705_opcode {
 	unsigned char opcode;
@@ -146,9 +148,13 @@ struct max77705_usbc_platform_data {
 	usbc_cmd_data last_opcode;
 	unsigned long opcode_stamp;
 	struct mutex op_lock;
-	
+
 	/* F/W opcode command data */
 	usbc_cmd_queue_t usbc_cmd_queue;
+
+#ifdef MAX77705_SYS_FW_UPDATE
+	struct work_struct fw_update_work;
+#endif
 
 	uint32_t alternate_state;
 	uint32_t acc_type;
@@ -250,7 +256,7 @@ struct max77705_usbc_platform_data {
 
 	u8 control3_reg;
 	int cc_open_req;
-	
+
 	bool recover_opcode_list[OPCODE_NONE];
 	int need_recover;
 	bool srcccap_request_retry;
@@ -342,9 +348,6 @@ void max77705_clk_booster_off(struct work_struct *wk);
 #endif
 
 extern const uint8_t BOOT_FLASH_FW_PASS2[];
-extern const uint8_t BOOT_FLASH_FW_PASS3[];
-extern const uint8_t BOOT_FLASH_FW_PASS4[];
-extern const uint8_t BOOT_FLASH_FW_PASS5[];
 
 #if defined(CONFIG_SEC_FACTORY)
 void factory_execute_monitor(int);

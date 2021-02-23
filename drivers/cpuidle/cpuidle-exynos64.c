@@ -27,6 +27,7 @@
 
 #include <soc/samsung/exynos-cpupm.h>
 #include <linux/cpufreq.h>
+#include <linux/soc/samsung/exynos-soc.h>
 
 #include "dt_idle_states.h"
 
@@ -151,6 +152,11 @@ static int exynos_enter_idle(struct cpuidle_device *dev,
 	}
 
 skip_moce:
+#if defined(CONFIG_SOC_EXYNOS9820)
+	if (exynos_soc_info.revision == 0x10 && dev->cpu <= 5) {
+		index = 0;
+	}
+#endif
 
 	entry_state = prepare_idle(dev->cpu, index);
 

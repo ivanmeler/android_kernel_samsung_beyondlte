@@ -580,7 +580,7 @@ static int dw_mci_exynos_parse_dt(struct dw_mci *host)
 		}
 		priv->pins_config[0] = pinctrl_lookup_state(priv->pinctrl, "pins-as-pdn");
 		priv->pins_config[1] = pinctrl_lookup_state(priv->pinctrl, "pins-as-func");
-		
+
 		for (i = 0; i < 2; i++) {
 			if (IS_ERR(priv->pins_config[i]))
 				priv->pins_config[i] = NULL;
@@ -1171,7 +1171,6 @@ gpio_error:
 	return  sprintf(buf, "Error\n");
 }
 
-
 static ssize_t sd_detection_cnt_show(struct device *dev,
 		struct device_attribute *attr, char *buf)
 {
@@ -1263,9 +1262,9 @@ static ssize_t sdcard_summary_show(struct device *dev,
 		else								/* 1 Sector = 1024 Bytes */
 			size = card->csd.capacity;
 
-		if (size >= 380000000 && size <= 410000000) {	/* QUIRK 400GB SD Card */ 
-			sprintf(ret_size, "400GB"); 
-		} else if(size >= 190000000 && size <= 210000000) {	/* QUIRK 200GB SD Card */
+		if (size >= 380000000 && size <= 410000000) {	/* QUIRK 400GB SD Card */
+			sprintf(ret_size, "400GB");
+		} else if (size >= 190000000 && size <= 210000000) {	/* QUIRK 200GB SD Card */
 			sprintf(ret_size, "200GB");
 		} else {
 			while ((size >> 1) > 0) {
@@ -1418,7 +1417,7 @@ static ssize_t sd_health_show(struct device *dev,
 			total_t_cnt += err_log[i].count;
 	}
 
-	if(err_log[0].ge_cnt > 100 || err_log[0].ecc_cnt > 0 || err_log[0].wp_cnt > 0 ||
+	if (err_log[0].ge_cnt > 100 || err_log[0].ecc_cnt > 0 || err_log[0].wp_cnt > 0 ||
 	   err_log[0].oor_cnt > 10 || total_t_cnt > 100 || total_c_cnt > 100)
 		len = snprintf(buf, PAGE_SIZE, "BAD\n");
 	else
@@ -1594,9 +1593,9 @@ static int dw_mci_exynos_misc_control(struct dw_mci *host,
 	case CTRL_CHECK_CD:
 		ret = dw_mci_exynos_check_cd(host);
 		break;
-		case CTRL_ADD_SYSFS:
-			dw_mci_exynos_add_sysfs(host);
-			break;
+	case CTRL_ADD_SYSFS:
+		dw_mci_exynos_add_sysfs(host);
+		break;
 	default:
 		dev_err(host->dev, "dw_mmc exynos: wrong case\n");
 		ret = -ENODEV;

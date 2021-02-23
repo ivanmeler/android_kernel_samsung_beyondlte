@@ -524,7 +524,7 @@ void __iomem *shm_get_zmb_region(void)
 {
 	if (!pdata.v_zmb)
 		pdata.v_zmb = (void __iomem *)((unsigned long)shm_get_databuf_region()
-						+ shm_get_pktproc_desc_size() 
+						+ shm_get_pktproc_desc_size()
 						+ shm_get_pktproc_data_size());
 
 	return pdata.v_zmb;

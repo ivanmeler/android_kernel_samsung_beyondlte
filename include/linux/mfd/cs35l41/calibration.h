@@ -11,6 +11,7 @@
  */
 
 #include <linux/notifier.h>
+#include <sound/soc.h>
 
 #define CS35L41_NG_ENABLE_MASK	0x00010000
 
@@ -47,6 +48,14 @@
 #define CS35L41_MPU_UNLOCK_CODE_0		0x5555
 #define CS35L41_MPU_UNLOCK_CODE_1		0xaaaa
 
+#ifdef CS35L41_FACTORY_RECOVERY_SYSFS
+#define CIRRUS_CAL_NUM_ATTRS_BASE	5
+#else
+#define CIRRUS_CAL_NUM_ATTRS_BASE	4
+#endif
+
+#define CIRRUS_CAL_NUM_ATTRS_AMP	6
+
 static const unsigned int cs35l41_halo_mpu_access[18] = {
 	CS35L41_DSP1_MPU_WNDW_ACCESS0,
 	CS35L41_DSP1_MPU_XREG_ACCESS0,
@@ -68,11 +77,15 @@ static const unsigned int cs35l41_halo_mpu_access[18] = {
 	CS35L41_DSP1_MPU_YREG_ACCESS3,
 };
 
-int cirrus_cal_apply_left(void);
-int cirrus_cal_apply_right(void);
+int cirrus_cal_apply(const char *mfd_suffix);
 
-int cirrus_cal_amp_add(struct regmap *regmap_new, bool right_channel_amp,
+#ifdef CS35L41_FACTORY_RECOVERY_SYSFS
+int cirrus_cal_codec_add(struct snd_soc_codec *codec, const char *mfd_suffix);
+#endif /* CS35L41_FACTORY_RECOVERY_SYSFS */
+
+int cirrus_cal_amp_add(struct regmap *regmap_new, const char *mfd_suffix,
 					const char *dsp_part_name);
-int cirrus_cal_init(struct class *cirrus_amp_class);
+int cirrus_cal_init(struct class *cirrus_amp_class, int num_amps,
+					const char **mfd_suffixes);
 void cirrus_cal_exit(void);
 

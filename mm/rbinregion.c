@@ -245,8 +245,10 @@ bool try_get_rbincache(void)
 
 	spin_lock_irqsave(&region.region_lock, flags);
 	if (region.timeout < jiffies) {
+#ifdef CONFIG_ION_RBIN_HEAP
 		if (region.rc_disabled == true)
 			wake_ion_rbin_heap_shrink();
+#endif
 		region.rc_disabled = false;
 	}
 
@@ -332,26 +334,26 @@ static void putback_region(unsigned start_pfn, unsigned long nr_pages)
 /* ion_rbin_heap apis */
 phys_addr_t ion_rbin_allocate(unsigned long size)
 {
-	unsigned long offset;
+	unsigned long paddr;
 
 	if (!try_get_ion_rbin())
-		return ION_RBIN_ALLOCATE_FAIL;
+		return -EBUSY;
 
-	offset = gen_pool_alloc(region.pool, size);
-	if (!offset) {
-		offset = ION_RBIN_ALLOCATE_FAIL;
+	paddr = gen_pool_alloc(region.pool, size);
+	if (!paddr) {
+		paddr = -ENOMEM;
 		goto out;
 	}
-	isolate_region(PFN_DOWN(offset), size >> PAGE_SHIFT);
+	isolate_region(PFN_DOWN(paddr), size >> PAGE_SHIFT);
 out:
 	put_ion_rbin();
 
-	return offset;
+	return paddr;
 }
 
 void ion_rbin_free(phys_addr_t addr, unsigned long size)
 {
-	if (addr == ION_RBIN_ALLOCATE_FAIL)
+	if (IS_ERR_VALUE(addr))
 		return;
 
 	putback_region(PFN_DOWN(addr), size >> PAGE_SHIFT);

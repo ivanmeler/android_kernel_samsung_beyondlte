@@ -1185,6 +1185,26 @@ static void madera_extcon_disable_micbias(struct madera_extcon *info)
 		madera_extcon_disable_micbias_pin(info, widget);
 }
 
+static inline int madera_write_ignd(struct madera *madera,
+				    int output, unsigned int value)
+{
+	unsigned int reg = MADERA_OUTPUT_PATH_CONFIG_1 + (8 * output);
+	int ret = 0;
+
+	mutex_lock(&madera->ignd_lock);
+
+	if (madera->ignd_cache[output] & MADERA_IGND_FLAG)
+		madera->ignd_cache[output] = value | MADERA_IGND_FLAG;
+	else
+		ret = regmap_update_bits(madera->regmap, reg,
+					 MADERA_HP1_GND_SEL_MASK, value);
+
+	mutex_unlock(&madera->ignd_lock);
+
+	return ret;
+}
+
+
 static void madera_extcon_set_mode(struct madera_extcon *info, int mode)
 {
 	struct madera *madera = info->madera;
@@ -1235,12 +1255,9 @@ static void madera_extcon_set_mode(struct madera_extcon *info, int mode)
 				   MADERA_HPD_GND_SEL_MASK,
 				   info->micd_modes[mode].gnd <<
 				   MADERA_HPD_GND_SEL_SHIFT);
-		regmap_update_bits(madera->regmap,
-				   MADERA_OUTPUT_PATH_CONFIG_1 +
-				   (8 * (info->pdata->output - 1)),
-				   MADERA_HP1_GND_SEL_MASK,
-				   info->micd_modes[mode].hp_gnd <<
-				   MADERA_HP1_GND_SEL_SHIFT);
+		madera_write_ignd(madera, info->pdata->output - 1,
+				  info->micd_modes[mode].hp_gnd <<
+					   MADERA_HP1_GND_SEL_SHIFT);
 		break;
 	}
 

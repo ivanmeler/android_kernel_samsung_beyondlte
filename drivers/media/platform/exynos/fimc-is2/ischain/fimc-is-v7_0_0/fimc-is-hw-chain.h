@@ -157,6 +157,9 @@ enum sysreg_isphq_reg_field {
 #if defined(CONFIG_CAMERA_DNS_V01) || defined(CONFIG_CAMERA_DNS_V02)
 /* RTA HEAP: 18MB */
 #define FIMC_IS_RESERVE_LIB_SIZE	(0x01200000)
+#elif defined(CONFIG_CAMERA_FMU_V62)
+/* RTA HEAP: 12MB */
+#define FIMC_IS_RESERVE_LIB_SIZE	(0x00C00000)
 #else
 /* RTA HEAP: 6MB */
 #define FIMC_IS_RESERVE_LIB_SIZE	(0x00600000)
@@ -227,6 +230,7 @@ enum hwip_interrupt_map {
 #define MCSC_CAC_IN_VIDEO_MODE		(DEV_HW_MCSC1)
 #define MCSC_CAC_IN_CAPTURE_MODE	(DEV_HW_MCSC1)
 #define MCSC_DJAG_ENABLE_SENSOR_BRATIO	(2000)
+#define MCSC_LINE_BUF_SIZE		(5760)
 
 enum mc_scaler_interrupt_map {
 	INTR_MC_SCALER_FRAME_END		= 0,
@@ -305,4 +309,7 @@ enum vra_chain1_interrupt_map {
 	CH1INT_OUT_INFO			= 15,
 	CH1INT_WATCHDOG			= 16
 };
+
+#define ALIGN_UPDOWN_STRIPE_WIDTH(w, align) \
+	(w & align >> 1 ? ALIGN(w, align) : ALIGN_DOWN(w, align))
 #endif

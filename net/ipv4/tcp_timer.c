@@ -20,9 +20,6 @@
 
 #include <linux/module.h>
 #include <linux/gfp.h>
-#ifdef CONFIG_MPTCP
-#include <net/mptcp.h>
-#endif
 #include <net/tcp.h>
 
 int sysctl_tcp_thin_linear_timeouts __read_mostly;
@@ -67,10 +64,7 @@ int tcp_use_userconfig_sysctl_handler(struct ctl_table *table, int write,
  *  Returns: Nothing (void)
  */
 
-#ifndef CONFIG_MPTCP
-static
-#endif
-void tcp_write_err(struct sock *sk)
+static void tcp_write_err(struct sock *sk)
 {
 	sk->sk_err = sk->sk_err_soft ? : ETIMEDOUT;
 	sk->sk_error_report(sk);
@@ -126,11 +120,7 @@ static int tcp_out_of_resources(struct sock *sk, bool do_reset)
 		    (!tp->snd_wnd && !tp->packets_out))
 			do_reset = true;
 		if (do_reset)
-#ifdef CONFIG_MPTCP
-			tp->ops->send_active_reset(sk, GFP_ATOMIC);
-#else
 			tcp_send_active_reset(sk, GFP_ATOMIC);
-#endif
 		tcp_done(sk);
 		__NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPABORTONMEMORY);
 		return 1;
@@ -205,10 +195,7 @@ static void tcp_mtu_probing(struct inet_connection_sock *icsk, struct sock *sk)
  * after "boundary" unsuccessful, exponentially backed-off
  * retransmissions with an initial RTO of TCP_RTO_MIN.
  */
-#ifndef CONFIG_MPTCP
-static
-#endif
-bool retransmits_timed_out(struct sock *sk,
+static bool retransmits_timed_out(struct sock *sk,
 				  unsigned int boundary,
 				  unsigned int timeout)
 {
@@ -235,10 +222,7 @@ bool retransmits_timed_out(struct sock *sk,
 }
 
 /* A write timeout has occurred. Process the after effects. */
-#ifndef CONFIG_MPTCP
-static
-#endif
-int tcp_write_timeout(struct sock *sk)
+static int tcp_write_timeout(struct sock *sk)
 {
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
@@ -258,15 +242,6 @@ int tcp_write_timeout(struct sock *sk)
 			sk_rethink_txhash(sk);
 		}
 		retry_until = icsk->icsk_syn_retries ? : net->ipv4.sysctl_tcp_syn_retries;
-#ifdef CONFIG_MPTCP
-		/* Stop retransmitting MP_CAPABLE options in SYN if timed out. */
-		if (tcp_sk(sk)->request_mptcp &&
-		    icsk->icsk_retransmits >= sysctl_mptcp_syn_retries) {
-			tcp_sk(sk)->request_mptcp = 0;
-
-			MPTCP_INC_STATS(sock_net(sk), MPTCP_MIB_MPCAPABLERETRANSFALLBACK);
-		}
-#endif /* CONFIG_MPTCP */
 		expired = icsk->icsk_retransmits >= retry_until;
 	} else {
 		if (retransmits_timed_out(sk, net->ipv4.sysctl_tcp_retries1, 0)) {
@@ -362,37 +337,18 @@ out:
 static void tcp_delack_timer(unsigned long data)
 {
 	struct sock *sk = (struct sock *)data;
-#ifdef CONFIG_MPTCP
-	struct tcp_sock *tp = tcp_sk(sk);
-	struct sock *meta_sk = mptcp(tp) ? mptcp_meta_sk(sk) : sk;
-
-	bh_lock_sock(meta_sk);
-	if (!sock_owned_by_user(meta_sk)) {
-#else
 
 	bh_lock_sock(sk);
 	if (!sock_owned_by_user(sk)) {
-#endif
 		tcp_delack_timer_handler(sk);
 	} else {
 		inet_csk(sk)->icsk_ack.blocked = 1;
-#ifdef CONFIG_MPTCP
-		__NET_INC_STATS(sock_net(meta_sk), LINUX_MIB_DELAYEDACKLOCKED);
-#else
 		__NET_INC_STATS(sock_net(sk), LINUX_MIB_DELAYEDACKLOCKED);
-#endif
 		/* deleguate our work to tcp_release_cb() */
 		if (!test_and_set_bit(TCP_DELACK_TIMER_DEFERRED, &sk->sk_tsq_flags))
 			sock_hold(sk);
-#ifdef CONFIG_MPTCP
-		if (mptcp(tp))
-			mptcp_tsq_flags(sk);
-	}
-	bh_unlock_sock(meta_sk);
-#else
 	}
 	bh_unlock_sock(sk);
-#endif
 	sock_put(sk);
 }
 
@@ -435,7 +391,7 @@ static void tcp_probe_timer(struct sock *sk)
 			return;
 	}
 
-	if (icsk->icsk_probes_out > max_probes) {
+	if (icsk->icsk_probes_out >= max_probes) {
 abort:		tcp_write_err(sk);
 	} else {
 		/* Only send another probe if we didn't close things up. */
@@ -490,6 +446,7 @@ void tcp_retransmit_timer(struct sock *sk)
 	struct tcp_sock *tp = tcp_sk(sk);
 	struct net *net = sock_net(sk);
 	struct inet_connection_sock *icsk = inet_csk(sk);
+	struct sk_buff *skb;
 
 	if (tp->fastopen_rsk) {
 		WARN_ON_ONCE(sk->sk_state != TCP_SYN_RECV &&
@@ -500,10 +457,13 @@ void tcp_retransmit_timer(struct sock *sk)
 		 */
 		return;
 	}
-	if (!tp->packets_out)
-		goto out;
 
-	WARN_ON(tcp_write_queue_empty(sk));
+	if (!tp->packets_out)
+		return;
+
+	skb = tcp_rtx_queue_head(sk);
+	if (WARN_ON_ONCE(!skb))
+		return;
 
 	tp->tlp_high_seq = 0;
 
@@ -536,16 +496,17 @@ void tcp_retransmit_timer(struct sock *sk)
 			goto out;
 		}
 		tcp_enter_loss(sk);
-		tcp_retransmit_skb(sk, tcp_write_queue_head(sk), 1);
+		tcp_retransmit_skb(sk, skb, 1);
 		__sk_dst_reset(sk);
 		goto out_reset_timer;
 	}
 
+	__NET_INC_STATS(sock_net(sk), LINUX_MIB_TCPTIMEOUTS);
 	if (tcp_write_timeout(sk))
 		goto out;
 
 	if (icsk->icsk_retransmits == 0) {
-		int mib_idx;
+		int mib_idx = 0;
 
 		if (icsk->icsk_ca_state == TCP_CA_Recovery) {
 			if (tcp_is_sack(tp))
@@ -560,10 +521,9 @@ void tcp_retransmit_timer(struct sock *sk)
 				mib_idx = LINUX_MIB_TCPSACKFAILURES;
 			else
 				mib_idx = LINUX_MIB_TCPRENOFAILURES;
-		} else {
-			mib_idx = LINUX_MIB_TCPTIMEOUTS;
 		}
-		__NET_INC_STATS(sock_net(sk), mib_idx);
+		if (mib_idx)
+			__NET_INC_STATS(sock_net(sk), mib_idx);
 	}
 
 	tcp_enter_loss(sk);
@@ -653,11 +613,7 @@ void tcp_write_timer_handler(struct sock *sk)
 		break;
 	case ICSK_TIME_RETRANS:
 		icsk->icsk_pending = 0;
-#ifdef CONFIG_MPTCP
-		tcp_sk(sk)->ops->retransmit_timer(sk);
-#else
 		tcp_retransmit_timer(sk);
-#endif
 		break;
 	case ICSK_TIME_PROBE0:
 		icsk->icsk_pending = 0;
@@ -672,30 +628,16 @@ out:
 static void tcp_write_timer(unsigned long data)
 {
 	struct sock *sk = (struct sock *)data;
-#ifdef CONFIG_MPTCP
-	struct sock *meta_sk = mptcp(tcp_sk(sk)) ? mptcp_meta_sk(sk) : sk;
-
-	bh_lock_sock(meta_sk);
-	if (!sock_owned_by_user(meta_sk)) {
-#else
 
 	bh_lock_sock(sk);
 	if (!sock_owned_by_user(sk)) {
-#endif
 		tcp_write_timer_handler(sk);
 	} else {
 		/* delegate our work to tcp_release_cb() */
 		if (!test_and_set_bit(TCP_WRITE_TIMER_DEFERRED, &sk->sk_tsq_flags))
 			sock_hold(sk);
-#ifdef CONFIG_MPTCP
-		if (mptcp(tcp_sk(sk)))
-			mptcp_tsq_flags(sk);
-	}
-	bh_unlock_sock(meta_sk);
-#else
 	}
 	bh_unlock_sock(sk);
-#endif
 	sock_put(sk);
 }
 
@@ -725,19 +667,11 @@ static void tcp_keepalive_timer (unsigned long data)
 	struct sock *sk = (struct sock *) data;
 	struct inet_connection_sock *icsk = inet_csk(sk);
 	struct tcp_sock *tp = tcp_sk(sk);
-#ifdef CONFIG_MPTCP
-	struct sock *meta_sk = mptcp(tp) ? mptcp_meta_sk(sk) : sk;
-#endif
 	u32 elapsed;
 
 	/* Only process if socket is not in use. */
-#ifdef CONFIG_MPTCP
-	bh_lock_sock(meta_sk);
-	if (sock_owned_by_user(meta_sk)) {
-#else
 	bh_lock_sock(sk);
 	if (sock_owned_by_user(sk)) {
-#endif
 		/* Try again later. */
 		inet_csk_reset_keepalive_timer (sk, HZ/20);
 		goto out;
@@ -749,39 +683,16 @@ static void tcp_keepalive_timer (unsigned long data)
 	}
 
 	tcp_mstamp_refresh(tp);
-#ifdef CONFIG_MPTCP
-	if (tp->send_mp_fclose) {
-		if (icsk->icsk_retransmits >= MPTCP_FASTCLOSE_RETRIES) {
-			tcp_write_err(sk);
-			goto out;
-		}
-
-		tcp_send_ack(sk);
-		icsk->icsk_retransmits++;
-
-		icsk->icsk_rto = min(icsk->icsk_rto << 1, TCP_RTO_MAX);
-		elapsed = icsk->icsk_rto;
-		goto resched;
-	}
-#endif
 	if (sk->sk_state == TCP_FIN_WAIT2 && sock_flag(sk, SOCK_DEAD)) {
 		if (tp->linger2 >= 0) {
 			const int tmo = tcp_fin_time(sk) - TCP_TIMEWAIT_LEN;
 
 			if (tmo > 0) {
-#ifdef CONFIG_MPTCP
-				tp->ops->time_wait(sk, TCP_FIN_WAIT2, tmo);
-#else
 				tcp_time_wait(sk, TCP_FIN_WAIT2, tmo);
-#endif
 				goto out;
 			}
 		}
-#ifdef CONFIG_MPTCP
-		tp->ops->send_active_reset(sk, GFP_ATOMIC);
-#else
 		tcp_send_active_reset(sk, GFP_ATOMIC);
-#endif
 		goto death;
 	}
 
@@ -806,20 +717,11 @@ static void tcp_keepalive_timer (unsigned long data)
 		    icsk->icsk_probes_out > 0) ||
 		    (icsk->icsk_user_timeout == 0 &&
 		    icsk->icsk_probes_out >= keepalive_probes(tp))) {
-#ifdef CONFIG_MPTCP
-			tp->ops->send_active_reset(sk, GFP_ATOMIC);
-#else
 			tcp_send_active_reset(sk, GFP_ATOMIC);
-#endif
 			tcp_write_err(sk);
 			goto out;
 		}
-
-#ifdef CONFIG_MPTCP
-		if (tp->ops->write_wakeup(sk, LINUX_MIB_TCPKEEPALIVE) <= 0) {
-#else
 		if (tcp_write_wakeup(sk, LINUX_MIB_TCPKEEPALIVE) <= 0) {
-#endif
 			icsk->icsk_probes_out++;
 			elapsed = keepalive_intvl_when(tp);
 		} else {
@@ -843,11 +745,7 @@ death:
 	tcp_done(sk);
 
 out:
-#ifdef CONFIG_MPTCP
-	bh_unlock_sock(meta_sk);
-#else
 	bh_unlock_sock(sk);
-#endif
 	sock_put(sk);
 }
 

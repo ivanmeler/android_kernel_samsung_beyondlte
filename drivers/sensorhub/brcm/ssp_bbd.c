@@ -304,7 +304,7 @@ int callback_bbd_on_mcu_ready(void *ssh_data, bool ready)
                 continue;
             if(src[i] == ';')
                 break;
-                dst[idx++] = src[i];
+            dst[idx++] = src[i];
         }
 }
 int callback_bbd_on_control(void *ssh_data, const char *str_ctrl)
@@ -829,3 +829,4 @@ int callback_bbd_on_packet(void *ssh_data, const char *buf, size_t size)
 	}
 	return 0;
 }
+

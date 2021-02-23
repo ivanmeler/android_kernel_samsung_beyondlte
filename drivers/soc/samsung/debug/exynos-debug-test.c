@@ -783,7 +783,6 @@ static void simulate_WRITE_RO(char *arg)
 
 	pr_crit("DEBUG TEST: %s()\n", __func__);
 
-// Write to function addr will triger a warning by JOPP compiler
 #ifdef CONFIG_RKP_CFP_JOPP
 	ptr = (unsigned long *)__start_rodata;
 #else

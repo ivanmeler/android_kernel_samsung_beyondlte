@@ -55,7 +55,7 @@ config FMM_LOCK_OFFSET
 config SEC_KEY_NOTIFIER
 	bool "Enable Samsung key event notifier"
 	depends on SEC_EXT
-	default y
+	default n
 	help
 	  Samsung Key input event notifier
 
@@ -91,4 +91,5 @@ config SEC_DUMP_SINK
 
 source "drivers/samsung/debug/Kconfig"
 source "drivers/samsung/misc/Kconfig"
+source "drivers/samsung/pm/Kconfig"
 

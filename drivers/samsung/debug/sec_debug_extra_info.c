@@ -28,6 +28,7 @@
 #define EXTRA_VERSION	"RI25"
 
 #include "sec_debug_extra_info_keys.c"
+#include "sec_debug_internal.h"
 
 static bool exin_ready;
 
@@ -460,12 +461,12 @@ static void dump_all_keys(void)
 /*****************************************************************/
 static void init_shared_buffer(int type, int nr_keys, void *ptr)
 {
-	char (* keys)[MAX_ITEM_KEY_LEN];
+	char (*keys)[MAX_ITEM_KEY_LEN];
 	unsigned int base, size, nr;
 	void *addr;
 	int i;
 
-	keys = (char (*)[MAX_ITEM_KEY_LEN])ptr;
+	keys = (char(*)[MAX_ITEM_KEY_LEN])ptr;
 
 	base = sh_buf->sec_debug_sbidx[type].paddr;
 	size = sh_buf->sec_debug_sbidx[type].size;
@@ -643,7 +644,7 @@ static void sec_debug_extra_info_buffer_init(void)
 
 #define MAX_EXTRA_INFO_LEN	(MAX_ITEM_KEY_LEN + MAX_ITEM_VAL_LEN)
 
-static void sec_debug_store_extra_info(char (* keys)[MAX_ITEM_KEY_LEN], int nr_keys, char *ptr)
+static void sec_debug_store_extra_info(char (*keys)[MAX_ITEM_KEY_LEN], int nr_keys, char *ptr)
 {
 	int i;
 	unsigned long len, max_len;
@@ -857,7 +858,7 @@ void sec_debug_set_extra_info_backtrace(struct pt_regs *regs)
 		if (ret < 0)
 			break;
 
-		snprintf(buf, sizeof(buf), "%pf", (void *)where);
+		snprintf(buf, sizeof(buf), "%ps", (void *)where);
 		sym_name_len = strlen(buf);
 
 		if (offset + sym_name_len > MAX_ITEM_VAL_LEN)
@@ -920,7 +921,7 @@ void sec_debug_set_extra_info_backtrace_cpu(struct pt_regs *regs, int cpu)
 		if (ret < 0)
 			break;
 
-		snprintf(buf, sizeof(buf), "%pf", (void *)where);
+		snprintf(buf, sizeof(buf), "%ps", (void *)where);
 		sym_name_len = strlen(buf);
 
 		if (offset + sym_name_len > MAX_ITEM_VAL_LEN)
@@ -987,7 +988,7 @@ void sec_debug_set_extra_info_backtrace_task(struct task_struct *tsk)
 		if (ret < 0)
 			break;
 
-		snprintf(buf, sizeof(buf), "%pf", (void *)where);
+		snprintf(buf, sizeof(buf), "%ps", (void *)where);
 		sym_name_len = strlen(buf);
 
 		if (offset + sym_name_len > MAX_ITEM_VAL_LEN)
@@ -1147,10 +1148,10 @@ static void test_v3(void *seqm)
 {
 	struct seq_file *m = (struct seq_file *)seqm;
 
-	seq_printf(m, " -- SEC DEBUG SHARED INFO V3 (SHARED BUFFER) -- \n");
+	seq_printf(m, "-- SEC DEBUG SHARED INFO V3 (SHARED BUFFER) --\n");
 	dump_slots(SLOT_32, NR_MAIN_SLOT, m);
 
-	seq_printf(m, " -- SEC DEBUG SHARED INFO V3 (SHARED BUFFER BK) -- \n");
+	seq_printf(m, "-- SEC DEBUG SHARED INFO V3 (SHARED BUFFER BK) --\n");
 	dump_slots(SLOT_BK_32, NR_SLOT, m);
 }
 /*********** TEST V3 **************************************/
@@ -1159,7 +1160,10 @@ static int set_debug_reset_rwc_proc_show(struct seq_file *m, void *v)
 	char *rstcnt;
 
 	rstcnt = get_bk_item_val("RSTCNT");
-	seq_printf(m, "%s", rstcnt);
+	if (!rstcnt)
+		seq_printf(m, "%d", secdbg_rere_get_rstcnt_from_cmdline());
+	else
+		seq_printf(m, "%s", rstcnt);
 
 	return 0;
 }
@@ -1228,14 +1232,14 @@ static int __init sec_debug_extra_info_init(void)
 	exin_ready = true;
 
 	entry = proc_create("reset_reason_extra_info",
-				0644, NULL, &sec_debug_reset_extra_info_proc_fops);
+			    0644, NULL, &sec_debug_reset_extra_info_proc_fops);
 	if (!entry)
 		return -ENOMEM;
 
 	proc_set_size(entry, SZ_1K);
 
 	entry = proc_create("reset_rwc", S_IWUGO, NULL,
-				&sec_debug_reset_rwc_proc_fops);
+			    &sec_debug_reset_rwc_proc_fops);
 
 	if (!entry)
 		return -ENOMEM;

@@ -97,8 +97,6 @@ static int __init sec_last_kmsg_late_init(void)
 		return 0;
 	}
 
-	pr_info("%s: success to create proc entry\n", __func__);
-
 	proc_set_size(entry, last_kmsg_size);
 	return 0;
 }

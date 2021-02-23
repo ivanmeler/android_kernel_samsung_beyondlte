@@ -320,25 +320,17 @@ static int dpp_reg_wait_sw_reset_status(u32 id)
 
 static void dpp_reg_set_csc_coef(u32 id, u32 csc_std, u32 csc_rng)
 {
-#if defined(CONFIG_EXYNOS_MCD_HDR)
+#if defined(SUPPORT_USER_COEF)
 	u32 val, mask;
-	u32 csc_id = CSC_BT_601_625;
+	u32 csc_id = CSC_CUSTOMIZED_START; /* CSC_BT601/625/525 */
 	u32 c00, c01, c02;
 	u32 c10, c11, c12;
 	u32 c20, c21, c22;
 
 	if ((csc_std > CSC_DCI_P3) && (csc_std <= CSC_ADOBE_RGB))
-		csc_id = (csc_std - CSC_BT_601_625) * 2 + csc_rng;
+		csc_id = (csc_std - CSC_CUSTOMIZED_START) * 2 + csc_rng;
 	else
 		dpp_err("Undefined CSC Type!!!\n");
-
-	if (csc_rng > CSC_RANGE_FULL) {
-		dpp_err("DPP:ERR:%s:Undefined csc range : %d\n", __func__, csc_rng);
-		csc_rng = CSC_RANGE_FULL;
-	}
-
-	if (csc_std == CSC_BT_2020_CONSTANT_LUMINANCE)
-		dpp_info("DPP:INFO:%s:csc std : BT_2020_CONSTANT_LUMINANCE\n", __func__);
 
 	c00 = csc_3x3_t[csc_id][0][0];
 	c01 = csc_3x3_t[csc_id][0][1];
@@ -380,18 +372,16 @@ static void dpp_reg_set_csc_coef(u32 id, u32 csc_std, u32 csc_rng)
 
 static void dpp_reg_set_csc_params(u32 id, u32 csc_eq)
 {
-
 	u32 type = (csc_eq >> CSC_STANDARD_SHIFT) & 0x3F;
 	u32 range = (csc_eq >> CSC_RANGE_SHIFT) & 0x7;
 	u32 mode = (type <= CSC_DCI_P3) ? CSC_COEF_HARDWIRED : CSC_COEF_CUSTOMIZED;
 	u32 val, mask;
 
 	if (type == CSC_STANDARD_UNSPECIFIED) {
-		dpp_dbg("unspecified CSC type(%d)! -> BT_601\n", type);
+		dpp_dbg("unspecified CSC type! -> BT_601\n");
 		type = CSC_BT_601;
 		mode = CSC_COEF_HARDWIRED;
 	}
-
 	if (range == CSC_RANGE_UNSPECIFIED) {
 		dpp_dbg("unspecified CSC range! -> LIMIT\n");
 		range = CSC_RANGE_LIMITED;
@@ -403,7 +393,6 @@ static void dpp_reg_set_csc_params(u32 id, u32 csc_eq)
 
 	if (mode == CSC_COEF_CUSTOMIZED)
 		dpp_reg_set_csc_coef(id, type, range);
-
 }
 
 static void dpp_reg_set_h_coef(u32 id, u32 h_ratio)
@@ -471,7 +460,6 @@ static void dpp_reg_set_scale_ratio(u32 id, struct dpp_params_info *p)
 	dpp_dbg("h_ratio : %#x, v_ratio : %#x\n", p->h_ratio, p->v_ratio);
 }
 
-
 #ifdef CONFIG_EXYNOS_MCD_HDR
 void dpp_reg_sel_hdr(u32 id, enum hdr_path path)
 {
@@ -489,6 +477,7 @@ u32 dpp_read_hdr_path(u32 id)
 	return(dpp_read(id, DPP_ENABLE) & DPP_HDR_SEL_MASK);
 }
 #endif
+
 static void dpp_reg_set_img_size(u32 id, u32 w, u32 h)
 {
 	dpp_write(id, DPP_IMG_SIZE, DPP_IMG_HEIGHT(h) | DPP_IMG_WIDTH(w));
@@ -510,8 +499,7 @@ static void dpp_reg_set_format(u32 id, u32 fmt)
 {
 	dpp_write_mask(id, DPP_IN_CON, DPP_IMG_FORMAT(fmt), DPP_IMG_FORMAT_MASK);
 }
-
-#ifndef CONFIG_EXYNOS_MCD_HDR 
+#ifndef CONFIG_EXYNOS_MCD_HDR
 
 static void dpp_reg_set_eotf_lut(u32 id, struct dpp_params_info *p)
 {
@@ -1021,7 +1009,6 @@ void dpp_reg_init(u32 id, const unsigned long attr)
 		wb_mux_reg_set_dynamic_gating_en_all(id, 0); /* TODO: enable or disable ? */
 		wb_mux_reg_set_out_frame_alpha(id, 0xFF);
 	}
-
 }
 
 int dpp_reg_deinit(u32 id, bool reset, const unsigned long attr)
@@ -1085,11 +1072,9 @@ u32 pattern_data[] = {
 void dpp_reg_configure_params(u32 id, struct dpp_params_info *p,
 		const unsigned long attr)
 {
-
 #ifdef CONFIG_EXYNOS_MCD_HDR
-		dpp_reg_sel_hdr(id, HDR_PATH_MCD);
+	dpp_reg_sel_hdr(id, HDR_PATH_MCD);
 #endif
-
 	if (test_bit(DPP_ATTR_CSC, &attr) && test_bit(DPP_ATTR_DPP, &attr))
 		dpp_reg_set_csc_params(id, p->eq_mode);
 	else if (test_bit(DPP_ATTR_CSC, &attr) && test_bit(DPP_ATTR_ODMA, &attr))
@@ -1113,12 +1098,10 @@ void dpp_reg_configure_params(u32 id, struct dpp_params_info *p,
 
 	/* configure image format of IDMA, DPP, ODMA and WB MUX */
 	dma_dpp_reg_set_format(id, p, attr);
-	
 #ifndef CONFIG_EXYNOS_MCD_HDR
 	if (test_bit(DPP_ATTR_HDR, &attr))
 		dpp_reg_set_hdr_params(id, p);
 #endif
-
 	if (test_bit(DPP_ATTR_AFBC, &attr))
 		idma_reg_set_afbc(id, p->is_comp, p->rcv_num);
 

@@ -21,6 +21,11 @@
 #include "panel_drv.h"
 #include "panel_irc.h"
 
+static char *dim_type_str[MAX_DIM_TYPE_STR] = {
+	[DIM_TYPE_STR_TABLE] = "table",
+	[DIM_TYPE_STR_FLASH] = "flash",
+	[DIM_TYPE_STR_GM2] = "gm2",
+};
 
 #ifdef DEBUG_PAC
 static void print_tbl(int *tbl, int sz)
@@ -105,6 +110,9 @@ bool is_hbm_brightness(struct panel_bl_device *panel_bl, int brightness)
 	}
 
 	subdev = &panel_bl->subdev[panel_bl->props.id];
+	if (subdev->brt_tbl.control_type == BRIGHTNESS_CONTROL_TYPE_GAMMA_MODE2)
+		return (brightness > subdev->brt_tbl.brt[subdev->brt_tbl.sz_ui_brt - 1]);
+
 	luminance = get_actual_brightness(panel_bl, brightness);
 
 	sz_ui_lum = subdev->brt_tbl.sz_ui_lum;
@@ -130,6 +138,8 @@ bool is_ext_hbm_brightness(struct panel_bl_device *panel_bl, int brightness)
 	}
 
 	subdev = &panel_bl->subdev[panel_bl->props.id];
+	if (subdev->brt_tbl.control_type == BRIGHTNESS_CONTROL_TYPE_GAMMA_MODE2)
+		return false;
 	luminance = get_actual_brightness(panel_bl, brightness);
 
 	sz_ui_lum = subdev->brt_tbl.sz_ui_lum;
@@ -299,36 +309,39 @@ int get_actual_brightness_index(struct panel_bl_device *panel_bl, int brightness
 			panel_bl->props.id, brightness);
 }
 
-int get_brightness_pac_step(struct panel_bl_device *panel_bl, int brightness)
+int get_brightness_pac_step_by_subdev_id(struct panel_bl_device *panel_bl, int id, int brightness)
 {
-	int id, index;
+	int index;
 	struct panel_bl_sub_dev *subdev;
 
 	if (unlikely(!panel_bl)) {
-		pr_err("%s, invalid parameter\n", __func__);
+		pr_err("invalid parameter\n");
 		return -EINVAL;
 	}
 
-	id = panel_bl->props.id;
+	if (unlikely(id >= MAX_PANEL_BL_SUBDEV)) {
+		pr_err("invalid id %d\n", id);
+		return -EINVAL;
+	}
+
 	subdev = &panel_bl->subdev[id];
 
 	if (!is_valid_brightness(panel_bl, brightness)) {
-		pr_err("%s bl-%d invalid brightness\n", __func__, id);
+		pr_err("bl-%d invalid brightness\n", id);
 		return -EINVAL;
 	}
 
 	index = search_brt_to_step_tbl(&subdev->brt_tbl, brightness);
 	if (index < 0) {
-		pr_err("%s, failed to search %d, ret %d\n",
-				__func__, brightness, index);
+		pr_err("failed to search %d, ret %d\n", brightness, index);
 		print_tbl(subdev->brt_tbl.brt_to_step,
 				subdev->brt_tbl.sz_brt_to_step);
 		return index;
 	}
 
 #ifdef DEBUG_PAC
-	pr_info("%s, bl-%d brightness %d, pac step %d, brt %d\n",
-			__func__, id, brightness, index,
+	pr_info("bl-%d brightness %d, pac step %d, brt %d\n",
+			id, brightness, index,
 			subdev->brt_tbl.brt_to_step[index]);
 #endif
 
@@ -336,6 +349,19 @@ int get_brightness_pac_step(struct panel_bl_device *panel_bl, int brightness)
 		index = subdev->brt_tbl.sz_brt_to_step - 1;
 
 	return index;
+}
+
+int get_brightness_pac_step(struct panel_bl_device *panel_bl, int brightness)
+{
+	int id;
+
+	if (unlikely(!panel_bl)) {
+		pr_err("invalid parameter\n");
+		return -EINVAL;
+	}
+	id = panel_bl->props.id;
+
+	return get_brightness_pac_step_by_subdev_id(panel_bl, id, brightness);
 }
 
 int get_brightness_of_brt_to_step(struct panel_bl_device *panel_bl, int id, int brightness)
@@ -368,6 +394,10 @@ int get_subdev_actual_brightness(struct panel_bl_device *panel_bl, int id, int b
 		panel_err("%s bl-%d exceeded max subdev\n", __func__, id);
 		return -EINVAL;
 	}
+
+	/* return 0 if luminance table is invalid  */
+	if (panel_bl->subdev[id].brt_tbl.lum == NULL || panel_bl->subdev[id].brt_tbl.sz_lum == 0)
+		return 0;
 
 	index = get_subdev_actual_brightness_index(panel_bl, id, brightness);
 	if (index < 0) {
@@ -413,8 +443,8 @@ int get_subdev_actual_brightness_interpolation(struct panel_bl_device *panel_bl,
 	step = get_brightness_pac_step(panel_bl, brightness);
 	upper_step = get_brightness_pac_step(panel_bl, upper_brt);
 
-	return (lower_lum * 100) + (s32)((upper_step == lower_step) ? 0 :
-			((s64)(upper_lum - lower_lum) * (step - lower_step) * 100) /
+	return (lower_lum * CALC_SCALE) + (s32)((upper_step == lower_step) ? 0 :
+			((s64)(upper_lum - lower_lum) * (step - lower_step) * CALC_SCALE) /
 			(s64)(upper_step - lower_step));
 }
 
@@ -463,6 +493,13 @@ static void panel_bl_update_acl_state(struct panel_bl_device *panel_bl)
 		return;
 	}
 #endif
+#ifdef CONFIG_SUPPORT_MASK_LAYER
+	if (panel_bl->props.mask_layer_br_hook == MASK_LAYER_HOOK_ON) {
+		panel_bl->props.acl_opr = ACL_OPR_OFF;
+		panel_bl->props.acl_pwrsave = ACL_PWRSAVE_OFF;
+		return;
+	}
+#endif
 
 	if (is_hbm_brightness(panel_bl, panel_bl->props.brightness))
 		panel_bl->props.acl_opr = ACL_OPR_08P;
@@ -500,7 +537,7 @@ int panel_bl_update_average(struct panel_bl_device *panel_bl, size_t index)
 		return -EINVAL;
 
 	ktime_get_ts(&cur_ts);
-	cur_brt = panel_bl->props.actual_brightness_intrp / 100;
+	cur_brt = panel_bl->props.actual_brightness_intrp / CALC_SCALE;
 	timenval_update_snapshot(&panel_bl->tnv[index], cur_brt, cur_ts);
 
 	return 0;
@@ -545,8 +582,8 @@ int aor_interpolation(unsigned int *brt_tbl, unsigned int *lum_tbl,
 
 	upper_idx = search_tbl(brt_tbl, size, SEARCH_TYPE_UPPER, brightness);
 	lower_idx = max(0, (upper_idx - 1));
-	upper_lum = lum_tbl[upper_idx] * 100;
-	lower_lum = lum_tbl[lower_idx] * 100;
+	upper_lum = lum_tbl[upper_idx] * CALC_SCALE;
+	lower_lum = lum_tbl[lower_idx] * CALC_SCALE;
 	upper_brt = brt_tbl[upper_idx];
 	lower_brt = brt_tbl[lower_idx];
 	upper_aor = aor_tbl[upper_idx][0] << 8 | aor_tbl[upper_idx][1];
@@ -583,7 +620,7 @@ int aor_interpolation(unsigned int *brt_tbl, unsigned int *lum_tbl,
 	}
 
 	pr_debug("aor: brightness %3d.%02d lum %3lld aor %2lld.%02lld, vbase_lum %3lld.%04lld, intrp_brt %3lld.%03lld, aor(%2lld.%02lld %3lld %04X)\n",
-			brightness / 100, brightness % 100, upper_lum / 100, upper_aor_ratio / 100, upper_aor_ratio % 100,
+			brightness / CALC_SCALE, brightness % CALC_SCALE, upper_lum / CALC_SCALE, upper_aor_ratio / CALC_SCALE, upper_aor_ratio % CALC_SCALE,
 			vbase_lum / disp_pow(10, 4), vbase_lum % disp_pow(10, 4),
 			intrp_brt / disp_pow(10, 6), intrp_brt % disp_pow(10, 6) / disp_pow(10, 3),
 			aor_ratio / disp_pow(10, 2), aor_ratio % disp_pow(10, 2), aor, (int)aor);
@@ -634,6 +671,7 @@ int panel_bl_set_brightness(struct panel_bl_device *panel_bl, int id, int force)
 	struct panel_bl_sub_dev *subdev;
 	struct panel_device *panel;
 	int luminance_interp = 0;
+	u32 dim_type;
 
 	if (panel_bl == NULL) {
 		panel_err("PANEL:ERR:%s:panel is null\n", __func__);
@@ -661,6 +699,7 @@ int panel_bl_set_brightness(struct panel_bl_device *panel_bl, int id, int force)
 	}
 	ilum = get_actual_brightness_index(panel_bl, brightness);
 	luminance = get_actual_brightness(panel_bl, brightness);
+	ilum = get_actual_brightness_index(panel_bl, brightness);
 	step = get_brightness_pac_step(panel_bl, brightness);
 	if (step < 0) {
 		pr_err("%s bl-%d invalid pac stap %d\n", __func__, id, step);
@@ -676,18 +715,21 @@ int panel_bl_set_brightness(struct panel_bl_device *panel_bl, int id, int force)
 	panel_bl->props.step = step;
 	panel_bl->props.brightness_of_step = subdev->brt_tbl.brt_to_step[step];
 	panel_bl_update_acl_state(panel_bl);
-
-	pr_info("%s bl-%d dim:%s plat_br:%d br[%d]:%d nit:%d(%u.%02u) acl:%s(%d)\n",
-			__func__, id,
+	dim_type = DIM_TYPE_STR_TABLE;
 #ifdef CONFIG_SUPPORT_DIM_FLASH
-			panel->panel_data.props.cur_dim_type ? "flash" : "table",
-#else
-			"table",
+	if (panel->panel_data.props.cur_dim_type)
+		dim_type = DIM_TYPE_STR_FLASH;
 #endif
+	if (subdev->brt_tbl.control_type == BRIGHTNESS_CONTROL_TYPE_GAMMA_MODE2)
+		dim_type = DIM_TYPE_STR_GM2;
+
+	pr_info("%s bl-%d dim:%s plat_br:%d br[%d]:%d nit:%d(%u.%02u) acl:%s(%d)\n", __func__, id,
+			((dim_type < MAX_DIM_TYPE_STR) ? dim_type_str[dim_type] : "invalid"),
 			brightness, step, subdev->brt_tbl.brt_to_step[step],
-			luminance, luminance_interp / 100, luminance_interp % 100,
+			luminance, luminance_interp / CALC_SCALE, luminance_interp % CALC_SCALE,
 			panel_bl->props.acl_pwrsave ? "on" : "off",
 			panel_bl->props.acl_opr);
+
 
 	if (unlikely(!force || !luminance))
 		goto set_br_exit;
@@ -730,8 +772,21 @@ int panel_update_brightness(struct panel_device *panel)
 	struct backlight_device *bd = panel_bl->bd;
 
 	mutex_lock(&panel_bl->lock);
+	if (bd == NULL) {
+		pr_info("%s panel_bl not prepared\n", __func__);
+		mutex_unlock(&panel_bl->lock);
+		return -ENODEV;
+	}
 	mutex_lock(&panel->op_lock);
 	brightness = bd->props.brightness;
+#ifdef CONFIG_SUPPORT_MASK_LAYER
+	if (panel_bl->props.mask_layer_br_hook == MASK_LAYER_HOOK_ON) {
+		brightness = panel_bl->props.mask_layer_br_target;
+		panel_info("mask_layer_br_hook (%d)->(%d)\n",
+			bd->props.brightness, panel_bl->props.mask_layer_br_target);
+	}
+#endif
+
 	id = panel_bl->props.id;
 	if (!is_valid_brightness(panel_bl, brightness)) {
 		pr_alert("Brightness %d is out of range\n", brightness);
@@ -743,19 +798,23 @@ int panel_update_brightness(struct panel_device *panel)
 #ifdef CONFIG_SUPPORT_AOD_BL
 	panel_bl->subdev[PANEL_BL_SUBDEV_TYPE_AOD].brightness = brightness;
 #endif
-
+#ifdef CONFIG_SUPPORT_HMD
 	if (id == PANEL_BL_SUBDEV_TYPE_HMD) {
 		pr_info("%s keep plat_br:%d\n", __func__, brightness);
 		ret = -EINVAL;
 		goto exit_set;
 	}
-
+#endif
 	ret = panel_bl_set_brightness(panel_bl, id, 1);
 	if (ret) {
 		pr_err("%s, failed to set_brightness (ret %d)\n",
 				__func__, ret);
 		goto exit_set;
 	}
+
+#ifdef CONFIG_SUPPORT_MASK_LAYER
+	panel_bl->props.last_br_update_time = ktime_get();
+#endif
 
 exit_set:
 	mutex_unlock(&panel->op_lock);
@@ -852,6 +911,7 @@ int panel_bl_probe(struct panel_device *panel)
 		get_subdev_max_brightness(panel_bl, panel_bl->props.id);
 	panel_bl->props.acl_pwrsave = ACL_PWRSAVE_OFF;
 	panel_bl->props.acl_opr = ACL_OPR_OFF;
+//	panel_bl->props.smooth_transition = SMOOTH_TRANS_ON;
 
 #if defined(CONFIG_PANEL_BL_USE_BRT_CACHE)
 	for (id = 0; id < MAX_PANEL_BL_SUBDEV; id++) {

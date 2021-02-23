@@ -23,6 +23,7 @@
 
 #define FIMC_IS_MAX_PRIO	(MAX_RT_PRIO)
 #define NI_BACKUP_MAX		32
+#define INTENT_RETRY_CNT	1
 
 /*
  * =================================================================================================

@@ -26,8 +26,22 @@
 #define SEC_NFC_SLEEP			_IOW(SEC_NFC_MAGIC, 2, unsigned int)
 #define SEC_NFC_WAKEUP			_IOW(SEC_NFC_MAGIC, 3, unsigned int)
 #define SEC_NFC_SET_NPT_MODE		_IOW(SEC_NFC_MAGIC, 4, unsigned int)
+#ifdef CONFIG_ESE_COLDRESET
+#define SEC_NFC_COLD_RESET              _IOW(SEC_NFC_MAGIC, 5, unsigned int)
+#endif
 
 #define SEC_NFC_DEBUG			_IO(SEC_NFC_MAGIC, 99)
+
+#ifndef CONFIG_SEC_NFC_LOGGER
+#define NFC_LOG_ERR(fmt, ...)		pr_err("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_INFO(fmt, ...)		pr_info("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_DBG(fmt, ...)		pr_debug("sec_nfc: "fmt, ##__VA_ARGS__)
+#define NFC_LOG_REC(fmt, ...)		do { } while (0)
+
+#define nfc_print_hex_dump(a, b, c)	do { } while (0)
+#define nfc_logger_init()		do { } while (0)
+#define nfc_logger_set_max_count(a)	do { } while (0)
+#endif
 
 /* size */
 #define SEC_NFC_MSG_MAX_SIZE	(256 + 4)
@@ -46,8 +60,14 @@ struct sec_nfc_platform_data {
 	int ven;
 	int firm;
 	int wake;
+	int pvdd;
 	unsigned int tvdd;
 	unsigned int avdd;
+	bool clk_req_wake;
+	bool irq_all_trigger;
+#ifdef CONFIG_ESE_COLDRESET
+  unsigned int coldreset;
+#endif
 
 	unsigned int clk_req;
 	struct   clk *clk;
@@ -56,11 +76,13 @@ struct sec_nfc_platform_data {
 	u32 ven_gpio_flags;
 	u32 firm_gpio_flags;
 	u32 irq_gpio_flags;
-// [START] NPT
+/*[START] NPT*/
 	unsigned int npt;
 	u32 npt_gpio_flags;
-// [END] NPT
-	const char *nfc_pvdd;
+/*[END] NPT*/
+	struct regulator *nfc_pvdd;
+	int bootloader_ver; /* used for nfc test */
+	int i2c_switch; /*i2c swicth on_off gpio*/
 };
 
 enum sec_nfc_mode {
@@ -85,14 +107,27 @@ enum sec_nfc_wake {
 	SEC_NFC_WAKE_UP,
 };
 
-// [START] NPT
+/*[START] NPT*/
 enum sec_nfc_npt_mode {
 	SEC_NFC_NPT_OFF = 0,
 	SEC_NFC_NPT_ON,
 	SEC_NFC_NPT_CMD_ON = 0x7E,
 	SEC_NFC_NPT_CMD_OFF,
 };
-// [END] NPT
+/*[END] NPT*/
+
+#ifdef CONFIG_ESE_COLDRESET
+/*[START] COLDRESET*/
+enum sec_nfc_coldreset{
+	SEC_NFC_COLDRESET_OFF = 0,
+	SEC_NFC_COLDRESET_ON,
+};
+
+#define FIRMWARE_GUARD_TIME (4)
+#define DEVICEHOST_ID (0x00)
+#define ESE_ID (0x02)
+/*[END] COLDRESET*/
+#endif
 
 extern unsigned int lpcharge;
 #define NFC_I2C_LDO_ON  1

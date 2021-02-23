@@ -20,7 +20,7 @@ typedef enum {
 	DD_REQ_FINISHING,
 	DD_REQ_UNALLOCATED,
 	DD_REQ_COUNT
-}dd_req_state_t;
+} dd_req_state_t;
 
 struct dd_benchmark_result {
 	unsigned long count;
@@ -31,7 +31,7 @@ struct dd_benchmark_result {
 };
 
 struct dd_benchmark {
-	struct timeval stage[DD_REQ_COUNT];
+	struct timespec stage[DD_REQ_COUNT];
 };
 
 struct dd_context {
@@ -119,19 +119,19 @@ struct dd_req {
 	union {
 		struct {
 			struct page *metadata;
-		}prepare;
+		} prepare;
 
 		struct {
 			dd_crypto_direction_t dir;
 			struct page *src_page;
 			struct page *dst_page;
-		}page;
+		} page;
 
 		struct {
 			struct bio *orig;
 			struct bio *clone;
-		}bio;
-	}u;
+		} bio;
+	} u;
 
 	struct work_struct decryption_work;
 	struct work_struct delayed_free_work;
@@ -139,28 +139,30 @@ struct dd_req {
 	struct dd_benchmark bm;
 };
 
-#define usec(t) (t.tv_sec * 1000000 + t.tv_usec)
+#define nsec(t) (t.tv_sec * 1000000000 + t.tv_nsec)
 
-static inline void dd_req_state(struct dd_req *req, dd_req_state_t state) {
+static inline void dd_req_state(struct dd_req *req, dd_req_state_t state)
+{
 	if (dd_debug_bit_test(DD_DEBUG_BENCHMARK)) {
 
 		if (state == DD_REQ_INIT)
 			memset((void *)&req->bm, 0, sizeof(struct dd_benchmark));
 
-		do_gettimeofday(&req->bm.stage[state]);
+		getnstimeofday(&req->bm.stage[state]);
 	}
 
 	req->state = state;
 }
 
-static inline void dd_submit_benchmark(struct dd_benchmark *bm, struct dd_context *context) {
+static inline void dd_submit_benchmark(struct dd_benchmark *bm, struct dd_context *context)
+{
 	int i;
 
 	if (dd_debug_bit_test(DD_DEBUG_BENCHMARK)) {
 		spin_lock(&context->bm_result.lock);
-		for (i=1; i < DD_REQ_COUNT ; i++) {
+		for (i = 1; i < DD_REQ_COUNT; i++) {
 			long avg = context->bm_result.data[i];
-			long val = usec(bm->stage[i]) - usec(bm->stage[DD_REQ_INIT]);
+			long val = nsec(bm->stage[i]) - nsec(bm->stage[DD_REQ_INIT]);
 			long div = context->bm_result.count + 1;
 			context->bm_result.data[i] = avg + ((val - avg) / div);
 		}
@@ -169,7 +171,8 @@ static inline void dd_submit_benchmark(struct dd_benchmark *bm, struct dd_contex
 	}
 }
 
-static inline void dd_dump_benchmark(struct dd_benchmark_result *bm_result) {
+static inline void dd_dump_benchmark(struct dd_benchmark_result *bm_result)
+{
 	if (dd_debug_bit_test(DD_DEBUG_BENCHMARK) &&
 			__ratelimit(&bm_result->ratelimit_state)) {
 		spin_lock(&bm_result->lock);
@@ -206,6 +209,6 @@ int dd_write_crypt_context(struct inode *inode, const struct dd_crypt_context *c
 int dd_read_crypto_metadata(struct inode *inode, const char *name, void *buffer, size_t buffer_size);
 int dd_write_crypto_metadata(struct inode *inode, const char *name, const void *buffer, size_t len);
 
-void dd_hex_key_dump(const char* tag, uint8_t *data, size_t data_len);
+void dd_hex_key_dump(const char *tag, uint8_t *data, unsigned int data_len);
 
 #endif /* SECURITY_SDP_DD_COMMON_H_ */

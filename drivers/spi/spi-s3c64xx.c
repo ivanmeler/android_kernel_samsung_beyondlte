@@ -1225,7 +1225,7 @@ static int s3c64xx_spi_setup(struct spi_device *spi)
 		dev_err(&spi->dev, "No CS for SPI(%d)\n", spi->chip_select);
 		return -ENODEV;
 	}
-	
+
 #ifdef ENABLE_SENSORS_FPRINT_SECURE
 	if (sdd->port_id == CONFIG_SENSORS_FP_SPI_NUMBER) {
 		dev_info(&spi->dev,
@@ -1234,13 +1234,6 @@ static int s3c64xx_spi_setup(struct spi_device *spi)
 	}
 #endif
 
-#ifdef CONFIG_ESE_SECURE
-	if (sdd->port_id == CONFIG_ESE_SECURE_SPI_PORT) {
-		dev_info(&spi->dev,
-			"spi configuration for secure channel is skipped(eSE)\n");
-		return 0;
-	}
-#endif
 	if (!spi_get_ctldata(spi)) {
 		if(cs->line != 0) {
 			err = gpio_request_one(cs->line, GPIOF_OUT_INIT_HIGH,
@@ -1411,15 +1404,10 @@ static void exynos_usi_init(struct s3c64xx_spi_driver_data *sdd)
 	 * Due to this feature, the USI_RESET must be cleared (set as '0')
 	 * before transaction starts.
 	 */
-#ifdef CONFIG_ESE_SECURE
-	if (sdd->port_id == CONFIG_ESE_SECURE_SPI_PORT)
-		return;
-#endif
 #ifdef ENABLE_SENSORS_FPRINT_SECURE
 	if (sdd->port_id == CONFIG_SENSORS_FP_SPI_NUMBER)
 		return;
 #endif
-
 	writel(USI_RESET, regs + USI_CON);
 }
 
@@ -1429,10 +1417,6 @@ static void s3c64xx_spi_hwinit(struct s3c64xx_spi_driver_data *sdd, int channel)
 	void __iomem *regs = sdd->regs;
 	unsigned int val;
 
-#ifdef CONFIG_ESE_SECURE
-	if (channel == CONFIG_ESE_SECURE_SPI_PORT)
-		return;
-#endif
 #ifdef ENABLE_SENSORS_FPRINT_SECURE
 	if (channel == CONFIG_SENSORS_FP_SPI_NUMBER)
 		return;
@@ -1792,18 +1776,14 @@ static int s3c64xx_spi_probe(struct platform_device *pdev)
 	}
 
 	if (1
-#ifdef CONFIG_ESE_SECURE
-			&& (sdd->port_id != CONFIG_ESE_SECURE_SPI_PORT)
-#endif
 #ifdef ENABLE_SENSORS_FPRINT_SECURE
 			&& (sdd->port_id != CONFIG_SENSORS_FP_SPI_NUMBER)
 #endif
-	) {	
+		) {
 		writel(S3C64XX_SPI_INT_RX_OVERRUN_EN | S3C64XX_SPI_INT_RX_UNDERRUN_EN |
-	       S3C64XX_SPI_INT_TX_OVERRUN_EN | S3C64XX_SPI_INT_TX_UNDERRUN_EN,
-	       sdd->regs + S3C64XX_SPI_INT_EN);
+			S3C64XX_SPI_INT_TX_OVERRUN_EN | S3C64XX_SPI_INT_TX_UNDERRUN_EN,
+			sdd->regs + S3C64XX_SPI_INT_EN);
 	}
-
 #ifdef CONFIG_PM
 	pm_runtime_mark_last_busy(&pdev->dev);
 	pm_runtime_put_sync(&pdev->dev);

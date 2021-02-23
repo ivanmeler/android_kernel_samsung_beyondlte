@@ -8,6 +8,7 @@ obj-$(CONFIG_CAMERA_ACT_DW9714_OBJ) += fimc-is-actuator-dw9714.o
 obj-$(CONFIG_CAMERA_ACT_DW9780_OBJ) += fimc-is-actuator-dw9780.o
 obj-$(CONFIG_CAMERA_ACT_DW9804_OBJ) += fimc-is-actuator-dw9804.o
 obj-$(CONFIG_CAMERA_ACT_DW9807_OBJ) += fimc-is-actuator-dw9807.o
+obj-$(CONFIG_CAMERA_ACT_DW9818_OBJ) += fimc-is-actuator-dw9818.o
 obj-$(CONFIG_CAMERA_ACT_LC898217_OBJ) += fimc-is-actuator-lc898217.o
 obj-$(CONFIG_CAMERA_ACT_ZC533_OBJ) += fimc-is-actuator-zc533.o
 obj-$(CONFIG_CAMERA_ACT_ZC569_OBJ) += fimc-is-actuator-zc569.o

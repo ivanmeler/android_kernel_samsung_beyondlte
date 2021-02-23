@@ -30,16 +30,14 @@
 #include <linux/platform_device.h>
 #include <linux/rfkill.h>
 #include <linux/serial_core.h>
-#include <linux/wakelock.h>
+#include <linux/pm_wakeup.h>
 #include <linux/of_gpio.h>
 #include <linux/of.h>
 #include <linux/serial_s3c.h>
 #include <soc/samsung/exynos-cpupm.h>
 
 //#include <../../arch/arm/include/asm/mach-types.h>
-
 //#include <../../arch/arm/mach-exynos/include/mach/gpio.h>
-//#include <plat/gpio-cfg.h>
 
 #define BT_LPM_ENABLE
 
@@ -64,8 +62,8 @@ struct bcm_bt_lpm {
 
 	struct uart_port *uport;
 
-	struct wake_lock host_wake_lock;
-	struct wake_lock bt_wake_lock;
+	struct wakeup_source *host_ws;
+	struct wakeup_source *bt_ws;
 } bt_lpm;
 
 struct bcm_bt_gpio {
@@ -75,7 +73,7 @@ struct bcm_bt_gpio {
 	int irq;
 } bt_gpio;
 
-int idle_ip_index;
+int idle_btip_index;
 
 static int bcm43xx_bt_rfkill_set_power(void *data, bool blocked)
 {
@@ -94,8 +92,9 @@ static int bcm43xx_bt_rfkill_set_power(void *data, bool blocked)
 		gpio_set_value(bt_gpio.bt_wake, 1);
 #endif
 		gpio_set_value(bt_gpio.bt_en, 1);
-		exynos_update_ip_idle_status(idle_ip_index, STATUS_BUSY);
-
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
+		exynos_update_ip_idle_status(idle_btip_index, STATUS_BUSY);
+#endif
 		msleep(100);
 
 	} else {
@@ -107,8 +106,9 @@ static int bcm43xx_bt_rfkill_set_power(void *data, bool blocked)
 			return -1;
 		}
 #endif
-
-		exynos_update_ip_idle_status(idle_ip_index, STATUS_IDLE);
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
+		exynos_update_ip_idle_status(idle_btip_index, STATUS_IDLE);
+#endif
 		gpio_set_value(bt_gpio.bt_en, 0);
 	}
 	return 0;
@@ -126,7 +126,7 @@ static void set_wake_locked(int wake)
 #endif
 
 	if (wake)
-		wake_lock(&bt_lpm.bt_wake_lock);
+		__pm_stay_awake(bt_lpm.bt_ws);
 
 	gpio_set_value(bt_gpio.bt_wake, wake);
 	bt_lpm.dev_wake = wake;
@@ -154,10 +154,12 @@ static enum hrtimer_restart enter_lpm(struct hrtimer *timer)
 	if (bt_lpm.uport != NULL)
 		set_wake_locked(0);
 
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
     if (bt_lpm.host_wake == 0)
-	    exynos_update_ip_idle_status(idle_ip_index, STATUS_IDLE);
+	    exynos_update_ip_idle_status(idle_btip_index, STATUS_IDLE);
+#endif
 
-	wake_lock_timeout(&bt_lpm.bt_wake_lock, HZ/2);
+	__pm_wakeup_event(bt_lpm.bt_ws, HZ/2);
 
 	return HRTIMER_NORESTART;
 }
@@ -168,10 +170,12 @@ void bcm_bt_lpm_exit_lpm_locked(struct uart_port *uport)
 
 	hrtimer_try_to_cancel(&bt_lpm.enter_lpm_timer);
 
-	exynos_update_ip_idle_status(idle_ip_index, STATUS_BUSY);
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
+	exynos_update_ip_idle_status(idle_btip_index, STATUS_BUSY);
+#endif
 	set_wake_locked(1);
 
-//	pr_info("[BT] bcm_bt_lpm_exit_lpm_locked\n");
+	//pr_err("[BT] bcm_bt_lpm_exit_lpm_locked\n");
 	hrtimer_start(&bt_lpm.enter_lpm_timer, bt_lpm.enter_lpm_delay,
 		HRTIMER_MODE_REL);
 }
@@ -184,18 +188,22 @@ static void update_host_wake_locked(int host_wake)
 	bt_lpm.host_wake = host_wake;
 
 	if (host_wake) {
-        exynos_update_ip_idle_status(idle_ip_index, STATUS_BUSY);
-		wake_lock(&bt_lpm.host_wake_lock);
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
+	exynos_update_ip_idle_status(idle_btip_index, STATUS_BUSY);
+#endif
+		__pm_stay_awake(bt_lpm.host_ws);
 	} else  {
 		/* Take a timed wakelock, so that upper layers can take it.
 		 * The chipset deasserts the hostwake lock, when there is no
 		 * more data to send.
 		 */
 		pr_info("[BT] update_host_wake_locked host_wake is deasserted. release wakelock in 1s\n");
-		wake_lock_timeout(&bt_lpm.host_wake_lock, HZ);
+		__pm_wakeup_event(bt_lpm.host_ws, HZ);
 
-        if (bt_lpm.dev_wake == 0)
-            exynos_update_ip_idle_status(idle_ip_index, STATUS_IDLE);
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
+		if (bt_lpm.dev_wake == 0)
+			exynos_update_ip_idle_status(idle_btip_index, STATUS_IDLE);
+#endif
 	}
 }
 
@@ -242,12 +250,11 @@ static int bcm_bt_lpm_init(struct platform_device *pdev)
 
 	bt_lpm.host_wake = 0;
 
-	wake_lock_init(&bt_lpm.host_wake_lock, WAKE_LOCK_SUSPEND,
-			 "BT_host_wake");
-	wake_lock_init(&bt_lpm.bt_wake_lock, WAKE_LOCK_SUSPEND,
-			 "BT_bt_wake");
+	bt_lpm.host_ws = wakeup_source_register(&pdev->dev, "BT_host_wake");
+	bt_lpm.bt_ws = wakeup_source_register(&pdev->dev, "BT_bt_wake");
 
 	s3c2410_serial_wake_peer[BT_UPORT] = (s3c_wake_peer_t) bcm_bt_lpm_exit_lpm_locked;
+
 
 	bt_gpio.irq = gpio_to_irq(bt_gpio.bt_hostwake);
 	ret = request_irq(bt_gpio.irq, host_wake_isr, IRQF_TRIGGER_RISING,
@@ -356,8 +363,11 @@ static int bcm43xx_bluetooth_probe(struct platform_device *pdev)
 		gpio_free(bt_gpio.bt_en);
 	}
 #endif
-	idle_ip_index = exynos_get_idle_ip_index("bluetooth");
-    exynos_update_ip_idle_status(idle_ip_index, STATUS_IDLE);
+
+#if IS_ENABLED(CONFIG_EXYNOS_CPUPM)
+	idle_btip_index = exynos_get_idle_ip_index("bluetooth",1);
+    exynos_update_ip_idle_status(idle_btip_index, STATUS_IDLE);
+#endif
 
 	pr_info("[BT] bcm43xx_bluetooth_probe End \n");
 
@@ -373,8 +383,8 @@ static int bcm43xx_bluetooth_remove(struct platform_device *pdev)
 	gpio_free(bt_gpio.bt_wake);
 	gpio_free(bt_gpio.bt_hostwake);
 
-	wake_lock_destroy(&bt_lpm.host_wake_lock);
-	wake_lock_destroy(&bt_lpm.bt_wake_lock);
+	wakeup_source_unregister(bt_lpm.host_ws);
+	wakeup_source_unregister(bt_lpm.bt_ws);
 
 	return 0;
 }
@@ -392,14 +402,35 @@ static struct platform_driver bcm43xx_bluetooth_platform_driver = {
 	.probe = bcm43xx_bluetooth_probe,
 	.remove = bcm43xx_bluetooth_remove,
 	.driver = {
-		   .name = "bcm43xx_bluetooth",
-		   .owner = THIS_MODULE,
-		   .of_match_table = exynos_bluetooth_match,
-		   },
+		.name = "bcm43xx_bluetooth",
+			.owner = THIS_MODULE,
+			.of_match_table = of_match_ptr(exynos_bluetooth_match),
+		},
 };
 
-module_platform_driver(bcm43xx_bluetooth_platform_driver);
-//#endif
+static int __init bcm43xx_bluetooth_init(void)
+{
+	int ret;
+
+	pr_err("[BT] %s\n", __func__);
+
+	ret = platform_driver_register(&bcm43xx_bluetooth_platform_driver);
+	if (ret) {
+		pr_err("[BT] %s failed\n", __func__);
+	}
+	return ret;
+}
+
+static void __exit bcm43xx_bluetooth_exit(void)
+{
+	platform_driver_unregister(&bcm43xx_bluetooth_platform_driver);
+}
+
+module_init(bcm43xx_bluetooth_init);
+module_exit(bcm43xx_bluetooth_exit);
+
+//module_platform_driver(bcm43xx_bluetooth_platform_driver);
+
 MODULE_ALIAS("platform:bcm43xx");
 MODULE_DESCRIPTION("bcm43xx_bluetooth");
 MODULE_LICENSE("GPL");

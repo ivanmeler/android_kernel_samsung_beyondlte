@@ -35,7 +35,6 @@
 
 static int last_max_limit = -1;
 static int sse_mode;
-static int sse_mode_game;
 
 static ssize_t show_cpufreq_table(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buf)
@@ -186,7 +185,6 @@ static ssize_t store_cpufreq_min_limit(struct kobject *kobj,
 				req_limit_freq = min(req_limit_freq, domain->max_freq);
 			else
 				req_limit_freq = domain->max_freq;
-
 			pm_qos_update_request(&domain->user_min_qos_req, req_limit_freq);
 			set_limit = false;
 			continue;
@@ -247,17 +245,10 @@ static ssize_t store_cpufreq_min_limit(struct kobject *kobj,
 		freq = min(freq, domain->max_freq);
 		pm_qos_update_request(&domain->user_min_qos_req, freq);
 
-		if ((domain->user_boost == 3) && sse_mode_game) {
-			kpp_request(STUNE_TOPAPP, &kpp_ta, domain->user_boost_game);
-			kpp_request(STUNE_FOREGROUND, &kpp_fg, domain->user_boost_game);
-			ucc_requested_val = domain->ucc_index;
-			ucc_update_request(&ucc_req, ucc_requested_val);
-		} else {
-			kpp_request(STUNE_TOPAPP, &kpp_ta, domain->user_boost);
-			kpp_request(STUNE_FOREGROUND, &kpp_fg, domain->user_boost);
-			ucc_requested_val = domain->ucc_index;
-			ucc_update_request(&ucc_req, ucc_requested_val);
-		}
+		kpp_request(STUNE_TOPAPP, &kpp_ta, domain->user_boost);
+		kpp_request(STUNE_FOREGROUND, &kpp_fg, domain->user_boost);
+		ucc_requested_val = domain->ucc_index;
+		ucc_update_request(&ucc_req, ucc_requested_val);
 
 		if (is_lit_on)
 			set_max = true;
@@ -612,13 +603,14 @@ static ssize_t store_execution_mode_change(struct kobject *kobj, struct kobj_att
 static ssize_t show_cstate_control(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buf)
 {
-    return snprintf(buf, 10, "%d\n", ucc_requested);
+	return snprintf(buf, 10, "%d\n", ucc_requested);
 }
 
 static ssize_t store_cstate_control(struct kobject *kobj, struct kobj_attribute *attr,
 					const char *buf, size_t count)
 {
 	int input;
+
 	if (!sscanf(buf, "%8d", &input))
 		return -EINVAL;
 
@@ -626,7 +618,6 @@ static ssize_t store_cstate_control(struct kobject *kobj, struct kobj_attribute 
 		return -EINVAL;
 
 	input = !!input;
-
 	if (input == ucc_requested)
 		goto out;
 
@@ -638,32 +629,6 @@ static ssize_t store_cstate_control(struct kobject *kobj, struct kobj_attribute 
 		ucc_remove_request(&ucc_req);
 
 out:
-	return count;
-}
-
-static ssize_t show_boost_mode_change(struct kobject *kobj,
-				struct kobj_attribute *attr, char *buf)
-{
-	return snprintf(buf, 10, "%d\n",sse_mode_game);
-}
-
-static ssize_t store_boost_mode_change(struct kobject *kobj, struct kobj_attribute *attr,
-					const char *buf, size_t count)
-{
-	int input;
-	int prev_mode;
-
-	if (!sscanf(buf, "%8d", &input))
-		return -EINVAL;
-
-	prev_mode = sse_mode_game;
-	sse_mode_game = !!input;
-
-	if (prev_mode != sse_mode_game) {
-		if (last_max_limit != -1)
-			cpufreq_max_limit_update(last_max_limit);
-	}
-
 	return count;
 }
 
@@ -683,9 +648,6 @@ __ATTR(execution_mode_change, 0644,
 		show_execution_mode_change, store_execution_mode_change);
 static struct kobj_attribute cstate_control =
 __ATTR(cstate_control, 0644, show_cstate_control, store_cstate_control);
-static struct kobj_attribute boost_mode_change =
-__ATTR(boost_mode_change, 0644,
-		show_boost_mode_change, store_boost_mode_change);
 
 static __init void init_sysfs(void)
 {
@@ -702,14 +664,10 @@ static __init void init_sysfs(void)
 		pr_err("failed to create cpufreq_max_limit node\n");
 
 	if (sysfs_create_file(power_kobj, &execution_mode_change.attr))
-		pr_err("failed to create execution_mode_change node\n");
+		pr_err("failed to create cpufreq_max_limit node\n");
 
 	if (sysfs_create_file(power_kobj, &cstate_control.attr))
 		pr_err("failed to create cstate_control node\n");
-
-	if (sysfs_create_file(power_kobj, &boost_mode_change.attr))
-		pr_err("failed to create boost_mode_change node\n");
-
 }
 
 static int parse_ufc_ctrl_info(struct exynos_cpufreq_domain *domain,
@@ -725,9 +683,6 @@ static int parse_ufc_ctrl_info(struct exynos_cpufreq_domain *domain,
 
 	if (!of_property_read_u32(dn, "ucc-index", &val))
 		domain->ucc_index = val;
-
-	if (!of_property_read_u32(dn, "user-boost-game", &val))
-		domain->user_boost_game = val;
 
 	return 0;
 }

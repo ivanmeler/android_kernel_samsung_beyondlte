@@ -108,6 +108,13 @@ static void dbg_snapshot_report_reason(unsigned int val)
 		__raw_writel(val, dbg_snapshot_get_base_vaddr() + DSS_OFFSET_EMERGENCY_REASON);
 }
 
+void dbg_snapshot_set_debug_level_reg(void)
+{
+	if (dbg_snapshot_get_enable("header"))
+		__raw_writel(dss_desc.debug_level | DSS_DEBUG_LEVEL_PREFIX,
+			dbg_snapshot_get_base_vaddr() + DSS_OFFSET_DEBUG_LEVEL);
+}
+
 int dbg_snapshot_get_debug_level_reg(void)
 {
 	int ret = DSS_DEBUG_LEVEL_MID;
@@ -148,6 +155,12 @@ void dbg_snapshot_scratch_reg(unsigned int val)
 	if (dbg_snapshot_get_enable("header"))
 		__raw_writel(val, dbg_snapshot_get_base_vaddr() + DSS_OFFSET_SCRATCH);
 }
+
+void dbg_snapshot_scratch_clear(void)
+{
+	dbg_snapshot_scratch_reg(DSS_SIGN_RESET);
+}
+EXPORT_SYMBOL(dbg_snapshot_scratch_clear);
 
 bool dbg_snapshot_is_scratch(void)
 {
@@ -504,11 +517,12 @@ int dbg_snapshot_post_panic(void)
 		}
 #endif
 	}
-	dss_soc_ops->soc_post_panic_exit(NULL);
 
 #ifdef CONFIG_SEC_DEBUG
 	sec_debug_post_panic_handler();
 #endif
+
+	dss_soc_ops->soc_post_panic_exit(NULL);
 
 	/* for stall cpu when not enabling panic reboot */
 	dbg_snapshot_spin_func();

@@ -296,14 +296,6 @@ struct sec_debug_buf {
 	unsigned long size;
 };
 
-struct outbuf {
-	char buf[SZ_1K];
-	int index;
-	int already;
-};
-
-void secdbg_write_buf(struct outbuf *obuf, int len, const char *fmt, ...);
-
 struct sec_debug_map {
 	struct sec_debug_buf buf[NR_SDN_MAP];
 };
@@ -375,6 +367,11 @@ extern struct bad_stack_info *sec_debug_get_bs_info(void);
 extern void *sec_debug_get_debug_base(int type);
 extern unsigned long sec_debug_get_buf_base(int type);
 extern unsigned long sec_debug_get_buf_size(int type);
+
+#define ENABLE_SDCARD_RAMDUMP		(0x73646364)
+#define MAGIC_SDR_FOR_MINFORM		(0x3)
+#define OFFSET_SDR_FOR_MINFORM		(0x0)
+#define MASK_SDR_FOR_MINFORM		(0xF)
 
 extern void sec_set_reboot_magic(int magic, int offset, int mask);
 
@@ -544,6 +541,28 @@ extern void sec_debug_set_extra_info_epd(char *str);
  * SEC DEBUG AUTO COMMENT
  */
 
+#define SEC_DEBUG_AUTO_COMM_BUF_SIZE 10
+
+struct sec_debug_auto_comm_buf {
+	int reserved_0;
+	int reserved_1;
+	int reserved_2;
+	unsigned int offset;
+	char buf[SZ_4K];
+};
+
+struct sec_debug_auto_comment {
+	int header_magic;
+	int fault_flag;
+	int lv5_log_cnt;
+	u64 lv5_log_order;
+	int order_map_cnt;
+	int order_map[SEC_DEBUG_AUTO_COMM_BUF_SIZE];
+	struct sec_debug_auto_comm_buf auto_comm_buf[SEC_DEBUG_AUTO_COMM_BUF_SIZE];
+
+	int tail_magic;
+};
+
 #ifdef CONFIG_SEC_DEBUG_AUTO_COMMENT
 #define AC_SIZE 0xf3c
 #define AC_MAGIC 0xcafecafe
@@ -563,8 +582,6 @@ enum {
 	PRIO_LV9
 };
 
-#define SEC_DEBUG_AUTO_COMM_BUF_SIZE 10
-
 enum sec_debug_FREQ_INFO {
 	FREQ_INFO_CLD0 = 0,
 	FREQ_INFO_CLD1,
@@ -573,30 +590,10 @@ enum sec_debug_FREQ_INFO {
 	FREQ_INFO_MAX,
 };
 
-struct sec_debug_auto_comm_buf {
-	int reserved_0;
-	int reserved_1;
-	int reserved_2;
-	unsigned int offset;
-	char buf[SZ_4K];
-};
-
 struct sec_debug_auto_comm_log_idx {
 	atomic_t logging_entry;
 	atomic_t logging_disable;
 	atomic_t logging_count;
-};
-
-struct sec_debug_auto_comment {
-	int header_magic;
-	int fault_flag;
-	int lv5_log_cnt;
-	u64 lv5_log_order;
-	int order_map_cnt;
-	int order_map[SEC_DEBUG_AUTO_COMM_BUF_SIZE];
-	struct sec_debug_auto_comm_buf auto_comm_buf[SEC_DEBUG_AUTO_COMM_BUF_SIZE];
-
-	int tail_magic;
 };
 
 struct auto_comment_log_map {
@@ -622,6 +619,22 @@ extern void sec_debug_auto_comment_log_once(int type);
 extern void register_set_auto_comm_buf(void (*func)(int type, const char *buf, size_t size));
 extern void register_set_auto_comm_lastfreq(void (*func)(int type,
 						int old_freq, int new_freq, u64 time, int en));
+#endif
+
+#ifdef CONFIG_SEC_DEBUG
+extern bool sec_debug_pcprwsem_enabled;
+extern void sec_debug_pcprwsem_log_enable(bool en);
+extern void __sec_debug_pcprwsem_log_print(const char *s, int mode, void *sem);
+static inline void sec_debug_pcprwsem_log_print(const char *s, int mode, void *sem)
+{
+	if (likely(!sec_debug_pcprwsem_enabled))
+		return;
+
+	__sec_debug_pcprwsem_log_print(s, mode, sem);
+}
+#else
+#define sec_debug_pcprwsem_log_enable() do { } while (0)
+#define sec_debug_pcprwsem_log_print(a, b, c) do { } while (0)
 #endif
 
 #ifdef CONFIG_SEC_DEBUG_DTASK
@@ -690,10 +703,12 @@ extern void sec_debug_tsp_command_history(char *buf);
 #define sec_debug_tsp_command_history()			do { } while (0)
 #endif /* CONFIG_SEC_DEBUG_TSP_LOG */
 
+#ifdef CONFIG_INPUT_TOUCHSCREEN
 #ifdef CONFIG_TOUCHSCREEN_DUMP_MODE
 struct tsp_dump_callbacks {
 	void (*inform_dump)(void);
 };
+#endif
 #endif
 
 #ifdef CONFIG_SEC_DEBUG_LIMIT_BACKTRACE

@@ -15,4 +15,3 @@ ccflags-y += -Isecurity/samsung/five/
 # Look at file ../../scripts/Makefile.clean for details.
 clean-files += proca_certificate-asn1.c proca_certificate-asn1.h
 
-subdir-ccflags-y += -Wformat

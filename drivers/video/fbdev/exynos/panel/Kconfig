@@ -102,6 +102,10 @@ config EXYNOS_DECON_LCD_S6E3FA7
 	depends on EXYNOS_DECON_LCD && EXYNOS_MIPI_DSIM
 	tristate "S6E3FA7 AMOLED LCD DRIVER"
 
+config EXYNOS_DECON_LCD_S6E3FA9
+	depends on EXYNOS_DECON_LCD && EXYNOS_MIPI_DSIM
+	tristate "S6E3FA9 AMOLED LCD DRIVER"
+
 config ACTIVE_CLOCK
 	depends on EXYNOS_DECON_LCD && SUPPORT_DOZE
 	tristate "Support DDI Active Clock Feature"
@@ -130,6 +134,11 @@ config SUPPORT_GRAM_CHECKSUM
 config SUPPORT_CCD_TEST
 	depends on EXYNOS_DECON_LCD
 	tristate "Support CCD TEST"
+	default n
+
+config SUPPORT_FAST_DISCHARGE
+	depends on EXYNOS_DECON_LCD && SEC_FACTORY
+	tristate "Support fast discharge function"
 	default n
 
 config SUPPORT_DYNAMIC_HLPM
@@ -161,7 +170,7 @@ config SUPPORT_POC_SPI
 	depends on EXYNOS_DECON_LCD
 	tristate "Support poc SPI connection"
 	default n
-	
+
 config DYNAMIC_FREQ
     	depends on EXYNOS_DECON_LCD
     	tristate "Support Dynamic Freq"

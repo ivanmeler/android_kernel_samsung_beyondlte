@@ -39,10 +39,6 @@
 #include <soc/samsung/acpm_ipc_ctrl.h>
 #endif
 
-#if defined(CONFIG_SEC_DEBUG)
-#include <linux/sec_debug.h>
-#endif
-
 extern void (*arm_pm_restart)(char str, const char *cmd);
 
 static struct err_variant arm64_err_type_1[] = {
@@ -260,7 +256,7 @@ static void exynos_post_panic_entry(void *val)
 	flush_cache_all();
 
 #ifdef CONFIG_EXYNOS_SDM
-	if (dbg_snapshot_is_scratch() && sec_debug_enter_upload())
+	if (dbg_snapshot_is_scratch())
 		exynos_sdm_dump_secure_region();
 #endif
 }
@@ -583,11 +579,7 @@ static void exynos_start_watchdog(void *val)
 static void exynos_expire_watchdog(void *val)
 {
 #ifdef CONFIG_S3C2410_WATCHDOG
-#ifdef CONFIG_SEC_DEBUG
-	__s3c2410wdt_set_emergency_reset(100, 0, (unsigned long)val);
-#else
 	s3c2410wdt_set_emergency_reset(100, 0);
-#endif
 #endif
 }
 

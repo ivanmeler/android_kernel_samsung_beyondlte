@@ -56,6 +56,7 @@ config EXYNOS_BCM_DBG_AUTO
 	bool "EXYNOS_BCM_DBG_AUTO support"
 	default y
 	depends on EXYNOS_BCM_DBG
+	depends on !(USE_SIGNED_BINARY)
 	help
 	  Enable exynos-bcm_dbg_auto support
 

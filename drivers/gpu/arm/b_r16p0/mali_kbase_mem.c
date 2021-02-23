@@ -1113,8 +1113,8 @@ void kbase_free_alloced_region(struct kbase_va_region *reg)
 		reg->flags |= KBASE_REG_VA_FREED;
 		kbase_va_region_alloc_put(kctx, reg);
 	} else {
-	kfree(reg);
-}
+		kfree(reg);
+	}
 }
 
 KBASE_EXPORT_TEST_API(kbase_free_alloced_region);

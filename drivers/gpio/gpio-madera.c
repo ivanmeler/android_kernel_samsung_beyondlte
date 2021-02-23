@@ -109,7 +109,7 @@ static void madera_gpio_set(struct gpio_chip *chip, unsigned int offset,
 			 MADERA_GPIO1_CTRL_1 + (2 * offset), ret);
 }
 
-static const struct gpio_chip template_chip = {
+static struct gpio_chip template_chip = {
 	.label			= "madera",
 	.owner			= THIS_MODULE,
 	.get_direction		= madera_gpio_get_direction,
@@ -179,11 +179,8 @@ static int madera_gpio_probe(struct platform_device *pdev)
 }
 
 static struct platform_driver madera_gpio_driver = {
-	.driver = {
-		.name	= "madera-gpio",
-		.owner	= THIS_MODULE,
-		.suppress_bind_attrs = true,
-	},
+	.driver.name	= "madera-gpio",
+	.driver.owner	= THIS_MODULE,
 	.probe		= madera_gpio_probe,
 };
 

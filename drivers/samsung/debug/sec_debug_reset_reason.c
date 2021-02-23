@@ -20,15 +20,11 @@
 #include <linux/proc_fs.h>
 #include <linux/seq_file.h>
 #include <asm/stacktrace.h>
-#include <linux/uaccess.h>
-#include <linux/memblock.h>
-#include <linux/of.h>
-#include <linux/of_reserved_mem.h>
+#include "sec_debug_internal.h"
 
 unsigned int reset_reason = RR_N;
-#define PWRSRC_RS_SIZE	16
+#define PWRSRC_RS_SIZE	20
 static char pwrsrc_rs[PWRSRC_RS_SIZE + 1];
-
 
 static const char *regs_bit[][8] = {
 	{ "RSVD0", "TSD", "TIMEOUT", "LDO3OK", "PWRHOLD", "RSVD5", "RSVD6", "UVLOB" }, /* PWROFFSRC */
@@ -37,18 +33,50 @@ static const char *regs_bit[][8] = {
 
 static const char *dword_regs_bit[][32] = {
 	{ "CLUSTER1_DBGRSTREQ0", "CLUSTER1_DBGRSTREQ1", "CLUSTER1_DBGRSTREQ2", "CLUSTER1_DBGRSTREQ3",
-	  "CLUSTER0_DBGRSTREQ0", "CLUSTER0_DBGRSTREQ1", "CLUSTER0_DBGRSTREQ2", "CLUSTER0_DBGRSTREQ3",
-	  "CLUSTER1_WARMRSTREQ0", "CLUSTER1_WARMRSTREQ1", "CLUSTER1_WARMRSTREQ2", "CLUSTER1_WARMRSTREQ3",
-	  "CLUSTER0_WARMRSTREQ0", "CLUSTER0_WARMRSTREQ1", "CLUSTER0_WARMRSTREQ2", "CLUSTER0_WARMRSTREQ3",
-	  "PINRESET", "RSVD17", "RSVD18", "CHUB_CPU_WDTRESET",
-	  "CORTEXM23_APM_WDTRESET", "CORTEXM23_APM_SYSRESET", "VTS_CPU_WDTRESET", "CLUSTER1_WDTRESET",
-  	  "CLUSTER0_WDTRESET", "AUD_CA7_WDTRESET", "SSS_WDTRESET", "RSVD27",
-	  "WRESET", "SWRESET", "RSVD30", "RSVD31"
+	"CLUSTER0_DBGRSTREQ0", "CLUSTER0_DBGRSTREQ1", "CLUSTER0_DBGRSTREQ2", "CLUSTER0_DBGRSTREQ3",
+	"CLUSTER1_WARMRSTREQ0", "CLUSTER1_WARMRSTREQ1", "CLUSTER1_WARMRSTREQ2", "CLUSTER1_WARMRSTREQ3",
+	"CLUSTER0_WARMRSTREQ0", "CLUSTER0_WARMRSTREQ1", "CLUSTER0_WARMRSTREQ2", "CLUSTER0_WARMRSTREQ3",
+	"PINRESET", "RSVD17", "RSVD18", "CHUB_CPU_WDTRESET",
+	"CORTEXM23_APM_WDTRESET", "CORTEXM23_APM_SYSRESET", "VTS_CPU_WDTRESET", "CLUSTER1_WDTRESET",
+	"CLUSTER0_WDTRESET", "AUD_CA7_WDTRESET", "SSS_WDTRESET", "RSVD27",
+	"WRESET", "SWRESET", "RSVD30", "RSVD31"
 	}, /* RST_STAT */
 }; /* EXYNOS 9810 */
 
+struct outbuf {
+	char buf[SZ_1K];
+	int index;
+	int already;
+};
+
 static struct outbuf extra_buf;
 static struct outbuf pwrsrc_buf;
+
+static void write_buf(struct outbuf *obuf, int len, const char *fmt, ...)
+{
+	va_list list;
+	char *base;
+	int rem, ret;
+
+	base = obuf->buf;
+	base += obuf->index;
+
+	rem = sizeof(obuf->buf);
+	rem -= obuf->index;
+
+	if (rem <= 0)
+		return;
+
+	if ((len > 0) && (len < rem))
+		rem = len;
+
+	va_start(list, fmt);
+	ret = vsnprintf(base, rem, fmt, list);
+	if (ret)
+		obuf->index += ret;
+
+	va_end(list);
+}
 
 static int __init sec_debug_set_reset_reason(char *arg)
 {
@@ -100,7 +128,7 @@ static int set_debug_reset_reason_proc_show(struct seq_file *m, void *v)
 bool is_target_reset_reason(void)
 {
 	if (reset_reason == RR_K ||
-		reset_reason == RR_D || 
+		reset_reason == RR_D ||
 		reset_reason == RR_P ||
 		reset_reason == RR_S)
 		return true;
@@ -142,6 +170,15 @@ static const struct file_operations sec_debug_reset_reason_store_lastkmsg_proc_f
 	.release = single_release,
 };
 
+int secdbg_rere_get_rstcnt_from_cmdline(void)
+{
+	long long_pwrsrc_rs;
+
+	kstrtol(pwrsrc_rs, 16, &long_pwrsrc_rs);
+
+	return long_pwrsrc_rs >> 48;
+}
+
 static void parse_pwrsrc_rs(struct outbuf *buf)
 {
 	int i;
@@ -150,37 +187,37 @@ static void parse_pwrsrc_rs(struct outbuf *buf)
 
 	kstrtol(pwrsrc_rs, 16, &long_pwrsrc_rs);
 
-	secdbg_write_buf(buf, 0, "OFFSRC::");
+	write_buf(buf, 0, "OFFSRC::");
 	tmp = long_pwrsrc_rs & 0xff0000000000;
 	tmp >>= 40;
 	if (!tmp)
-		secdbg_write_buf(buf, 0, " -");
-	else 
-		for(i = 0; i < 8; i++)
+		write_buf(buf, 0, " -");
+	else
+		for (i = 0; i < 8; i++)
 			if (tmp & (1 << i))
-				secdbg_write_buf(buf, 0, " %s", regs_bit[0][i]);
-	secdbg_write_buf(buf, 0, " /");
+				write_buf(buf, 0, " %s", regs_bit[0][i]);
+	write_buf(buf, 0, " /");
 
-	secdbg_write_buf(buf, 0, " ONSRC::");
+	write_buf(buf, 0, " ONSRC::");
 	tmp = long_pwrsrc_rs & 0x00ff00000000;
 	tmp >>= 32;
 	if (!tmp)
-		secdbg_write_buf(buf, 0, " -");
+		write_buf(buf, 0, " -");
 	else
-		for(i = 0; i < 8; i++)
+		for (i = 0; i < 8; i++)
 			if (tmp & (1 << i))
-				secdbg_write_buf(buf, 0, " %s", regs_bit[1][i]);
+				write_buf(buf, 0, " %s", regs_bit[1][i]);
 
-	secdbg_write_buf(buf, 0, " /");
+	write_buf(buf, 0, " /");
 
-	secdbg_write_buf(buf, 0, " RSTSTAT::");
+	write_buf(buf, 0, " RSTSTAT::");
 	tmp = long_pwrsrc_rs & 0x0000ffffffff;
 	if (!tmp)
-		secdbg_write_buf(buf, 0, " -");
+		write_buf(buf, 0, " -");
 	else
 		for (i = 0; i < 32; i++)
 			if (tmp & (1 << i))
-				secdbg_write_buf(buf, 0, " %s", dword_regs_bit[0][i]);
+				write_buf(buf, 0, " %s", dword_regs_bit[0][i]);
 
 	buf->already = 1;
 }
@@ -207,49 +244,50 @@ static int sec_debug_reset_reason_pwrsrc_show(struct seq_file *m, void *v)
 	get_bk_item_val_as_string("PWROFF", val);
 	tmp = simple_strtol(val, NULL, 0);
 
-	secdbg_write_buf(&pwrsrc_buf, 0, "OFFSRC:");
+	write_buf(&pwrsrc_buf, 0, "OFFSRC:");
 	if (!tmp) {
-		secdbg_write_buf(&pwrsrc_buf, 0, " -");
+		write_buf(&pwrsrc_buf, 0, " -");
 		check_tmp++;
 	} else
 		for (i = 0; i < 8; i++)
 			if (tmp & (1 << i))
-				secdbg_write_buf(&pwrsrc_buf, 0, " %s", regs_bit[0][i]);
+				write_buf(&pwrsrc_buf, 0, " %s", regs_bit[0][i]);
 
-	secdbg_write_buf(&pwrsrc_buf, 0, " /");
+	write_buf(&pwrsrc_buf, 0, " /");
 
 	memset(val, 0, 32);
 	get_bk_item_val_as_string("PWR", val);
 	tmp = simple_strtol(val, NULL, 0);
 
-	secdbg_write_buf(&pwrsrc_buf, 0, " ONSRC:");
+	write_buf(&pwrsrc_buf, 0, " ONSRC:");
 	if (!tmp) {
-		secdbg_write_buf(&pwrsrc_buf, 0, " -");
+		write_buf(&pwrsrc_buf, 0, " -");
 		check_tmp++;
 	} else
 		for (i = 0; i < 8; i++)
 			if (tmp & (1 << i))
-				secdbg_write_buf(&pwrsrc_buf, 0, " %s", regs_bit[1][i]);
+				write_buf(&pwrsrc_buf, 0, " %s", regs_bit[1][i]);
 
-	secdbg_write_buf(&pwrsrc_buf, 0, " /");
+	write_buf(&pwrsrc_buf, 0, " /");
 
 	memset(val, 0, 32);
 	get_bk_item_val_as_string("RST", val);
 	tmp = simple_strtol(val, NULL, 0);
 
-	secdbg_write_buf(&pwrsrc_buf, 0, " RSTSTAT:");
+	write_buf(&pwrsrc_buf, 0, " RSTSTAT:");
 	if (!tmp) {
-		secdbg_write_buf(&pwrsrc_buf, 0, " -");
+		write_buf(&pwrsrc_buf, 0, " -");
 		check_tmp++;
 	} else
 		for (i = 0; i < 32; i++)
 			if (tmp & (1 << i))
-				secdbg_write_buf(&pwrsrc_buf, 0, " %s", dword_regs_bit[0][i]);
+				write_buf(&pwrsrc_buf, 0, " %s", dword_regs_bit[0][i]);
 
 	if (check_tmp == 3) {
 		memset(&pwrsrc_buf, 0, sizeof(pwrsrc_buf));
 		parse_pwrsrc_rs(&pwrsrc_buf);
 	}
+
 	pwrsrc_buf.already = 1;
 out:
 	seq_printf(m, pwrsrc_buf.buf);
@@ -366,48 +404,48 @@ static int sec_debug_reset_reason_extra_show(struct seq_file *m, void *v)
 	pnc = get_bk_item_val("PANIC");
 	smu = get_bk_item_val("SMU");
 
-	secdbg_write_buf(&extra_buf, 0, "RCNT:");
+	write_buf(&extra_buf, 0, "RCNT:");
 	if (rstcnt && strnlen(rstcnt, MAX_ITEM_VAL_LEN))
-		secdbg_write_buf(&extra_buf, 0, " %s /", rstcnt);
+		write_buf(&extra_buf, 0, " %s /", rstcnt);
 	else
-		secdbg_write_buf(&extra_buf, 0, " - /");
+		write_buf(&extra_buf, 0, " - /");
 
-	secdbg_write_buf(&extra_buf, 0, " PC:");
+	write_buf(&extra_buf, 0, " PC:");
 	if (pc && strnlen(pc, MAX_ITEM_VAL_LEN))
-		secdbg_write_buf(&extra_buf, 0, " %s", pc);
+		write_buf(&extra_buf, 0, " %s", pc);
 	else
-		secdbg_write_buf(&extra_buf, 0, " -");
+		write_buf(&extra_buf, 0, " -");
 
-	secdbg_write_buf(&extra_buf, 0, " LR:");
+	write_buf(&extra_buf, 0, " LR:");
 	if (lr && strnlen(lr, MAX_ITEM_VAL_LEN))
-		secdbg_write_buf(&extra_buf, 0, " %s", lr);
+		write_buf(&extra_buf, 0, " %s", lr);
 	else
-		secdbg_write_buf(&extra_buf, 0, " -");
+		write_buf(&extra_buf, 0, " -");
 
 	/* BUG */
 	if (bug && strnlen(bug, MAX_ITEM_VAL_LEN)) {
 		handle_bug_string(buf_bug, bug);
 
-		secdbg_write_buf(&extra_buf, 0, " BUG: %s", buf_bug);
+		write_buf(&extra_buf, 0, " BUG: %s", buf_bug);
 	}
 
 	/* BUS */
 	if (bus && strnlen(bus, MAX_ITEM_VAL_LEN)) {
 		handle_bus_string(buf_bus, bus);
 
-		secdbg_write_buf(&extra_buf, 0, " BUS: %s", buf_bus);
+		write_buf(&extra_buf, 0, " BUS: %s", buf_bus);
 	}
 
 	/* PANIC */
 	ret = handle_panic_string(pnc);
 	if (ret == PNC_STR_UNRECV) {
 		if (smu && strnlen(smu, MAX_ITEM_VAL_LEN))
-			secdbg_write_buf(&extra_buf, BBP_STR_LEN, " SMU: %s", smu);
+			write_buf(&extra_buf, BBP_STR_LEN, " SMU: %s", smu);
 		else
-			secdbg_write_buf(&extra_buf, BBP_STR_LEN, " PANIC: %s", pnc);
+			write_buf(&extra_buf, BBP_STR_LEN, " PANIC: %s", pnc);
 	} else if (ret == PNC_STR_REST) {
 		if (strnlen(pnc, MAX_ITEM_VAL_LEN))
-			secdbg_write_buf(&extra_buf, BBP_STR_LEN, " PANIC: %s", pnc);
+			write_buf(&extra_buf, BBP_STR_LEN, " PANIC: %s", pnc);
 	}
 
 	extra_buf.already = 1;
@@ -434,19 +472,19 @@ static int __init sec_debug_reset_reason_init(void)
 {
 	struct proc_dir_entry *entry;
 
-	entry = proc_create("reset_reason", 0222, NULL, &sec_debug_reset_reason_proc_fops);
+	entry = proc_create("reset_reason", 0644, NULL, &sec_debug_reset_reason_proc_fops);
 	if (!entry)
 		return -ENOMEM;
 
-	entry = proc_create("store_lastkmsg", 0222, NULL, &sec_debug_reset_reason_store_lastkmsg_proc_fops);
+	entry = proc_create("store_lastkmsg", 0644, NULL, &sec_debug_reset_reason_store_lastkmsg_proc_fops);
 	if (!entry)
 		return -ENOMEM;
 
-	entry = proc_create("extra", 0222, NULL, &sec_debug_reset_reason_extra_proc_fops);
+	entry = proc_create("extra", 0644, NULL, &sec_debug_reset_reason_extra_proc_fops);
 	if (!entry)
 		return -ENOMEM;
 
-	entry = proc_create("pwrsrc", 0222, NULL, &sec_debug_reset_reason_pwrsrc_proc_fops);
+	entry = proc_create("pwrsrc", 0644, NULL, &sec_debug_reset_reason_pwrsrc_proc_fops);
 	if (!entry)
 		return -ENOMEM;
 

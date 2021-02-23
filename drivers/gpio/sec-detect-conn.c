@@ -70,18 +70,22 @@ void send_uevent_irq(int irq, struct detect_conn_info *pinfo, int type)
 				sprintf(uevent_dev_str, "CONNECTOR_NAME=%s", pinfo->pdata->name[i]);
 				if (type == IRQ_TYPE_EDGE_RISING) {
 					sprintf(uevent_dev_type_str, "CONNECTOR_TYPE=RISING_EDGE");
-					SEC_CONN_PRINT("send uevent irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=RISING_EDGE.\n"
+					SEC_CONN_PRINT(
+						"send uevent irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=RISING_EDGE.\n"
 						, irq, pinfo->pdata->name[i]);
 				} else if (type == IRQ_TYPE_EDGE_FALLING) {
 					sprintf(uevent_dev_type_str, "CONNECTOR_TYPE=FALLING_EDGE");
-					SEC_CONN_PRINT("send uevent irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=FALLING_EDGE.\n"
+					SEC_CONN_PRINT(
+						"send uevent irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=FALLING_EDGE.\n"
 						, irq, pinfo->pdata->name[i]);
 				} else if (type == IRQ_TYPE_EDGE_BOTH) {
 					sprintf(uevent_dev_type_str, "CONNECTOR_TYPE=EDGE_BOTH");
-					SEC_CONN_PRINT("send uevent irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=ALL_EDGE.\n"
+					SEC_CONN_PRINT(
+						"send uevent irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=ALL_EDGE.\n"
 						, irq, pinfo->pdata->name[i]);
 				} else {
-					SEC_CONN_PRINT("Err:Unknown type irq : irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=%d.\n"
+					SEC_CONN_PRINT(
+						"Err:Unknown type irq : irq[%d]:CONNECTOR_NAME=%s,CONNECTOR_TYPE=%d.\n"
 						, irq, pinfo->pdata->name[i], type);
 					return;
 				}
@@ -170,7 +174,7 @@ int detect_conn_irq_enable(struct detect_conn_info *pinfo, bool enable, int pin)
  * When enabling this node, check and send an uevent if the pin level is high.
  * And then gpio pin interrupt is enabled.
  */
-static ssize_t store_detect_conn_enabled(struct device *dev,
+static ssize_t detect_conn_enabled_store(struct device *dev,
 				struct device_attribute *attr,
 				const char *buf, size_t count)
 {
@@ -179,6 +183,7 @@ static ssize_t store_detect_conn_enabled(struct device *dev,
 	int ret;
 	int i;
 	int bufLength;
+	int gpio_value;
 	int pinNameLength;
 
 	if (gpinfo == 0)
@@ -206,64 +211,58 @@ static ssize_t store_detect_conn_enabled(struct device *dev,
 		}
 
 	} else {
+
 		for (i = 0; i < pdata->gpio_cnt; i++) {
 			pinNameLength = strlen(pdata->name[i]);
+			gpio_value = gpio_get_value(pdata->irq_gpio[i]);
 #if defined(DEBUG_FOR_SECDETECT)
 			SEC_CONN_PRINT("pinName = %s\n", pdata->name[i]);
 			SEC_CONN_PRINT("pinNameLength = %d\n", pinNameLength);
 #endif
-			if (pinNameLength == bufLength) {
-				if (!strncmp(buf, pdata->name[i], bufLength)) {
-					SEC_CONN_PRINT("%s driver enabled.\n", buf);
-					detect_conn_enabled |= (1 << i);
+			if (pinNameLength == bufLength && !strncmp(buf, pdata->name[i], bufLength)) {
+				SEC_CONN_PRINT("%s driver enabled.\n", buf);
+				detect_conn_enabled |= (1 << i);
 
 #if defined(DEBUG_FOR_SECDETECT)
-					SEC_CONN_PRINT("gpio level [%d] = %d\n", pdata->irq_gpio[i],
-						gpio_get_value(pdata->irq_gpio[i]));
+				SEC_CONN_PRINT("gpio level [%d] = %d\n", pdata->irq_gpio[i], gpio_value);
 #endif
-					/*get level value of the gpio pin.*/
-					/*if there's gpio low pin, send uevent*/
-					if (gpio_get_value(pdata->irq_gpio[i]))
-						send_uevent_by_num(i, pinfo, 1);
-					else
-						send_uevent_by_num(i, pinfo, 0);
+				/*get level value of the gpio pin.*/
+				/*if there's gpio low pin, send uevent*/
+				if (gpio_value)
+					send_uevent_by_num(i, pinfo, 1);
+				else
+					send_uevent_by_num(i, pinfo, 0);
 
-					/*Enable interrupt.*/
-					ret = detect_conn_irq_enable(pinfo, true, i);
+				/*Enable interrupt.*/
+				ret = detect_conn_irq_enable(pinfo, true, i);
 
-					if (ret < 0) {
-						SEC_CONN_PRINT("%s Interrupt not enabled.\n", buf);
-						return ret;
-					}
+				if (ret < 0) {
+					SEC_CONN_PRINT("%s Interrupt not enabled.\n", buf);
+					return ret;
 				}
 			}
 
 			/* For ALL_CONNECT input, enable all nodes except already enabled node. */
-			if (bufLength == 11) {
-				if (!strncmp(buf, "ALL_CONNECT", bufLength)) {
-					if (!(detect_conn_enabled & (1 << i))) {
-						SEC_CONN_PRINT("%s driver enabled.\n", buf);
-						detect_conn_enabled |= (1 << i);
+			if (bufLength == 11 && !strncmp(buf, "ALL_CONNECT", bufLength) && !(detect_conn_enabled & (1 << i))) {
+				SEC_CONN_PRINT("%s driver enabled.\n", buf);
+				detect_conn_enabled |= (1 << i);
 
 #if defined(DEBUG_FOR_SECDETECT)
-						SEC_CONN_PRINT("gpio level [%d] = %d\n", pdata->irq_gpio[i],
-							gpio_get_value(pdata->irq_gpio[i]));
+				SEC_CONN_PRINT("gpio level [%d] = %d\n", pdata->irq_gpio[i], gpio_value);
 #endif
-						/*get level value of the gpio pin.*/
-						/*if there's gpio low pin, send uevent*/
-						if (gpio_get_value(pdata->irq_gpio[i]))
-							send_uevent_by_num(i, pinfo, 1);
-						else
-							send_uevent_by_num(i, pinfo, 0);
+				/*get level value of the gpio pin.*/
+				/*if there's gpio low pin, send uevent*/
+				if (gpio_value)
+					send_uevent_by_num(i, pinfo, 1);
+				else
+					send_uevent_by_num(i, pinfo, 0);
 
-						/*Enable interrupt.*/
-						ret = detect_conn_irq_enable(pinfo, true, i);
+				/*Enable interrupt.*/
+				ret = detect_conn_irq_enable(pinfo, true, i);
 
-						if (ret < 0) {
-							SEC_CONN_PRINT("%s Interrupt not enabled.\n", buf);
-							return ret;
-						}
-					}
+				if (ret < 0) {
+					SEC_CONN_PRINT("%s Interrupt not enabled.\n", buf);
+					return ret;
 				}
 			}
 		}
@@ -272,14 +271,14 @@ static ssize_t store_detect_conn_enabled(struct device *dev,
 	return count;
 }
 
-static ssize_t show_detect_conn_enabled(struct device *dev,
+static ssize_t detect_conn_enabled_show(struct device *dev,
 				struct device_attribute *attr,
 				char *buf)
 {
 	return sprintf(buf, "%d\n", detect_conn_enabled);
 }
 
-static DEVICE_ATTR(enabled, 0644, show_detect_conn_enabled, store_detect_conn_enabled);
+static DEVICE_ATTR(enabled, 0644, detect_conn_enabled_show, detect_conn_enabled_store);
 
 static ssize_t show_detect_conn_available_pins(struct device *dev,
 				struct device_attribute *attr,
@@ -291,9 +290,11 @@ static ssize_t show_detect_conn_available_pins(struct device *dev,
 static DEVICE_ATTR(available_pins, 0444, show_detect_conn_available_pins, NULL);
 
 #ifdef CONFIG_OF
-/**
+/*
+ *
  * Parse the device tree and get gpio number, irq type.
  * Request gpio
+ *
  */
 static int detect_conn_parse_dt(struct device *dev)
 {
@@ -383,7 +384,7 @@ static int sec_detect_conn_item_make(void)
 	pdata = pinfo->pdata;
 
 	for (i = 0; i < pdata->gpio_cnt; i++) {
-		strcat(sec_detect_available_pins_string,pdata->name[i]);
+		strcat(sec_detect_available_pins_string, pdata->name[i]);
 		strcat(sec_detect_available_pins_string, "/");
 	}
 	sec_detect_available_pins_string[strlen(sec_detect_available_pins_string)-1] = '\0';
@@ -441,7 +442,7 @@ static int sec_detect_conn_probe(struct platform_device *pdev)
 	/* Create sys device /sys/class/sec/sec_detect_conn */
 	pinfo->dev = sec_device_create(pinfo, "sec_detect_conn");
 
-	if (unlikely(IS_ERR(pinfo->dev))) {
+	if (IS_ERR(pinfo->dev)) {
 		pr_err("%s Failed to create device(sec_detect_conn).\n", __func__);
 		ret = -ENODEV;
 		goto out;
@@ -474,7 +475,7 @@ static int sec_detect_conn_probe(struct platform_device *pdev)
 
 	/* detect_conn_init_irq thread create*/
 	ret = detect_conn_init_irq();
-	
+
 	/* make sec_detect_conn item*/
 	ret = sec_detect_conn_item_make();
 

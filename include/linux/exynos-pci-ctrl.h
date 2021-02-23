@@ -19,7 +19,6 @@
 #define PCIE_L1SS_CTRL_CAMERA           (0x1 << 2)
 #define PCIE_L1SS_CTRL_MODEM_IF         (0x1 << 3)
 #define PCIE_L1SS_CTRL_WIFI		(0x1 << 4)
-#define PCIE_L1SS_CTRL_MST              (0x1 << 5)
 #define PCIE_L1SS_CTRL_TEST             (0x1 << 31)
 
 #if defined(CONFIG_PCI_EXYNOS)

@@ -97,9 +97,12 @@ extern int sec_get_param_u32(unsigned long offset, u32 *val);
 extern int sec_get_param_str(unsigned long offset, char *val);
 extern void sec_debug_recovery_reboot(void);
 #else
-#define sec_set_param(a, b)			(-1)
-#define sec_set_param_u32(a, b)			(-1)
-#define sec_get_param_u32(a, b)			(-1)
+#define sec_set_param(a, b)                     (-1)
+#define sec_set_param_u32(a, b)                 (-1)
+#define sec_set_param_str(a, b, c)              (-1)
+#define sec_set_param_extra(a, b, c)            (-1)
+#define sec_get_param_u32(a, b)                 (-1)
+#define sec_get_param_str(a, b)                 (-1)
 #endif /* CONFIG_SEC_PARAM */
 
 #endif /* CONFIG_SEC_EXT */

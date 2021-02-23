@@ -60,6 +60,12 @@
 #define SOC_SSVC2
 #define SOC_SSVC3
 
+#define CHAIN_USE_STRIPE_PROCESSING	1
+#define CHAIN_USE_STRIPE_REGION_NUM_META	1
+#define STRIPE_REGION_NUM                 3
+#define STRIPE_MARGIN_WIDTH		(1024)
+#define STRIPE_WIDTH_ALIGN		(512)
+#define STRIPE_RATIO_PRECISION		(1000)
 /* Post Processing Configruation */
 /* #define ENABLE_DRC */
 /* #define ENABLE_DIS */
@@ -73,6 +79,7 @@
 #define ENABLE_REPROCESSING_FD
 #define ENABLE_VRA_CHANGE_SETFILE_PARSING
 #define ENABLE_HYBRID_FD
+#define ENABLE_MODECHANGE_CAPTURE
 
 #define USE_ONE_BINARY
 #define USE_RTA_BINARY
@@ -214,5 +221,7 @@
 
 #define USE_CAMIF_FIX_UP	1
 #define CHAIN_USE_VC_TASKLET	0
+
+#define DISABLE_CHECK_PERFRAME_FMT_SIZE
 
 #endif

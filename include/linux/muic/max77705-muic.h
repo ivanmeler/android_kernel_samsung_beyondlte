@@ -161,6 +161,7 @@ struct max77705_muic_data {
 	unsigned char			afc_op_dataout[AFC_OP_OUT_LEN];
 	int				hv_voltage;
 	int				afc_retry;
+	int				dcdtmo_retry;
 
  	/* hiccup mode flag */
  	int				is_hiccup_mode;

@@ -105,10 +105,6 @@
 
 #include "../../lib/kstrtox.h"
 
-#ifdef CONFIG_PAGE_BOOST
-#include <linux/delayacct.h>
-#endif
-
 /* NOTE:
  *	Implementing inode permission operations in /proc is almost
  *	certainly an error.  Permission checks need to happen during
@@ -474,57 +470,6 @@ static int proc_pid_stack(struct seq_file *m, struct pid_namespace *ns,
 	kfree(entries);
 
 	return err;
-}
-#endif
-
-#ifdef CONFIG_PAGE_BOOST
-static int proc_pid_ioinfo(struct seq_file *m, struct pid_namespace *ns,
-			      struct pid *pid, struct task_struct *task)
-{
-	struct task_io_accounting acct = task->ioac;
-	unsigned long flags;
-	int result;
-
-	result = mutex_lock_killable(&task->signal->cred_guard_mutex);
-	if (result)
-		return result;
-
-	if (!ptrace_may_access(task, PTRACE_MODE_READ_FSCREDS)) {
-		result = -EACCES;
-		goto out_unlock;
-	}
-
-	if (lock_task_sighand(task, &flags)) {
-		struct task_struct *t = task;
-
-		task_io_accounting_add(&acct, &task->signal->ioac);
-		while_each_thread(task, t)
-			task_io_accounting_add(&acct, &t->ioac);
-
-		unlock_task_sighand(task, &flags);
-	}
-
-	seq_printf(m,
-		   "%llu\n"
-		   "%llu\n"
-		   "%llu\n",
-#ifdef CONFIG_TASK_XACCT
-		   (unsigned long long)acct.rchar,
-#else
-		   (unsigned long long)0,
-#endif
-#ifdef CONFIG_TASK_IO_ACCOUNTING
-		   (unsigned long long)acct.read_bytes,
-#else
- 		   (unsigned long long)0,                 
-#endif
-		   (unsigned long long)delayacct_blkio_nsecs(task));
-
-	result = 0;
-
-out_unlock:
-	mutex_unlock(&task->signal->cred_guard_mutex);
-	return result;
 }
 #endif
 
@@ -2806,9 +2751,6 @@ static int do_io_accounting(struct task_struct *task, struct seq_file *m, int wh
 		   "syscw: %llu\n"
 		   "read_bytes: %llu\n"
 		   "write_bytes: %llu\n"
-#ifdef CONFIG_SUBMIT_BH_IO_ACCOUNTING_DEBUG
-		   "submit_bh_write_bytes: %llu\n"
-#endif
 		   "cancelled_write_bytes: %llu\n",
 		   (unsigned long long)acct.rchar,
 		   (unsigned long long)acct.wchar,
@@ -2816,9 +2758,6 @@ static int do_io_accounting(struct task_struct *task, struct seq_file *m, int wh
 		   (unsigned long long)acct.syscw,
 		   (unsigned long long)acct.read_bytes,
 		   (unsigned long long)acct.write_bytes,
-#ifdef CONFIG_SUBMIT_BH_IO_ACCOUNTING_DEBUG
-		   (unsigned long long)acct.submit_bh_write_bytes,
-#endif
 		   (unsigned long long)acct.cancelled_write_bytes);
 	result = 0;
 
@@ -3221,35 +3160,6 @@ static int proc_pid_patch_state(struct seq_file *m, struct pid_namespace *ns,
 }
 #endif /* CONFIG_LIVEPATCH */
 
-#ifdef CONFIG_PROC_TRIGGER_SQLITE_BUG
-static ssize_t trigger_sqlite_bug_write(struct file *file,
-		const char __user *buf, size_t count, loff_t *offset)
-{
-	char buffer[PROC_NUMBUF] = {0, };
-	int ret;
-	int fd;
-	struct file *filp;
-
-	if (count > sizeof(buffer) - 1)
-		return -EINVAL;
-	if (copy_from_user(buffer, buf, count))
-		return -EFAULT;
-	ret = kstrtoint(strstrip(buffer), 10, &fd);
-	if (ret < 0)
-		return ret;
-
-	filp = fget(fd);
-
-	pr_err("%s: fd=%d filp=%p %s", __func__, fd, filp,
-			filp ? filp->f_path.dentry->d_name.name : NULL);
-	BUG();
-}
-
-const struct file_operations proc_trigger_sqlite_bug_operations = {
-	.write	= trigger_sqlite_bug_write,
-};
-#endif /* CONFIG_PROC_TRIGGER_SQLITE_BUG */
-
 /*
  * Thread groups
  */
@@ -3283,15 +3193,7 @@ static const struct pid_entry tgid_base_stuff[] = {
 	REG("cmdline",    S_IRUGO, proc_pid_cmdline_ops),
 	ONE("stat",       S_IRUGO, proc_tgid_stat),
 	ONE("statm",      S_IRUGO, proc_pid_statm),
-	ONE("statlmkd",      S_IRUGO, proc_pid_statlmkd),
 	REG("maps",       S_IRUGO, proc_pid_maps_operations),
-#ifdef CONFIG_PAGE_BOOST
-	REG("filemap_list",       S_IRUGO, proc_pid_filemap_list_operations),
-	ONE("ioinfo",  S_IRUGO, proc_pid_ioinfo),
-#ifdef CONFIG_PAGE_BOOST_RECORDING
-	REG("io_record_control",      S_IRUGO|S_IWUGO, proc_pid_io_record_operations),
-#endif
-#endif
 #ifdef CONFIG_NUMA
 	REG("numa_maps",  S_IRUGO, proc_pid_numa_maps_operations),
 #endif
@@ -3369,9 +3271,6 @@ static const struct pid_entry tgid_base_stuff[] = {
 	DIR("integrity", S_IRUGO|S_IXUGO, proc_integrity_inode_operations,
 			proc_integrity_operations),
 #endif
-#ifdef CONFIG_PROC_TRIGGER_SQLITE_BUG
-	REG("trigger_sqlite_bug", S_IWUSR, proc_trigger_sqlite_bug_operations),
-#endif
 };
 
 static int proc_tgid_base_readdir(struct file *file, struct dir_context *ctx)
@@ -3385,6 +3284,15 @@ static const struct file_operations proc_tgid_base_operations = {
 	.iterate_shared	= proc_tgid_base_readdir,
 	.llseek		= generic_file_llseek,
 };
+
+struct pid *tgid_pidfd_to_pid(const struct file *file)
+{
+	if (!d_is_dir(file->f_path.dentry) ||
+	    (file->f_op != &proc_tgid_base_operations))
+		return ERR_PTR(-EBADF);
+
+	return proc_pid(file_inode(file));
+}
 
 static struct dentry *proc_tgid_base_lookup(struct inode *dir, struct dentry *dentry, unsigned int flags)
 {
@@ -3693,7 +3601,6 @@ static const struct pid_entry tid_base_stuff[] = {
 	REG("cmdline",   S_IRUGO, proc_pid_cmdline_ops),
 	ONE("stat",      S_IRUGO, proc_tid_stat),
 	ONE("statm",     S_IRUGO, proc_pid_statm),
-	ONE("statlmkd",      S_IRUGO, proc_pid_statlmkd),
 	REG("maps",      S_IRUGO, proc_tid_maps_operations),
 #ifdef CONFIG_PROC_CHILDREN
 	REG("children",  S_IRUGO, proc_tid_children_operations),

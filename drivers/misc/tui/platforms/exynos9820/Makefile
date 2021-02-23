@@ -1,5 +1,5 @@
 #
-# Makefile for exynos9820 platform
+# Makefile for exynos9830 platform
 #
 
 ccflags-y += -Idrivers/video/fbdev/exynos/dpu20

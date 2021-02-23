@@ -26,18 +26,15 @@
 #include <asm/page.h>
 #include <asm/tlbflush.h>
 
-#ifdef CONFIG_UH
-#include <linux/uh.h>
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 #include <linux/rkp.h>
-#endif
 #endif
 
 static struct kmem_cache *pgd_cache;
 
 pgd_t *pgd_alloc(struct mm_struct *mm)
 {
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	pgd_t *ret = NULL;
 
 	ret = (pgd_t *) rkp_ro_alloc();
@@ -49,7 +46,7 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 			ret = kmem_cache_alloc(pgd_cache, PGALLOC_GFP);
 	}
 
-	if(unlikely(!ret)) {
+	if (unlikely(!ret)) {
 		pr_warn("%s: pgd alloc is failed\n", __func__);
 		return ret;
 	}
@@ -62,16 +59,15 @@ pgd_t *pgd_alloc(struct mm_struct *mm)
 		return (pgd_t *)__get_free_page(PGALLOC_GFP);
 	else
 		return kmem_cache_alloc(pgd_cache, PGALLOC_GFP);
-#endif	
+#endif
 }
 
 void pgd_free(struct mm_struct *mm, pgd_t *pgd)
 {
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	uh_call(UH_APP_RKP, RKP_FREE_PGD, (u64)pgd, 0, 0, 0);
 
 	/* if pgd memory come from read only buffer, the put it back */
-	/*TODO: use a macro*/
 	if (is_rkp_ro_page((u64)pgd))
 		rkp_ro_free((void *)pgd);
 	else {

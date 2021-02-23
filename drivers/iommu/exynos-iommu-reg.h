@@ -59,7 +59,7 @@ static inline unsigned int dump_tlb_entry_way_type(void __iomem *sfrbase,
 						int idx_way, int idx_set)
 {
 	if (MMU_TLB_ENTRY_VALID(__raw_readl(sfrbase + REG_TLB_ATTR))) {
-		pr_crit("[%02d][%02d] VPN: %#010x, PPN: %#010x, ATTR: %#010x\n",
+		pr_auto(ASL4, "[%02d][%02d] VPN: %#010x, PPN: %#010x, ATTR: %#010x\n",
 			idx_way, idx_set,
 			__raw_readl(sfrbase + REG_TLB_VPN),
 			__raw_readl(sfrbase + REG_TLB_PPN),
@@ -69,15 +69,53 @@ static inline unsigned int dump_tlb_entry_way_type(void __iomem *sfrbase,
 	return 0;
 }
 
+static inline void sysmmu_tlb_compare(phys_addr_t pgtable,
+				int idx_sub, u32 vpn, u32 ppn)
+{
+	sysmmu_pte_t *entry;
+	unsigned long vaddr = MMU_VADDR_FROM_TLB((unsigned long)vpn, idx_sub);
+	unsigned long paddr = MMU_PADDR_FROM_TLB((unsigned long)ppn);
+	unsigned long phys = 0;
+
+	if (!pgtable)
+		return;
+
+	entry = section_entry(phys_to_virt(pgtable), vaddr);
+
+	if (lv1ent_section(entry)) {
+		phys = section_phys(entry);
+	} else if (lv1ent_page(entry)) {
+		entry = page_entry(entry, vaddr);
+
+		if (lv2ent_large(entry))
+			phys = lpage_phys(entry);
+		else if (lv2ent_small(entry))
+			phys = spage_phys(entry);
+	} else {
+		pr_auto(ASL4, ">> Invalid address detected! entry: %#lx",
+						(unsigned long)*entry);
+		return;
+	}
+
+	if (paddr != phys) {
+		pr_auto(ASL4, ">> TLB mismatch detected!\n");
+		pr_auto(ASL4, "   TLB: %#010lx, PT entry: %#010lx\n", paddr, phys);
+	}
+}
+
 static inline unsigned int dump_tlb_entry_port_type(void __iomem *sfrbase,
-						int idx_way, int idx_set)
+		phys_addr_t pgtable, int idx_way, int idx_set, int idx_sub)
 {
 	if (MMU_TLB_ENTRY_VALID(__raw_readl(sfrbase + REG_CAPA1_TLB_ATTR))) {
-		pr_crit("[%02d][%02d] VPN: %#010x, PPN: %#010x, ATTR: %#010x\n",
-			idx_way, idx_set,
-			__raw_readl(sfrbase + REG_CAPA1_TLB_VPN),
-			__raw_readl(sfrbase + REG_CAPA1_TLB_PPN),
-			__raw_readl(sfrbase + REG_CAPA1_TLB_ATTR));
+		u32 vpn, ppn, attr;
+
+		vpn = __raw_readl(sfrbase + REG_CAPA1_TLB_VPN);
+		ppn = __raw_readl(sfrbase + REG_CAPA1_TLB_PPN);
+		attr = __raw_readl(sfrbase + REG_CAPA1_TLB_ATTR);
+
+		pr_auto(ASL4, "[%02d][%02d] VPN: %#010x, PPN: %#010x, ATTR: %#010x\n",
+			idx_way, idx_set, vpn, ppn, attr);
+		sysmmu_tlb_compare(pgtable, idx_sub, vpn, ppn);
 		return 1;
 	}
 	return 0;
@@ -142,12 +180,12 @@ static inline void sysmmu_sbb_compare(u32 sbb_vpn, u32 sbb_link,
 		phys = lv2table_base(entry);
 
 		if (paddr != phys) {
-			pr_crit(">> SBB mismatch detected!\n");
-			pr_crit("   entry addr: %lx / SBB addr %lx\n",
+			pr_auto(ASL4, ">> SBB mismatch detected!\n");
+			pr_auto(ASL4, "   entry addr: %lx / SBB addr %lx\n",
 							paddr, phys);
 		}
 	} else {
-		pr_crit(">> Invalid address detected! entry: %#lx",
+		pr_auto(ASL4, ">> Invalid address detected! entry: %#lx",
 						(unsigned long)*entry);
 	}
 }
@@ -186,7 +224,8 @@ static inline void dump_sysmmu_tlb_port(struct sysmmu_drvdata *drvdata,
 				for (k = 0; k < MMU_NUM_TLB_SUBLINE; k++) {
 					__raw_writel(MMU_CAPA1_SET_TLB_READ_ENTRY(t, j, i, k),
 							sfrbase + REG_CAPA1_TLB_READ);
-					cnt += dump_tlb_entry_port_type(sfrbase, i, j);
+					cnt += dump_tlb_entry_port_type(
+						sfrbase, pgtable, i, j, k);
 				}
 			}
 		}
@@ -201,7 +240,7 @@ static inline void dump_sysmmu_tlb_port(struct sysmmu_drvdata *drvdata,
 			sbb_vpn = __raw_readl(sfrbase + REG_CAPA1_SBB_VPN);
 			sbb_link = __raw_readl(sfrbase + REG_CAPA1_SBB_LINK);
 
-			pr_crit("[%02d] VPN: %#010x, PPN: %#010x, ATTR: %#010x\n",
+			pr_crit("[%02d] VPN: %#010x, PPN: %#010x, ATTR: %#010x",
 				i, sbb_vpn, sbb_link,
 				__raw_readl(sfrbase + REG_CAPA1_SBB_ATTR));
 			sysmmu_sbb_compare(sbb_vpn, sbb_link, pgtable);
@@ -234,36 +273,36 @@ static inline void dump_sysmmu_status(struct sysmmu_drvdata *drvdata,
 
 	pgd = pgd_offset_k((unsigned long)sfrbase);
 	if (!pgd) {
-		pr_crit("Invalid virtual address %p\n", sfrbase);
+		pr_auto(ASL4, "Invalid virtual address %p\n", sfrbase);
 		return;
 	}
 
 	pud = pud_offset(pgd, (unsigned long)sfrbase);
 	if (!pud) {
-		pr_crit("Invalid virtual address %p\n", sfrbase);
+		pr_auto(ASL4, "Invalid virtual address %p\n", sfrbase);
 		return;
 	}
 
 	pmd = pmd_offset(pud, (unsigned long)sfrbase);
 	if (!pmd) {
-		pr_crit("Invalid virtual address %p\n", sfrbase);
+		pr_auto(ASL4, "Invalid virtual address %p\n", sfrbase);
 		return;
 	}
 
 	pte = pte_offset_kernel(pmd, (unsigned long)sfrbase);
 	if (!pte) {
-		pr_crit("Invalid virtual address %p\n", sfrbase);
+		pr_auto(ASL4, "Invalid virtual address %p\n", sfrbase);
 		return;
 	}
 
 	info = MMU_RAW_VER(__raw_readl(sfrbase + REG_MMU_VERSION));
 
 	phys = pte_pfn(*pte) << PAGE_SHIFT;
-	pr_crit("ADDR: %pa(VA: %p), MMU_CTRL: %#010x, PT_BASE: %#010x\n",
+	pr_auto(ASL4, "ADDR: %pa(VA: %p), MMU_CTRL: %#010x, PT_BASE: %#010x\n",
 		&phys, sfrbase,
 		__raw_readl(sfrbase + REG_MMU_CTRL),
 		__raw_readl(sfrbase + REG_PT_BASE_PPN));
-	pr_crit("VERSION %d.%d.%d, MMU_CFG: %#010x, MMU_STATUS: %#010x\n",
+	pr_auto(ASL4, "VERSION %d.%d.%d, MMU_CFG: %#010x, MMU_STATUS: %#010x\n",
 		MMU_MAJ_VER(info), MMU_MIN_VER(info), MMU_REV_VER(info),
 		__raw_readl(sfrbase + REG_MMU_CFG),
 		__raw_readl(sfrbase + REG_MMU_STATUS));
@@ -309,7 +348,6 @@ static inline void show_secure_fault_information(struct sysmmu_drvdata *drvdata,
 		sysmmu_fault_name[fault_id], fault_addr, &pgtable);
 	sec_debug_set_extra_info_sysmmu(temp_buf);
 #endif
-
 
 	if (fault_id == SYSMMU_FAULT_UNKNOWN) {
 		pr_auto(ASL4, "The fault is not caused by this System MMU.\n");
@@ -359,6 +397,7 @@ static inline int show_fault_information(struct sysmmu_drvdata *drvdata,
 	int fault_id = SYSMMU_FAULT_ID(flags);
 	const char *port_name = NULL;
 	static int ptw_count = 0;
+
 #ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
 	char temp_buf[SZ_128];
 #endif
@@ -398,11 +437,9 @@ static inline int show_fault_information(struct sysmmu_drvdata *drvdata,
 		pr_auto(ASL4, "Page table base of driver: %pa\n",
 			&drvdata->pgtable);
 
-	if (fault_id == SYSMMU_FAULT_PTW_ACCESS)
-		pr_auto(ASL4, "System MMU has failed to access page table\n");
-
 	if (!pfn_valid(pgtable >> PAGE_SHIFT)) {
 		pr_auto(ASL4, "Page table base is not in a valid memory region\n");
+		pgtable = 0;
 	} else {
 		sysmmu_pte_t *ent;
 		ent = section_entry(phys_to_virt(pgtable), fault_addr);
@@ -416,7 +453,7 @@ static inline int show_fault_information(struct sysmmu_drvdata *drvdata,
 
 	if (fault_id == SYSMMU_FAULT_PTW_ACCESS) {
 		ptw_count++;
-		pr_auto(ASL4, "System MMU has failed to access page table, %d\n", ptw_count);
+		pr_auto(ASL4, "System MMU has failed to access page table\n");
 		pgtable = 0;
 
 		if (ptw_count > 3)

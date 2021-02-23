@@ -35,34 +35,6 @@
 #include <asm/unaligned.h>
 #include "ecryptfs_kernel.h"
 
-/* Do not directly use this function. Use ECRYPTFS_OVERRIDE_CRED() instead. */
-const struct cred * ecryptfs_override_fsids(uid_t fsuid, gid_t fsgid)
-{
-	struct cred * cred; 
-	const struct cred * old_cred; 
-
-	cred = prepare_creds(); 
-	if (!cred) 
-		return NULL; 
-
-	cred->fsuid = make_kuid(current_user_ns(), fsuid);
-	cred->fsgid = make_kgid(current_user_ns(), fsgid);
-
-	old_cred = override_creds(cred); 
-
-	return old_cred; 
-}
-
-/* Do not directly use this function, use REVERT_CRED() instead. */
-void ecryptfs_revert_fsids(const struct cred * old_cred)
-{
-	const struct cred * cur_cred; 
-
-	cur_cred = current->cred; 
-	revert_creds(old_cred); 
-	put_cred(cur_cred); 
-}
-
 static struct dentry *lock_parent(struct dentry *dentry)
 {
 	struct dentry *dir;
@@ -270,45 +242,10 @@ int ecryptfs_initialize_file(struct dentry *ecryptfs_dentry,
 			ecryptfs_dentry, rc);
 		goto out;
 	}
-    
-#ifdef CONFIG_WTL_ENCRYPTION_FILTER
-	mutex_lock(&crypt_stat->cs_mutex);
-	if (crypt_stat->flags & ECRYPTFS_ENCRYPTED) {
-		struct dentry *fp_dentry =
-			ecryptfs_inode_to_private(ecryptfs_inode)
-			->lower_file->f_path.dentry;
-		struct ecryptfs_mount_crypt_stat *mount_crypt_stat =
-			&ecryptfs_superblock_to_private(ecryptfs_dentry->d_sb)
-			->mount_crypt_stat;
-		char filename[NAME_MAX+1] = {0};
-		if (fp_dentry->d_name.len <= NAME_MAX)
-			memcpy(filename, fp_dentry->d_name.name,
-					fp_dentry->d_name.len + 1);
-
-		if ((mount_crypt_stat->flags & ECRYPTFS_ENABLE_NEW_PASSTHROUGH)
-		|| ((mount_crypt_stat->flags & ECRYPTFS_ENABLE_FILTERING) &&
-			(is_file_name_match(mount_crypt_stat, fp_dentry) ||
-			is_file_ext_match(mount_crypt_stat, filename)))) {
-			crypt_stat->flags &= ~(ECRYPTFS_I_SIZE_INITIALIZED
-				| ECRYPTFS_ENCRYPTED);
-			ecryptfs_put_lower_file(ecryptfs_inode);
-		} else {
-			rc = ecryptfs_write_metadata(ecryptfs_dentry,
-				 ecryptfs_inode);
-			if (rc)
-				printk(
-				KERN_ERR "Error writing headers; rc = [%d]\n"
-				    , rc);
-			ecryptfs_put_lower_file(ecryptfs_inode);
-		}
-	}
-	mutex_unlock(&crypt_stat->cs_mutex);
-#else
 	rc = ecryptfs_write_metadata(ecryptfs_dentry, ecryptfs_inode);
 	if (rc)
 		printk(KERN_ERR "Error writing headers; rc = [%d]\n", rc);
 	ecryptfs_put_lower_file(ecryptfs_inode);
-#endif
 out:
 	return rc;
 }
@@ -389,9 +326,9 @@ static int ecryptfs_i_size_read(struct dentry *dentry, struct inode *inode)
 static struct dentry *ecryptfs_lookup_interpose(struct dentry *dentry,
 				     struct dentry *lower_dentry)
 {
-	struct inode *inode, *lower_inode = d_inode(lower_dentry);
+	struct path *path = ecryptfs_dentry_to_lower_path(dentry->d_parent);
+	struct inode *inode, *lower_inode;
 	struct ecryptfs_dentry_info *dentry_info;
-	struct vfsmount *lower_mnt;
 	int rc = 0;
 
 	dentry_info = kmem_cache_alloc(ecryptfs_dentry_info_cache, GFP_KERNEL);
@@ -403,16 +340,23 @@ static struct dentry *ecryptfs_lookup_interpose(struct dentry *dentry,
 		return ERR_PTR(-ENOMEM);
 	}
 
-	lower_mnt = mntget(ecryptfs_dentry_to_lower_mnt(dentry->d_parent));
 	fsstack_copy_attr_atime(d_inode(dentry->d_parent),
-				d_inode(lower_dentry->d_parent));
+				d_inode(path->dentry));
 	BUG_ON(!d_count(lower_dentry));
 
 	ecryptfs_set_dentry_private(dentry, dentry_info);
-	dentry_info->lower_path.mnt = lower_mnt;
+	dentry_info->lower_path.mnt = mntget(path->mnt);
 	dentry_info->lower_path.dentry = lower_dentry;
 
-	if (d_really_is_negative(lower_dentry)) {
+	/*
+	 * negative dentry can go positive under us here - its parent is not
+	 * locked.  That's OK and that could happen just as we return from
+	 * ecryptfs_lookup() anyway.  Just need to be careful and fetch
+	 * ->d_inode only once - it's not stable here.
+	 */
+	lower_inode = READ_ONCE(lower_dentry->d_inode);
+
+	if (!lower_inode) {
 		/* We want to add because we couldn't find in lower */
 		d_add(dentry, NULL);
 		return NULL;

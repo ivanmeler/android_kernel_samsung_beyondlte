@@ -240,7 +240,6 @@ static void cpufreq_log_stop(void)
 	}	\
 	static ssize_t name##_seq_write(struct file *file, const char __user *buffer, size_t count, loff_t *off) {	\
 		char buf[20];	\
-		count = (count > 20)? 20 : count;	\
 		if (copy_from_user(buf, buffer, count) != 0)	\
 			return -EFAULT;	\
 		sscanf(buf, "%d", &name);	\

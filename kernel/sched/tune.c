@@ -352,17 +352,6 @@ static void schedtune_attach(struct cgroup_taskset *tset)
 		sync_band(task, css_st(css)->band);
 }
 
-static void band_switch(struct schedtune *st)
-{
-	struct css_task_iter it;
-	struct task_struct *p;
-
-	css_task_iter_start(&st->css, 0, &it);
-	while ((p = css_task_iter_next(&it)))
-		sync_band(p, st->band);
-	css_task_iter_end(&it);
-}
-
 /*
  * NOTE: This function must be called while holding the lock on the CPU RQ
  */
@@ -541,12 +530,7 @@ band_write(struct cgroup_subsys_state *css, struct cftype *cft,
 	    u64 band)
 {
 	struct schedtune *st = css_st(css);
-
-	if (st->band == band)
-		return 0;
-
 	st->band = band;
-	band_switch(st);
 
 	return 0;
 }
@@ -564,7 +548,7 @@ prefer_idle_write(struct cgroup_subsys_state *css, struct cftype *cft,
 	    u64 prefer_idle)
 {
 	struct schedtune *st = css_st(css);
-	st->prefer_idle = prefer_idle;
+	st->prefer_idle = !!prefer_idle;
 
 	return 0;
 }

@@ -13,7 +13,8 @@
 #include <linux/sched.h>
 #include <linux/time.h>
 
-#include <linux/fs.h>
+//#include <linux/fs.h>
+#include <linux/fscrypt.h>
 #include <linux/mempool.h>
 #include <crypto/skcipher.h>
 
@@ -24,7 +25,7 @@ struct dd_crypt_context {
 	struct dd_policy policy;
 	unsigned char cipher_file_encryption_key[64]; // only used for kernel crypto
 	unsigned char tag[16];
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 extern unsigned int dd_debug_mask;
 

@@ -1834,8 +1834,13 @@ static int bts_debugfs(void)
 
 	den = debugfs_create_dir("bts", NULL);
 	if (IS_ERR(den)) {
-		pr_err("[BTS]: could't create debugfs dir\n");
+#ifdef CONFIG_DEBUG_FS
+		pr_err("[BTS]: could't create debugfs dir %d %s\n", __LINE__, __FILE__);
 		return -ENOMEM;
+#else
+		pr_err("[BTS]: ignore debugfs %d %s\n", __LINE__, __FILE__);
+        return 0;
+#endif
 	}
 
 	debugfs_create_file("qos", 0440, den, NULL,

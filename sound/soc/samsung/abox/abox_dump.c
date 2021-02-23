@@ -17,8 +17,9 @@
 
 #include "abox_util.h"
 #include "abox.h"
-#include "abox_dbg.h"
+#include "abox_proc.h"
 #include "abox_log.h"
+#include "abox_dump.h"
 
 #define BUFFER_MAX (SZ_64)
 #define NAME_LENGTH (SZ_32)
@@ -191,19 +192,6 @@ static const struct file_operations abox_dump_auto_stop_fops = {
 	.read = abox_dump_auto_stop_read,
 	.write = abox_dump_auto_stop_write,
 };
-
-static int __init samsung_abox_dump_late_initcall(void)
-{
-	pr_info("%s\n", __func__);
-
-	debugfs_create_file("dump_auto_start", 0660, abox_dbg_get_root_dir(),
-			NULL, &abox_dump_auto_start_fops);
-	debugfs_create_file("dump_auto_stop", 0660, abox_dbg_get_root_dir(),
-			NULL, &abox_dump_auto_stop_fops);
-
-	return 0;
-}
-late_initcall(samsung_abox_dump_late_initcall);
 
 static struct snd_soc_dai_link abox_dump_dai_links[BUFFER_MAX];
 
@@ -687,15 +675,24 @@ module_platform_driver(samsung_abox_dump_driver);
 
 void abox_dump_init(struct device *dev_abox)
 {
+	static struct platform_device *pdev;
+	static struct proc_dir_entry *auto_start, *auto_stop;
+
 	dev_info(dev_abox, "%s\n", __func__);
 
 	abox_dump_dev_abox = dev_abox;
-	debugfs_create_file("dump_auto_start", 0660, abox_dbg_get_root_dir(),
-			dev_abox, &abox_dump_auto_start_fops);
-	debugfs_create_file("dump_auto_stop", 0660, abox_dbg_get_root_dir(),
-			dev_abox, &abox_dump_auto_stop_fops);
-	platform_device_register_data(dev_abox,
-			"samsung-abox-dump", -1, NULL, 0);
+
+	if (IS_ERR_OR_NULL(auto_start))
+		auto_start = abox_proc_create_file("dump_auto_start", 0660,
+				NULL, &abox_dump_auto_start_fops, dev_abox, 0);
+
+	if (IS_ERR_OR_NULL(auto_stop))
+		auto_stop = abox_proc_create_file("dump_auto_stop", 0660,
+				NULL, &abox_dump_auto_stop_fops, dev_abox, 0);
+
+	if (IS_ERR_OR_NULL(pdev))
+		pdev = platform_device_register_data(dev_abox,
+				"samsung-abox-dump", -1, NULL, 0);
 }
 
 /* Module information */

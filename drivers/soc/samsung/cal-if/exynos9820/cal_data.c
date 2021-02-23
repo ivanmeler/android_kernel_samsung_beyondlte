@@ -43,6 +43,7 @@ void __iomem *cmu_cpucl0;
 void __iomem *cmu_cpucl1;
 void __iomem *cmu_cpucl2;
 void __iomem *cmu_g3d;
+void __iomem *cmu_top;
 
 #define PLL_CON0_PLL_MMC	(0x1a0)
 #define PLL_CON1_PLL_MMC	(0x1a4)
@@ -196,6 +197,34 @@ int cal_pll_mmc_set_ssc(unsigned int mfr, unsigned int mrr, unsigned int ssc_on)
 #define QCH_CON_TREX_D0_BUSC_QCH_OFFSET	(0x31a8)
 #define IGNORE_FORCE_PM_EN		(2)
 
+#define EXYNOS9820_CMU_CMU_BASE		(0x1A240000)
+#define EXYNOS9820_CMU_CLK_INVERSION	(0x860)
+#define CIS_MCLK(x)			(0x2 * x)
+
+void exynos9820_fimc_is_mclk_control(unsigned int enable, unsigned int num)
+{
+	u32 reg;
+
+	reg = __raw_readl(cmu_top + EXYNOS9820_CMU_CLK_INVERSION);
+
+	if (enable) {
+		if (reg & (1 << CIS_MCLK(num))) {
+			pr_warn("CIS_MCLK%x is enabled\n", num);
+		} else {
+			__raw_writel(reg | (1 << CIS_MCLK(num)),
+					cmu_top + EXYNOS9820_CMU_CLK_INVERSION);
+		}
+	} else {
+		if (reg & (1 << CIS_MCLK(num))) {
+			__raw_writel(reg & ~(1 << CIS_MCLK(num)),
+					cmu_top + EXYNOS9820_CMU_CLK_INVERSION);
+		} else {
+			pr_warn("CIS_MCLK%x is disabled\n", num);
+		}
+	}
+}
+
+void (*fimc_is_mclk_control)(unsigned int enable, unsigned int num) = exynos9820_fimc_is_mclk_control;
 
 void exynos9820_cal_data_init(void)
 {
@@ -232,6 +261,10 @@ void exynos9820_cal_data_init(void)
 	cmu_g3d = ioremap(EXYNOS9820_CMU_G3D_BASE, SZ_4K);
 	if (!cmu_g3d)
 		pr_err("%s: cmu_g3d ioremap failed\n", __func__);
+
+	cmu_top = ioremap(EXYNOS9820_CMU_CMU_BASE, SZ_4K);
+	if (!cmu_top)
+		pr_err("%s: cmu_cmu ioremap failed\n", __func__);
 }
 
 void (*cal_data_init)(void) = exynos9820_cal_data_init;
@@ -248,11 +281,8 @@ int asv_ids_information(enum ids_info id)
 	case lg:
 		res = asv_get_grp(dvfs_cpucl0);
 		break;
-	case mg:
-		res = asv_get_grp(dvfs_cpucl1);
-		break;
 	case bg:
-		res = asv_get_grp(dvfs_cpucl2);
+		res = asv_get_grp(dvfs_cpucl1);
 		break;
 	case g3dg:
 		res = asv_get_grp(dvfs_g3d);
@@ -260,14 +290,8 @@ int asv_ids_information(enum ids_info id)
 	case mifg:
 		res = asv_get_grp(dvfs_mif);
 		break;
-	case lids:
-		res = asv_get_ids_info(dvfs_cpucl0);
-		break;
-	case mids:
-		res = asv_get_ids_info(dvfs_cpucl1);
-		break;
 	case bids:
-		res = asv_get_ids_info(dvfs_cpucl2);
+		res = asv_get_ids_info(dvfs_cpucl1);
 		break;
 	case gids:
 		res = asv_get_ids_info(dvfs_g3d);
@@ -369,50 +393,3 @@ void exynos9820_set_cmu_smpl_warn(void)
 	pr_info("G3D SMPL_WARN enabled.\n");
 }
 void (*cal_set_cmu_smpl_warn)(void) = exynos9820_set_cmu_smpl_warn;
-
-#if defined(CONFIG_SEC_PM_DEBUG) && defined(CONFIG_DEBUG_FS)
-#include <linux/debugfs.h>
-
-#define ASV_SUMMARY_SZ	(dvfs_mfc - dvfs_mif + 1)
-
-static int asv_summary_show(struct seq_file *s, void *d)
-{
-	unsigned int i;
-	const char *label[ASV_SUMMARY_SZ] = { "MIF", "INT", "CL0", "CL1", "CL2",
-		"NPU", "DISP", "SCORE", "AUD", "CP", "G3D", "INTCAM", "CAM",
-		"IVA", "MFC" };
-
-	seq_printf(s, "Table ver: %d\n", asv_get_table_ver());
-
-	for (i = 0; i < ASV_SUMMARY_SZ ; i++)
-		seq_printf(s, "%s: %d\n", label[i], asv_get_grp(dvfs_mif + i));
-
-	seq_printf(s, "IDS (b,m,l,g): %d, %d, %d, %d\n",
-			asv_get_ids_info(dvfs_cpucl2),
-			asv_get_ids_info(dvfs_cpucl1),
-			asv_get_ids_info(dvfs_cpucl0),
-			asv_get_ids_info(dvfs_g3d));
-	return 0;
-}
-
-static int asv_summary_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, asv_summary_show, inode->i_private);
-}
-
-const static struct file_operations asv_summary_fops = {
-	.open		= asv_summary_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= single_release,
-};
-
-static int __init cal_data_late_init(void)
-{
-	debugfs_create_file("asv_summary", 0444, NULL, NULL, &asv_summary_fops);
-
-	return 0;
-}
-
-late_initcall(cal_data_late_init);
-#endif /* CONFIG_SEC_PM_DEBUG && CONFIG_DEBUG_FS */

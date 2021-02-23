@@ -159,6 +159,9 @@ int fimc_is_hw_3aa_mode_change(struct fimc_is_hw_ip *hw_ip, u32 instance, ulong 
 	struct fimc_is_framemgr *framemgr;
 	struct camera2_shot *shot = NULL;
 	unsigned long flags;
+#ifdef ENABLE_MODECHANGE_CAPTURE
+	struct fimc_is_device_sensor *sensor;
+#endif
 
 	if (!test_bit_variables(hw_ip->id, &hw_map))
 		return 0;
@@ -183,6 +186,15 @@ int fimc_is_hw_3aa_mode_change(struct fimc_is_hw_ip *hw_ip, u32 instance, ulong 
 		if (frame) {
 			shot = frame->shot;
 		} else {
+#ifdef ENABLE_MODECHANGE_CAPTURE
+			sensor = hw_ip->group[instance]->device->sensor;
+			if (sensor && sensor->mode_chg_frame) {
+				frame = sensor->mode_chg_frame;
+				shot = frame->shot;
+				msinfo_hw("[F:%d]mode_chg_frame used for REMOSAIC\n",
+					instance, hw_ip, frame->fcount);
+			}
+#endif	
 			mswarn_hw("enable (frame:NULL)(%d)", instance, hw_ip,
 				framemgr->queued_count[FS_HW_CONFIGURE]);
 		}
@@ -597,6 +609,13 @@ void fimc_is_hw_3aa_update_param(struct fimc_is_hw_ip *hw_ip, struct is_param_re
 		memcpy(&param_set->dma_output_mrg, &param->mrg_output,
 			sizeof(struct param_dma_output));
 	}
+
+#ifdef CHAIN_USE_STRIPE_PROCESSING
+	if (lindex & LOWBIT_OF(PARAM_3AA_STRIPE_INPUT)) {
+		memcpy(&param_set->stripe_input, &param->stripe_input,
+			sizeof(struct param_stripe_input));
+	}
+#endif
 }
 
 static int fimc_is_hw_3aa_get_meta(struct fimc_is_hw_ip *hw_ip, struct fimc_is_frame *frame,

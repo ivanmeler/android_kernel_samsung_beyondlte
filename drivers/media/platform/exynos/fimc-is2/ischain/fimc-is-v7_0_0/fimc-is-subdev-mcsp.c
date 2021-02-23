@@ -29,6 +29,131 @@ static int fimc_is_ischain_mxp_adjust_crop(struct fimc_is_device_ischain *device
 	u32 input_crop_w, u32 input_crop_h,
 	u32 *output_crop_w, u32 *output_crop_h);
 
+int fimc_is_ischain_mxp_stripe_cfg(struct fimc_is_subdev *subdev,
+		struct fimc_is_frame *ldr_frame,
+		struct fimc_is_crop *incrop,
+		struct fimc_is_crop *otcrop,
+		struct fimc_is_frame_cfg *framecfg)
+{
+	bool is_last_region = false;
+	bool x_flip = test_bit(SCALER_FLIP_COMMAND_X_MIRROR, &framecfg->flip);
+	struct fimc_is_framemgr *framemgr;
+	struct fimc_is_frame *frame;
+	struct fimc_is_fmt *fmt = framecfg->format;
+	int temp_stripe_x = 0, temp_stripe_w = 0;
+	u32 stripe_x, stripe_w, dma_offset = 0;
+	u32 region_id = ldr_frame->stripe_info.region_id;
+	unsigned long flags;
+
+	framemgr = GET_SUBDEV_FRAMEMGR(subdev);
+	if (!framemgr)
+		return 0;
+
+	framemgr_e_barrier_irqs(framemgr, FMGR_IDX_24, flags);
+
+	frame = peek_frame(framemgr, ldr_frame->state);
+	if (frame) {
+		/* Input crop configuration */
+		if (!region_id) {
+			/* Left region w/o margin */
+			stripe_x = incrop->x;
+			temp_stripe_w = ldr_frame->stripe_info.in.h_pix_num - stripe_x;
+
+			stripe_w = ldr_frame->stripe_info.in.h_pix_num > stripe_x ? temp_stripe_w : 0;
+			frame->stripe_info.in.h_pix_num = stripe_w;
+			frame->stripe_info.in.prev_h_pix_num = 0;
+			frame->stripe_info.in.h_pix_ratio = stripe_w * STRIPE_RATIO_PRECISION / incrop->w;
+		} else if (region_id < ldr_frame->stripe_info.region_num - 1) {
+			frame->stripe_info.in.prev_h_pix_num = frame->stripe_info.in.h_pix_num;
+			/* Middle region w/o margin */
+			stripe_x = STRIPE_MARGIN_WIDTH;
+
+			/* Stripe x when crop offset x start in middle region */
+			if (!frame->stripe_info.in.h_pix_num && incrop->x < ldr_frame->stripe_info.in.h_pix_num) {
+				temp_stripe_x = incrop->x - ldr_frame->stripe_info.in.prev_h_pix_num;
+			}
+			/* Stripe width when crop region end in middle region */
+			if (incrop->x + incrop->w < ldr_frame->stripe_info.in.h_pix_num) {
+				temp_stripe_w = incrop->w > frame->stripe_info.in.h_pix_num ?
+						incrop->w - frame->stripe_info.in.h_pix_num : 0;
+				is_last_region = true;
+			} else {
+				temp_stripe_w = ldr_frame->stripe_info.in.h_pix_num > frame->stripe_info.in.h_pix_num + incrop->x ?
+						ldr_frame->stripe_info.in.h_pix_num - frame->stripe_info.in.h_pix_num - incrop->x : 0;
+			}
+
+			stripe_w = temp_stripe_w > 0 ? temp_stripe_w: 0;
+			stripe_x = stripe_x + temp_stripe_x;
+
+			frame->stripe_info.in.h_pix_num += stripe_w;
+			frame->stripe_info.in.h_pix_ratio = stripe_w * STRIPE_RATIO_PRECISION / incrop->w;
+		} else {
+			/* Right region w/o margin */
+			stripe_x = STRIPE_MARGIN_WIDTH;
+			temp_stripe_w = incrop->w - frame->stripe_info.in.h_pix_num;
+			stripe_w = incrop->w > frame->stripe_info.in.h_pix_num ? temp_stripe_w: 0;
+		}
+
+		incrop->x = stripe_x;
+		incrop->w = stripe_w;
+
+		/* Output crop & WDMA offset configuration */
+		if (!region_id) {
+			/* Left region */
+			stripe_w = ALIGN(otcrop->w * frame->stripe_info.in.h_pix_ratio / STRIPE_RATIO_PRECISION, 2);
+			/* Add horizontal DMA offset */
+			if (x_flip)
+				dma_offset = otcrop->w - stripe_w;
+			frame->stripe_info.out.h_pix_num = stripe_w;
+			frame->stripe_info.region_base_addr[0] = frame->dvaddr_buffer[0];
+			frame->stripe_info.region_base_addr[1] = frame->dvaddr_buffer[1];
+		} else if (region_id < ldr_frame->stripe_info.region_num - 1) {
+			if (is_last_region)
+				stripe_w = otcrop->w - frame->stripe_info.out.h_pix_num;
+			else
+				stripe_w = ALIGN(otcrop->w * frame->stripe_info.in.h_pix_ratio / STRIPE_RATIO_PRECISION, 2);
+			/* Add horizontal DMA offset */
+			if (x_flip)
+				dma_offset = otcrop->w - frame->stripe_info.out.h_pix_num - stripe_w;
+			else
+				dma_offset = frame->stripe_info.out.h_pix_num;
+			frame->stripe_info.out.h_pix_num += stripe_w;
+		} else {
+			/* Right region */
+			stripe_w = otcrop->w - frame->stripe_info.out.h_pix_num;
+
+			/* Add horizontal DMA offset */
+			if (x_flip)
+				dma_offset = 0;
+			else
+				dma_offset = frame->stripe_info.out.h_pix_num;
+		}
+
+		otcrop->w = stripe_w;
+		if (temp_stripe_w <= 0) {
+			mdbg_pframe("Skip current stripe[#%d] region because stripe_width is too small(%d)\n",
+				subdev, subdev, ldr_frame,
+				region_id, temp_stripe_w);
+			framemgr_x_barrier_irqr(framemgr, FMGR_IDX_24, flags);
+			return -EAGAIN;
+		}
+		/* Calculate chroma base address for NV21M */
+		frame->dvaddr_buffer[0] = frame->stripe_info.region_base_addr[0] + ((dma_offset * fmt->bitsperpixel[0]) / BITS_PER_BYTE);
+		frame->dvaddr_buffer[1] = frame->stripe_info.region_base_addr[1] + ((dma_offset * fmt->bitsperpixel[1]) / BITS_PER_BYTE);
+
+		mdbg_pframe("stripe_in_crop[%d][%d, %d, %d, %d]\n", subdev, subdev, ldr_frame,
+				region_id,
+				incrop->x, incrop->y, incrop->w, incrop->h, dma_offset);
+		mdbg_pframe("stripe_ot_crop[%d][%d, %d, %d, %d] offset %x\n", subdev, subdev, ldr_frame,
+				region_id,
+				otcrop->x, otcrop->y, otcrop->w, otcrop->h, dma_offset);
+	}
+
+	framemgr_x_barrier_irqr(framemgr, FMGR_IDX_24, flags);
+
+	return 0;
+}
+
 static int fimc_is_ischain_mxp_cfg(struct fimc_is_subdev *subdev,
 	void *device_data,
 	struct fimc_is_frame *frame,
@@ -138,7 +263,9 @@ p_err:
 	return ret;
 }
 
-#define MXP_RATIO_UP	(14)
+#define MXP_RATIO_UP	(25)
+#define MXP_RATIO_DOWN	(32)
+
 static int fimc_is_ischain_mxp_adjust_crop(struct fimc_is_device_ischain *device,
 	u32 input_crop_w, u32 input_crop_h,
 	u32 *output_crop_w, u32 *output_crop_h)
@@ -159,17 +286,17 @@ static int fimc_is_ischain_mxp_adjust_crop(struct fimc_is_device_ischain *device
 		changed |= 0x02;
 	}
 
-	if (*output_crop_w < (input_crop_w + 23) / 24) {
-		mwarn("Cannot be scaled down beyond 1/16 times(%d -> %d)",
+	if (*output_crop_w < (input_crop_w + (MXP_RATIO_DOWN - 1)) / MXP_RATIO_DOWN) {
+		mwarn("Cannot be scaled down beyond 1/32 times(%d -> %d)",
 			device, input_crop_w, *output_crop_w);
-		*output_crop_w = ALIGN((input_crop_w + 23) / 24, 2);
+		*output_crop_w = ALIGN((input_crop_w + (MXP_RATIO_DOWN - 1)) / MXP_RATIO_DOWN, 2);
 		changed |= 0x10;
 	}
 
-	if (*output_crop_h < (input_crop_h + 23) / 24) {
-		mwarn("Cannot be scaled down beyond 1/16 times(%d -> %d)",
+	if (*output_crop_h < (input_crop_h + (MXP_RATIO_DOWN - 1)) / MXP_RATIO_DOWN) {
+		mwarn("Cannot be scaled down beyond 1/32 times(%d -> %d)",
 			device, input_crop_h, *output_crop_h);
-		*output_crop_h = ALIGN((input_crop_h + 23) / 24, 2);
+		*output_crop_h = ALIGN((input_crop_h + (MXP_RATIO_DOWN - 1)) / MXP_RATIO_DOWN, 2);
 		changed |= 0x20;
 	}
 
@@ -234,11 +361,11 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 	u32 *indexes)
 {
 	int ret = 0;
+	int stripe_ret = 0;
 	struct fimc_is_fmt *format, *tmp_format;
+	struct fimc_is_crop incrop_cfg, otcrop_cfg;
 	struct param_otf_input *otf_input;
-#if ANDROID_VERSION >= 100000 /* Over Q */
 	u32 flip = mcs_output->flip;
-#endif
 	u32 crange;
 	int scenario_id = -1;
 
@@ -246,19 +373,11 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 	FIMC_BUG(!queue->framecfg.format);
 
 	format = queue->framecfg.format;
-
-	otf_input = NULL;
+	incrop_cfg = *incrop;
+	otcrop_cfg = *otcrop;
 #ifdef ENABLE_DVFS
 	scenario_id = device->resourcemgr->dvfs_ctrl.static_ctrl->cur_scenario_id;
 #endif
-
-	/* if output DS, skip check a incrop & input mcs param
-	 * because, DS input size set to preview port output size
-	 */
-	if ((index - PARAM_MCS_OUTPUT0) != MCSC_OUTPUT_DS)
-		fimc_is_ischain_mxp_compare_size(device, mcs_param, incrop);
-
-	fimc_is_ischain_mxp_adjust_crop(device, incrop->w, incrop->h, &otcrop->w, &otcrop->h);
 
 	if (queue->framecfg.quantization == V4L2_QUANTIZATION_FULL_RANGE) {
 		crange = SCALER_OUTPUT_YUV_RANGE_FULL;
@@ -293,7 +412,6 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 		}
 	}
 
-#if ANDROID_VERSION >= 100000 /* Over Q */
 	if ((index >= PARAM_MCS_OUTPUT0 && index < PARAM_MCS_OUTPUT5) &&
 		frame->shot_ext->mcsc_flip[index - PARAM_MCS_OUTPUT0] != mcs_output->flip) {
 		flip = frame->shot_ext->mcsc_flip[index - PARAM_MCS_OUTPUT0];
@@ -303,7 +421,28 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 			mcs_output->flip,
 			flip);
 	}
-#endif
+
+	if (IS_ENABLED(CHAIN_USE_STRIPE_PROCESSING) && frame && frame->stripe_info.region_num) {
+		stripe_ret = fimc_is_ischain_mxp_stripe_cfg(subdev, frame,
+				&incrop_cfg, &otcrop_cfg,
+				&queue->framecfg);
+		if (stripe_ret) {
+			mcs_output->otf_cmd = OTF_OUTPUT_COMMAND_DISABLE;
+			mcs_output->dma_cmd = DMA_OUTPUT_COMMAND_DISABLE;
+			mcs_output->width = otcrop_cfg.w;
+			mcs_output->height = otcrop_cfg.h;
+			goto skip_frame;
+		}
+	}
+
+	/*
+	 * if output DS, skip check a incrop & input mcs param
+	 * because, DS input size set to preview port output size
+	 */
+	if ((index - PARAM_MCS_OUTPUT0) != MCSC_OUTPUT_DS)
+		fimc_is_ischain_mxp_compare_size(device, mcs_param, &incrop_cfg);
+
+	fimc_is_ischain_mxp_adjust_crop(device, incrop_cfg.w, incrop_cfg.h, &otcrop_cfg.w, &otcrop_cfg.h);
 
 	mcs_output->otf_format = OTF_OUTPUT_FORMAT_YUV422;
 	mcs_output->otf_bitwidth = OTF_OUTPUT_BIT_WIDTH_8BIT;
@@ -315,13 +454,13 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 	mcs_output->dma_order = format->hw_order;
 	mcs_output->plane = format->hw_plane;
 
-	mcs_output->crop_offset_x = incrop->x; /* per frame */
-	mcs_output->crop_offset_y = incrop->y; /* per frame */
-	mcs_output->crop_width = incrop->w; /* per frame */
-	mcs_output->crop_height = incrop->h; /* per frame */
+	mcs_output->crop_offset_x = incrop_cfg.x; /* per frame */
+	mcs_output->crop_offset_y = incrop_cfg.y; /* per frame */
+	mcs_output->crop_width = incrop_cfg.w; /* per frame */
+	mcs_output->crop_height = incrop_cfg.h; /* per frame */
 
-	mcs_output->width = otcrop->w; /* per frame */
-	mcs_output->height = otcrop->h; /* per frame */
+	mcs_output->width = otcrop_cfg.w; /* per frame */
+	mcs_output->height = otcrop_cfg.h; /* per frame */
 	/* HW spec: stride should be aligned by 16 byte. */
 
 	mcs_output->dma_stride_y = ALIGN(max(otcrop->w * format->bitsperpixel[0] / BITS_PER_BYTE,
@@ -330,11 +469,7 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 					queue->framecfg.bytesperline[1]), 16);
 
 	mcs_output->yuv_range = crange;
-#if ANDROID_VERSION >= 100000 /* Over Q */
 	mcs_output->flip = flip;
-#else
-	mcs_output->flip = (u32)queue->framecfg.flip >> 1; /* Caution: change from bitwise to enum */
-#endif
 
 #ifdef ENABLE_HWFC
 	if (test_bit(FIMC_IS_ISCHAIN_REPROCESSING, &device->state))
@@ -342,7 +477,7 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 	else
 		mcs_output->hwfc = 0; /* TODO: enum */
 #endif
-
+skip_frame:
 	*lindex |= LOWBIT_OF(index);
 	*hindex |= HIGHBIT_OF(index);
 	(*indexes)++;
@@ -350,8 +485,8 @@ static int fimc_is_ischain_mxp_start(struct fimc_is_device_ischain *device,
 #ifdef SOC_VRA
 	if (device->group_mcs.junction == subdev) {
 		otf_input = fimc_is_itf_g_param(device, frame, PARAM_FD_OTF_INPUT);
-		otf_input->width = otcrop->w;
-		otf_input->height = otcrop->h;
+		otf_input->width = otcrop_cfg.w;
+		otf_input->height = otcrop_cfg.h;
 		*lindex |= LOWBIT_OF(PARAM_FD_OTF_INPUT);
 		*hindex |= HIGHBIT_OF(PARAM_FD_OTF_INPUT);
 		(*indexes)++;
@@ -473,9 +608,7 @@ static int fimc_is_ischain_mxp_tag(struct fimc_is_subdev *subdev,
 	u32 index, lindex, hindex, indexes;
 	u32 pixelformat = 0;
 	u32 *target_addr;
-#if ANDROID_VERSION >= 100000 /* Over Q */
 	bool change_flip = false;
-#endif
 	bool change_pixelformat = false;
 	int scenario_id = -1;
 
@@ -546,6 +679,24 @@ static int fimc_is_ischain_mxp_tag(struct fimc_is_subdev *subdev,
 	scenario_id = device->resourcemgr->dvfs_ctrl.static_ctrl->cur_scenario_id;
 #endif
 	if (node->request) {
+		/*
+		 * For supporting multi input to single output.
+		 * But this function is not supported in full OTF chain.
+		 */
+		if (device->group_mcs.head)
+			head = device->group_mcs.head;
+		else
+			head = &device->group_mcs;
+
+		if (!test_bit(FIMC_IS_GROUP_OTF_INPUT, &head->state) && (head->asyn_shots == 1)) {
+			ret = down_interruptible(&subdev->vctx->video->smp_multi_input);
+			if (ret)
+				mswarn(" smp_multi_input down fail(%d)", device, subdev, ret);
+			else
+				subdev->vctx->video->try_smp = true;
+
+		}
+
 		incrop = (struct fimc_is_crop *)node->input.cropRegion;
 		otcrop = (struct fimc_is_crop *)node->output.cropRegion;
 		if (node->pixelformat) {
@@ -553,11 +704,9 @@ static int fimc_is_ischain_mxp_tag(struct fimc_is_subdev *subdev,
 			pixelformat = node->pixelformat;
 		}
 
-#if ANDROID_VERSION >= 100000 /* Over Q */
 		if ((index >= PARAM_MCS_OUTPUT0 && index < PARAM_MCS_OUTPUT5) &&
 			ldr_frame->shot_ext->mcsc_flip[index - PARAM_MCS_OUTPUT0] != mcs_output->flip)
 			change_flip = true;
-#endif
 
 		inparm.x = mcs_output->crop_offset_x;
 		inparm.y = mcs_output->crop_offset_y;
@@ -577,9 +726,8 @@ static int fimc_is_ischain_mxp_tag(struct fimc_is_subdev *subdev,
 
 		if (!COMPARE_CROP(incrop, &inparm) ||
 			!COMPARE_CROP(otcrop, &otparm) ||
-#if ANDROID_VERSION >= 100000 /* Over Q */
+			CHECK_STRIPE_CFG(&ldr_frame->stripe_info) ||
 			change_flip ||
-#endif
 			change_pixelformat ||
 			!test_bit(FIMC_IS_SUBDEV_RUN, &subdev->state) ||
 			test_bit(FIMC_IS_SUBDEV_FORCE_SET, &leader->state)) {
@@ -619,23 +767,9 @@ static int fimc_is_ischain_mxp_tag(struct fimc_is_subdev *subdev,
 		if (ret) {
 			mswarn("%d frame is drop", device, subdev, ldr_frame->fcount);
 			node->request = 0;
-		} else {
-			/*
-			 * For supporting multi input to single output.
-			 * But this function is not supported in full OTF chain.
-			 */
-			if (device->group_mcs.head)
-				head = device->group_mcs.head;
-			else
-				head = &device->group_mcs;
-
-			if (!test_bit(FIMC_IS_GROUP_OTF_INPUT, &head->state) && (head->asyn_shots == 1)) {
-				ret = down_interruptible(&subdev->vctx->video->smp_multi_input);
-				if (ret)
-					mswarn(" smp_multi_input down fail(%d)", device, subdev, ret);
-				else
-					subdev->vctx->video->try_smp = true;
-
+			if (subdev->vctx->video->try_smp) {
+				subdev->vctx->video->try_smp = false;
+				up(&subdev->vctx->video->smp_multi_input);
 			}
 		}
 	} else {

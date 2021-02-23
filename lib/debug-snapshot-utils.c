@@ -26,12 +26,12 @@
 #include <linux/nmi.h>
 #include <linux/init_task.h>
 #include <linux/ftrace.h>
+#include <linux/sec_debug.h>
 
 #include <asm/cputype.h>
 #include <asm/smp_plat.h>
 #include <asm/core_regs.h>
 #include <asm/cacheflush.h>
-#include <linux/irqflags.h>
 
 #include "debug-snapshot-local.h"
 
@@ -92,11 +92,10 @@ void dbg_snapshot_hook_hardlockup_entry(void *v_regs)
 		regs->pc = last_pc;
 
 		/* Then, we expect bug() function works well */
-		pr_emerg("\n--------------------------------------------------------------------------\n"
-			"%s - Debugging Information for Hardlockup core - CPU(%d), Mask:(0x%lx)"
-			"\n--------------------------------------------------------------------------\n\n",
-			(dss_desc.allcorelockup_detected) ? "All Core" : "Core",
+		pr_emerg("\n--------------------------------------------------------------------------\n");
+		pr_auto(ASL4, "      Debugging Information for Hardlockup core - CPU(%d), Mask:(0x%x)\n",
 			cpu, dss_desc.hardlockup_core_mask);
+		pr_emerg("--------------------------------------------------------------------------\n\n");
 
 #if defined(CONFIG_HARDLOCKUP_DETECTOR_OTHER_CPU)			\
 	&& defined(CONFIG_SEC_DEBUG)
@@ -287,8 +286,7 @@ static void dbg_snapshot_dump_one_task_info(struct task_struct *tsk, bool is_mai
 			task_cpu(tsk), wchan, pc, (unsigned long)tsk,
 			is_main ? '*' : ' ', tsk->comm, symname);
 
-	if (tsk->state == TASK_RUNNING || tsk->state == TASK_UNINTERRUPTIBLE || tsk->state == TASK_KILLABLE) {		
-		sec_debug_wtsk_print_info(tsk, true);
+	if (tsk->state == TASK_RUNNING || tsk->state == TASK_UNINTERRUPTIBLE) {
 		show_stack(tsk, NULL);
 		pr_info("\n");
 	}
@@ -348,13 +346,10 @@ void dbg_snapshot_check_crash_key(unsigned int code, int value)
 	static int loopcount;
 
 	static const unsigned int VOLUME_UP = KEY_VOLUMEUP;
-#if defined(CONFIG_DEBUG_SNAPSHOT_ONE_CRASH_KEY)
-	static const unsigned int VOLUME_DOWN = KEY_RESET;
-#else
 	static const unsigned int VOLUME_DOWN = KEY_VOLUMEDOWN;
-#endif
+
 	if (code == KEY_POWER)
-		pr_crit("debug-snapshot: POWER-KEY %s\n", value ? "pressed" : "released");
+		pr_info("debug-snapshot: POWER-KEY %s\n", value ? "pressed" : "released");
 
 	/* Enter Forced Upload
 	 *  Hold volume down key first

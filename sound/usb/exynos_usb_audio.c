@@ -360,12 +360,6 @@ int exynos_usb_audio_setintf(struct usb_device *udev, int iface, int alt, int di
 		erap_usb->param4 = upper_32_bits(le64_to_cpu(hwinfo->out_deq));
 	}
 
-	/* one more check connection to prevent kernel panic */
-	if (!usb_audio->is_audio || !otg_connection) {
-		dev_info(dev, "USB_AUDIO_IPC : is_audio is 0. return!\n");
-		return -1;
-	}
-
 	ret = abox_start_ipc_transaction(dev, msg.ipcid, &msg, sizeof(msg), 0, 1);
 	if (ret) {
 		dev_err(&usb_audio->udev->dev, "erap usb hcd control failed\n");
@@ -606,7 +600,6 @@ int exynos_usb_audio_conn(int is_conn)
 		if (usb_audio->is_audio) {
 			usb_audio->is_audio = 0;
 			usb_audio->usb_audio_state = USB_AUDIO_REMOVING;
-			reinit_completion(&usb_audio->discon_done);
 			ret = abox_start_ipc_transaction(dev, msg.ipcid, &msg, sizeof(msg), 0, 0);
 			if (ret) {
 				pr_err("erap usb dis_conn control failed\n");
@@ -622,6 +615,7 @@ int exynos_usb_audio_conn(int is_conn)
 		usb_audio->fb_indeq_map_done = 0;
 		usb_audio->fb_outdeq_map_done = 0;
 		usb_audio->pcm_open_done = 0;
+		reinit_completion(&usb_audio->discon_done);
 		ret = abox_start_ipc_transaction(dev, msg.ipcid, &msg, sizeof(msg), 0, 1);
 		if (ret) {
 			pr_err("erap usb conn control failed\n");
@@ -652,8 +646,7 @@ int exynos_usb_audio_pcm(int is_open, int direction)
 
 	if (is_open)
 		usb_audio->pcm_open_done = 1;
-	dev_info(dev, "PCM %s dir %s\n", is_open? "OPEN" : "CLOSE",
-				direction ? "IN" : "OUT");
+	dev_info(dev, "PCM  %s\n", is_open? "OPEN" : "CLOSE");
 
 	msg.ipcid = IPC_ERAP;
 	erap_msg->msgtype = REALTIME_USB;

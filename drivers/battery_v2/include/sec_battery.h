@@ -113,6 +113,7 @@ extern char *sec_cable_type[];
 #define BATT_MISC_EVENT_WIRELESS_AUTH_FAIL      0x00000800
 #define BATT_MISC_EVENT_WIRELESS_AUTH_PASS      0x00001000
 #define BATT_MISC_EVENT_TEMP_HICCUP_TYPE	0x00002000
+#define BATT_MISC_EVENT_HEALTH_OVERHEATLIMIT		0x00100000
 
 #define BATT_MISC_EVENT_BATTERY_HEALTH			0x000F0000
 
@@ -622,7 +623,6 @@ struct sec_battery_info {
 	unsigned int prev_misc_event;
 	unsigned int tx_retry_case;
 	unsigned int tx_misalign_cnt;
-	unsigned int tx_ocp_cnt;
 	struct delayed_work ext_event_work;
 	struct delayed_work misc_event_work;
 	struct wake_lock ext_event_wake_lock;
@@ -634,8 +634,6 @@ struct sec_battery_info {
 	struct mutex voutlock;
 	unsigned long tx_misalign_start_time;
 	unsigned long tx_misalign_passed_time;
-	unsigned long tx_ocp_start_time;
-	unsigned long tx_ocp_passed_time;
 
 	unsigned int hiccup_status;
 	bool hiccup_clear;
@@ -651,8 +649,6 @@ struct sec_battery_info {
 	int ta_alert_mode;
 
 	bool boot_complete;
-
-	bool support_unknown_wpcthm;
 };
 
 /* event check */

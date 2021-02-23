@@ -266,6 +266,20 @@ struct dma_buf_ops {
 
 	void *(*vmap)(struct dma_buf *);
 	void (*vunmap)(struct dma_buf *, void *vaddr);
+
+	/**
+	 * @get_flags:
+	 *
+	 * This is called by dma_buf_get_flags and is used to get the buffer's
+	 * flags.
+	 * This callback is optional.
+	 *
+	 * Returns:
+	 *
+	 * 0 on success or a negative error code on failure. On success flags
+	 * will be populated with the buffer's flags.
+	 */
+	int (*get_flags)(struct dma_buf *dmabuf, unsigned long *flags);
 };
 
 /**
@@ -274,10 +288,12 @@ struct dma_buf_ops {
  * @file: file pointer used for sharing buffers across, and for refcounting.
  * @attachments: list of dma_buf_attachment that denotes all devices attached.
  * @ops: dma_buf_ops associated with this buffer object.
- * @lock: used internally to serialize list manipulation, attach/detach and vmap/unmap
+ * @lock: used internally to serialize list manipulation, attach/detach and
+ *        vmap/unmap, and accesses to name
  * @vmapping_counter: used internally to refcnt the vmaps
  * @vmap_ptr: the current vmap ptr if vmapping_counter > 0
  * @exp_name: name of the exporter; useful for debugging.
+ * @name: userspace-provided name; useful for accounting and debugging.
  * @owner: pointer to exporter module; used for refcounting when exporter is a
  *         kernel module.
  * @list_node: node for dma_buf accounting and debugging.
@@ -305,6 +321,7 @@ struct dma_buf {
 	unsigned vmapping_counter;
 	void *vmap_ptr;
 	const char *exp_name;
+	const char *name;
 	struct module *owner;
 	struct list_head list_node;
 	void *priv;
@@ -428,6 +445,7 @@ int dma_buf_mmap(struct dma_buf *, struct vm_area_struct *,
 void *dma_buf_vmap(struct dma_buf *);
 void dma_buf_vunmap(struct dma_buf *, void *vaddr);
 
+int dma_buf_get_flags(struct dma_buf *dmabuf, unsigned long *flags);
 
 #ifdef CONFIG_DMA_BUF_CONTAINER
 struct dma_buf *dma_buf_get_any(int fd);

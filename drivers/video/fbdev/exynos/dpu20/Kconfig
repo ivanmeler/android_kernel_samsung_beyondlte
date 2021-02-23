@@ -100,11 +100,6 @@ config EXYNOS_DSIM_DITHER
         depends on EXYNOS_MIPI_DSIM
         default y
 
-config EXYNOS_ADAPTIVE_FREQ
-    bool "Feature for Dsim Adaptive Frequence"
-        depends on EXYNOS_MIPI_DSIM
-        default n
-
 config DECON_BTS_LEGACY
 	bool "Legacy BTS scheme of display"
         depends on EXYNOS_DPU20
@@ -140,6 +135,11 @@ config EXYNOS_FREQ_HOP
         depends on EXYNOS_DPU20
         default n
 
+config EXYNOS_ADAPTIVE_FREQ
+    bool "Feature for Dsim Adaptive Frequence"
+        depends on EXYNOS_MIPI_DSIM
+        default n
+
 config SUPPORT_RDX_DUMP
         bool "Support RDX Dump"
         depends on EXYNOS_DPU20
@@ -149,13 +149,7 @@ config EXYNOS_PLL_SLEEP
 	bool "Support DPHY PLL Sleep"
         depends on EXYNOS_DPU20
         default n
-
-config AVOID_TSP_NOISE
-    bool "Tune disp clock to avoid tsp noise"
-        depends on EXYNOS_DPU20
-        default n
 endif
 
 source "drivers/video/fbdev/exynos/dpu20/panels/Kconfig"
-source "drivers/video/fbdev/exynos/dpu20/dp_logger/Kconfig"
 source "drivers/video/fbdev/exynos/dpu20/mcd_hdr/Kconfig"

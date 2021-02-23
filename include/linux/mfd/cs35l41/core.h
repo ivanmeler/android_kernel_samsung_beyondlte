@@ -16,6 +16,8 @@
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 
+#define CIRRUS_MAX_AMPS			8
+
 struct cs35l41_data {
 	struct cs35l41_platform_data *pdata;
 	struct device *dev;
@@ -25,6 +27,13 @@ struct cs35l41_data {
 	struct gpio_desc *reset_gpio;
 	int num_supplies;
 	int irq;
+};
+
+struct cirrus_mfd_amp {
+	struct regmap *regmap;
+	const char *mfd_suffix;
+	const char *dsp_part_name;
+	int index;
 };
 
 #endif

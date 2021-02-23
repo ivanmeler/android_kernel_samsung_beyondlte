@@ -278,8 +278,7 @@ int npu_qos_stop(struct npu_system *system)
 	list_for_each_safe(pos, q, &qos_list) {
 		qr = list_entry(pos, struct npu_session_qos_req, list);
 		list_del(pos);
-		if (qr)
-			kfree(qr);
+		kfree(qr);
 	}
 	list_del_init(&qos_list);
 

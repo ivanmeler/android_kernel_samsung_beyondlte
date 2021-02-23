@@ -13,7 +13,7 @@
 #include <linux/sched/clock.h>
 
 #include "abox.h"
-#include "abox_dbg.h"
+#include "abox_proc.h"
 #include "abox_qos.h"
 
 static DEFINE_SPINLOCK(abox_qos_lock);
@@ -306,12 +306,8 @@ void abox_qos_print(struct device *dev, enum abox_qos_class qos_class)
 
 	spin_lock_irqsave(&abox_qos_lock, flags);
 	for (req = first = qos->req_array; req - first < len; req++) {
-		if (req->val) {
+		if (req->val)
 			dev_warn(dev, "qos: %d, %#x\n", qos_class, req->id);
-#ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
-			sec_audio_pmlog(3, dev, "qos: %d, %#x\n", qos_class, req->id);
-#endif
-		}
 	}
 	spin_unlock_irqrestore(&abox_qos_lock, flags);
 }
@@ -341,14 +337,13 @@ static ssize_t abox_qos_read_qos(char *buf, size_t size, struct abox_qos *qos)
 
 	return offset;
 }
-
 #ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
 ssize_t abox_qos_read_file(struct file *file, char __user *user_buf,
 				    size_t count, loff_t *ppos)
-#else
+#else /* CONFIG_SND_SOC_SAMSUNG_AUDIO */
 static ssize_t abox_qos_read_file(struct file *file, char __user *user_buf,
 				    size_t count, loff_t *ppos)
-#endif
+#endif /* CONFIG_SND_SOC_SAMSUNG_AUDIO */
 {
 	struct abox_qos **p_qos;
 	const size_t size = PAGE_SIZE, len = ARRAY_SIZE(abox_qos_array);
@@ -380,6 +375,5 @@ void abox_qos_init(struct device *adev)
 	dev_abox = adev;
 	abox_qos_wq = alloc_ordered_workqueue("abox_qos",
 			WQ_FREEZABLE | WQ_MEM_RECLAIM);
-	debugfs_create_file("qos", 0660, abox_dbg_get_root_dir(), NULL,
-			&abox_qos_fops);
+	abox_proc_create_file("qos", 0660, NULL, &abox_qos_fops, NULL, 0);
 }

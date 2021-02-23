@@ -35,10 +35,6 @@
 
 #include "exynos-pcie-iommu.h"
 
-#ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
-#include <linux/sec_debug.h>
-#endif
-
 #if defined(CONFIG_SOC_EXYNOS9820)
 #define MAX_RC_NUM	2
 #endif
@@ -326,9 +322,6 @@ static int show_fault_information(struct sysmmu_drvdata *drvdata,
 	int fault_id = SYSMMU_FAULT_ID(flags);
 	const char *port_name = NULL;
 	int ret = 0;
-#ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
-	char temp_buf[SZ_128];
-#endif
 
 	pgtable = __raw_readl(drvdata->sfrbase + REG_PT_BASE_PPN);
 	pgtable <<= PAGE_SHIFT;
@@ -350,14 +343,6 @@ static int show_fault_information(struct sysmmu_drvdata *drvdata,
 		port_name ? port_name : dev_name(drvdata->sysmmu),
 		(flags & IOMMU_FAULT_WRITE) ? "WRITE" : "READ",
 		sysmmu_fault_name[fault_id], fault_addr, &pgtable);
-
-#ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
-		snprintf(temp_buf, SZ_128, "%s %s %s at %#010lx (%pa)",
-		port_name ? port_name : dev_name(drvdata->sysmmu),
-		(flags & IOMMU_FAULT_WRITE) ? "WRITE" : "READ",
-		sysmmu_fault_name[fault_id], fault_addr, &pgtable);
-		sec_debug_set_extra_info_sysmmu(temp_buf);
-#endif
 
 	if (fault_id == SYSMMU_FAULT_UNKNOWN) {
 		pr_crit("The fault is not caused by this System MMU.\n");
@@ -408,10 +393,6 @@ finish:
 	return ret;
 }
 
-#ifdef CONFIG_BCMDHD_PCIE
-extern void dhd_smmu_fault_handler(u32 axid, unsigned long fault_addr);
-#endif /* CONFIG_BCMDHD_PCIE */
-
 static irqreturn_t exynos_sysmmu_irq(int irq, void *dev_id)
 {
 	struct sysmmu_drvdata *drvdata = dev_id;
@@ -452,19 +433,9 @@ static irqreturn_t exynos_sysmmu_irq(int irq, void *dev_id)
 	if (ret == SYSMMU_NO_PANIC)
 		return IRQ_HANDLED;
 
-#ifdef CONFIG_BCMDHD_PCIE
-	if (drvdata->ch_num == 0) {
-		/* Kernel Panic will be triggered by dump handler */
-		dhd_smmu_fault_handler(info & 0xFFFF, addr);
-		disable_irq_nosync(irq);
-	}
-#endif /* CONFIG_BCMDHD_PCIE */
-
 	atomic_notifier_call_chain(&drvdata->fault_notifiers, addr, &flags);
 
-#ifndef CONFIG_BCMDHD_PCIE
 	panic("Unrecoverable System MMU Fault!!");
-#endif /* !CONFIG_BCMDHD_PCIE */
 
 	return IRQ_HANDLED;
 }
@@ -856,13 +827,11 @@ static inline void add_history_buff(struct history_buff *hbuff,
 	ktime_t current_time;
 
 	current_time = ktime_get();
-	
 	hbuff->save_addr[hbuff->index] = (u32)((addr >> 0x4) & 0xffffffff);
 	hbuff->orig_addr[hbuff->index] = (u32)((orig_addr >> 0x4) & 0xffffffff);
 	hbuff->size[hbuff->index] = size;
 	hbuff->orig_size[hbuff->index] = orig_size;
 	hbuff->time_ns[hbuff->index] = ktime_to_us(current_time);
-	
 	hbuff->index++;
 	if (hbuff->index >= MAX_HISTROY_BUFF)
 		hbuff->index = 0;

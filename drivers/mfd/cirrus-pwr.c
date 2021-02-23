@@ -32,7 +32,7 @@
 #include <linux/mfd/cs35l41/registers.h>
 #include <linux/mfd/cs35l41/power.h>
 
-#define CIRRUS_PWR_VERSION "5.01.3"
+#define CIRRUS_PWR_VERSION "5.01.18"
 
 #define CIRRUS_PWR_CLASS_NAME		"cirrus"
 #define CIRRUS_PWR_DIR_NAME		"cirrus_pwr"
@@ -48,8 +48,8 @@
 struct cirrus_pwr_t {
 	struct class *pwr_class;
 	struct device *dev;
-	struct regmap *regmap_left;
-	struct regmap *regmap_right;
+	struct cirrus_mfd_amp *amps;
+	int num_amps;
 	struct mutex pwr_lock;
 	struct delayed_work pwr_work;
 	struct workqueue_struct *pwr_workqueue;
@@ -57,22 +57,38 @@ struct cirrus_pwr_t {
 	unsigned int interval;
 	unsigned int status;
 	unsigned int target_min_time_ms;
-	unsigned int target_temp_left;
-	unsigned int target_temp_right;
-	unsigned int exit_temp_left;
-	unsigned int exit_temp_right;
-	unsigned int amb_temp_left;
-	unsigned int amb_temp_right;
-	unsigned int spk_temp_left;
-	unsigned int spk_temp_right;
-	unsigned int passport_enable_left;
-	unsigned int passport_enable_right;
+	unsigned int target_temp[CIRRUS_MAX_AMPS];
+	unsigned int exit_temp[CIRRUS_MAX_AMPS];
+	unsigned int amb_temp[CIRRUS_MAX_AMPS];
+	unsigned int spk_temp[CIRRUS_MAX_AMPS];
+	unsigned int passport_enable[CIRRUS_MAX_AMPS];
 	unsigned int global_enable;
-	bool amp_right_active;
-	bool amp_left_active;
+	bool amp_active[CIRRUS_MAX_AMPS];
 };
 
 static struct cirrus_pwr_t *cirrus_pwr;
+static struct attribute_group cirrus_pwr_attr_grp;
+
+struct cirrus_mfd_amp *cirrus_pwr_get_amp_from_suffix(const char *suffix)
+{
+	int i;
+	struct cirrus_mfd_amp *ret = NULL;
+
+	if (cirrus_pwr == NULL || cirrus_pwr->amps == NULL)
+		return NULL;
+
+	dev_dbg(cirrus_pwr->dev, "%s: suffix = %s\n", __func__, suffix);
+
+	for (i = 0; i < cirrus_pwr->num_amps; i++) {
+		dev_dbg(cirrus_pwr->dev, "comparing %s & %s\n",
+				cirrus_pwr->amps[i].mfd_suffix,
+				suffix);
+		if (strcmp(cirrus_pwr->amps[i].mfd_suffix, suffix) == 0)
+			ret = &cirrus_pwr->amps[i];
+	}
+
+	return ret;
+}
 
 static unsigned int sqrt_q24(unsigned long int x)
 {
@@ -121,14 +137,23 @@ static unsigned int convert_power(unsigned int power_squared)
 	return (unsigned int)power;
 }
 
-int cirrus_pwr_amp_add(struct regmap *regmap_new, bool right_channel_amp)
+int cirrus_pwr_amp_add(struct regmap *regmap_new, const char *mfd_suffix,
+					const char *dsp_part_name)
 {
-	if (cirrus_pwr) {
-		dev_err(cirrus_pwr->dev, "%s\n", __func__);
-		if (right_channel_amp)
-			cirrus_pwr->regmap_right = regmap_new;
-		else
-			cirrus_pwr->regmap_left = regmap_new;
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(mfd_suffix);
+
+	if (cirrus_pwr){
+		if (amp) {
+			dev_info(cirrus_pwr->dev,
+				"Amp added, suffix: %s dsp_part_name: %s\n",
+				mfd_suffix, dsp_part_name);
+			amp->regmap = regmap_new;
+			amp->dsp_part_name = dsp_part_name;
+		} else {
+			dev_err(cirrus_pwr->dev,
+				"No amp with suffix %s registered\n",
+				mfd_suffix);
+		}
 	} else {
 		return -EINVAL;
 	}
@@ -137,22 +162,24 @@ int cirrus_pwr_amp_add(struct regmap *regmap_new, bool right_channel_amp)
 }
 
 
-int cirrus_pwr_set_params(bool global_enable, bool right_channel_amp,
+int cirrus_pwr_set_params(bool global_enable, const char *mfd_suffix,
 			unsigned int target_temp, unsigned int exit_temp)
 {
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(mfd_suffix);
+
+	if (!amp)
+		return 0;
+
 	cirrus_pwr->global_enable = global_enable;
-	if (right_channel_amp) {
-		cirrus_pwr->target_temp_right = target_temp;
-		cirrus_pwr->exit_temp_right = exit_temp;
-	} else {
-		cirrus_pwr->target_temp_left = target_temp;
-		cirrus_pwr->exit_temp_left = exit_temp;
-	}
+
+	cirrus_pwr->target_temp[amp->index] = target_temp;
+	cirrus_pwr->exit_temp[amp->index] = exit_temp;
+
 
 	dev_info(cirrus_pwr->dev,
-		"%s: global enable = %d,%s, target temp = %d, exit temp = %d\n",
+	"%s: global enable = %d, cs35l41%s, target temp = %d, exit temp = %d\n",
 		__func__, global_enable,
-		(right_channel_amp ? " right amp" : " left amp"),
+		mfd_suffix,
 		target_temp, exit_temp);
 
 	return 0;
@@ -167,12 +194,17 @@ static void cirrus_pwr_passport_enable(struct regmap *regmap_enable,
 			(uint)enable);
 }
 
-void cirrus_pwr_start(bool right_amp)
+void cirrus_pwr_start(const char *mfd_suffix)
 {
-	if (right_amp)
-		cirrus_pwr->amp_right_active = 1;
-	else
-		cirrus_pwr->amp_left_active = 1;
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(mfd_suffix);
+
+	if (!cirrus_pwr)
+		return;
+
+	if (!amp)
+		return;
+
+	cirrus_pwr->amp_active[amp->index] = 1;
 
 	if (!cirrus_pwr->global_enable)
 		return;
@@ -199,32 +231,42 @@ void cirrus_pwr_start(bool right_amp)
 }
 EXPORT_SYMBOL_GPL(cirrus_pwr_start);
 
-void cirrus_pwr_stop(bool right_amp)
+void cirrus_pwr_stop(const char *mfd_suffix)
 {
-	if (right_amp)
-		cirrus_pwr->amp_right_active = 0;
-	else
-		cirrus_pwr->amp_left_active = 0;
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(mfd_suffix);
+	int i;
+	bool amps_active = 0;
+
+	if (!cirrus_pwr)
+		return;
+
+	if (!amp)
+		return;
+
+	cirrus_pwr->amp_active[amp->index] = 0;
 
 	if (!cirrus_pwr->global_enable)
 		return;
 
 	mutex_lock(&cirrus_pwr->pwr_lock);
 
-	if (cirrus_pwr->amp_right_active ||
-		cirrus_pwr->amp_left_active) {
+	for (i = 0; i < cirrus_pwr->num_amps; i++)
+		amps_active |= cirrus_pwr->amp_active[i];
+
+	if (amps_active) {
 		/* One amp still active */
 		dev_dbg(cirrus_pwr->dev,
-			"Amp %s deactivated\n",
-			(right_amp) ? "Right" : "Left");
+			"Amp cs35l41%s deactivated\n", mfd_suffix);
 	} else {
 		/* Exit state machine */
 		dev_dbg(cirrus_pwr->dev,
 			"cirrus_pwr_stop(). Disabling PASSPORT\n");
-		cirrus_pwr_passport_enable(cirrus_pwr->regmap_right, false);
-		cirrus_pwr_passport_enable(cirrus_pwr->regmap_left, false);
-		cirrus_pwr->passport_enable_right = 0;
-		cirrus_pwr->passport_enable_left = 0;
+
+		for (i = 0; i < cirrus_pwr->num_amps; i++) {
+			cirrus_pwr_passport_enable(
+				cirrus_pwr->amps[i].regmap, false);
+			cirrus_pwr->passport_enable[i] = 0;
+		}
 
 		/* Reset state machine variables */
 		cirrus_pwr->uptime_ms = 0;
@@ -241,6 +283,9 @@ EXPORT_SYMBOL_GPL(cirrus_pwr_stop);
 
 static void cirrus_pwr_work(struct work_struct *work)
 {
+	int i;
+	struct cirrus_mfd_amp *amp;
+
 	mutex_lock(&cirrus_pwr->pwr_lock);
 
 	/* Run state machine and enable/disable Passport accordingly */
@@ -260,90 +305,59 @@ static void cirrus_pwr_work(struct work_struct *work)
 		/* Enabled and > min time */
 		/* Evaluate temp for each amp and enable/disable Passport */
 
-		dev_dbg(cirrus_pwr->dev, "Right Amp\n");
-		dev_dbg(cirrus_pwr->dev, "Spk Temp:\t%d.%d C\t(Target: %d.%d C)\n",
-				cirrus_pwr->spk_temp_right / 100,
-				cirrus_pwr->spk_temp_right % 100,
-				cirrus_pwr->target_temp_right / 100,
-				cirrus_pwr->target_temp_right % 100);
-		dev_dbg(cirrus_pwr->dev, "Amb Temp:\t%d.%d\n",
-				cirrus_pwr->amb_temp_right / 100,
-				cirrus_pwr->amb_temp_right % 100);
+		for (i = 0; i < cirrus_pwr->num_amps; i++) {
 
-		dev_dbg(cirrus_pwr->dev, "Left Amp\n");
-		dev_dbg(cirrus_pwr->dev, "Spk Temp:\t%d.%d C\t(Target: %d.%d C)\n",
-				cirrus_pwr->spk_temp_left / 100,
-				cirrus_pwr->spk_temp_left % 100,
-				cirrus_pwr->target_temp_left / 100,
-				cirrus_pwr->target_temp_left % 100);
-		dev_dbg(cirrus_pwr->dev, "Amb Temp:\t%d.%d\n",
-				cirrus_pwr->amb_temp_left / 100,
-				cirrus_pwr->amb_temp_left % 100);
+			amp = &cirrus_pwr->amps[i];
 
-		if (cirrus_pwr->amp_right_active) {
-			if (cirrus_pwr->passport_enable_right) {
-				/* Evaluate exit criteria */
-				if (cirrus_pwr->spk_temp_right <
-					cirrus_pwr->exit_temp_right) {
-					cirrus_pwr_passport_enable(
-						cirrus_pwr->regmap_right,
-						false);
-					dev_info(cirrus_pwr->dev,
-					"Right Amp below exit temp. Disabling PASSPORT\n");
-					cirrus_pwr->passport_enable_right = 0;
-				}
-			} else {
-				/* Evaluate entry criteria */
-				if ((cirrus_pwr->amb_temp_right +
-						CIRRUS_PWR_AMB_TEMP_OFFSET <
-						cirrus_pwr->spk_temp_right) &&
-					(cirrus_pwr->spk_temp_right >
-					cirrus_pwr->target_temp_right)) {
-					cirrus_pwr_passport_enable(
-						cirrus_pwr->regmap_right, true);
-					dev_info(cirrus_pwr->dev,
-					"Right Amp above target temp and ambient + 5.\n");
-					dev_info(cirrus_pwr->dev, "Enabling PASSPORT\n");
-					cirrus_pwr->passport_enable_right = 1;
-				}
+			dev_dbg(cirrus_pwr->dev,
+				"Amp cs35l41%s\n", amp->mfd_suffix);
+			dev_dbg(cirrus_pwr->dev,
+				"Spk Temp:\t%d.%d C\t(Target: %d.%d C)\n",
+					cirrus_pwr->spk_temp[i] / 100,
+					cirrus_pwr->spk_temp[i] % 100,
+					cirrus_pwr->target_temp[i] / 100,
+					cirrus_pwr->target_temp[i] % 100);
+			dev_dbg(cirrus_pwr->dev, "Amb Temp:\t%d.%d\n",
+					cirrus_pwr->amb_temp[i] / 100,
+					cirrus_pwr->amb_temp[i] % 100);
 
-			}
-		}
+			if (cirrus_pwr->amp_active[i]) {
+				if (cirrus_pwr->passport_enable[i]) {
+					/* Evaluate exit criteria */
+					if (cirrus_pwr->spk_temp[i] <
+						cirrus_pwr->exit_temp[i]) {
+						cirrus_pwr_passport_enable(
+							amp->regmap,
+							false);
+						dev_info(cirrus_pwr->dev,
+						"Amp cs35l41%s below exit temp. Disabling PASSPORT\n",
+						amp->mfd_suffix);
+						cirrus_pwr->passport_enable[i] = 0;
+					}
+				} else {
+					/* Evaluate entry criteria */
+					if ((cirrus_pwr->amb_temp[i] +
+							CIRRUS_PWR_AMB_TEMP_OFFSET <
+							cirrus_pwr->spk_temp[i]) &&
+						(cirrus_pwr->spk_temp[i] >
+						cirrus_pwr->target_temp[i])) {
+						cirrus_pwr_passport_enable(
+							amp->regmap, true);
+						dev_info(cirrus_pwr->dev,
+						"Amp cs35l41%s above target temp and ambient + 5.\n",
+						amp->mfd_suffix);
+						dev_info(cirrus_pwr->dev, "Enabling PASSPORT\n");
+						cirrus_pwr->passport_enable[i] = 1;
+					}
 
-		if (cirrus_pwr->amp_left_active) {
-			if (cirrus_pwr->passport_enable_left) {
-				/* Evaluate exit criteria */
-				if (cirrus_pwr->spk_temp_left <
-					cirrus_pwr->exit_temp_left) {
-					cirrus_pwr_passport_enable(
-						cirrus_pwr->regmap_left, false);
-					dev_info(cirrus_pwr->dev,
-					"Left Amp below exit temp. Disabling PASSPORT\n");
-					cirrus_pwr->passport_enable_left = 0;
-				}
-			} else {
-				/* Evaluate entry criteria */
-				if ((cirrus_pwr->amb_temp_left +
-						CIRRUS_PWR_AMB_TEMP_OFFSET <
-						cirrus_pwr->spk_temp_left) &&
-					(cirrus_pwr->spk_temp_left >
-						cirrus_pwr->target_temp_left)) {
-					cirrus_pwr_passport_enable(
-						cirrus_pwr->regmap_left, true);
-					dev_info(cirrus_pwr->dev,
-					"Left Amp above target temp and ambient + 5.\n");
-					dev_info(cirrus_pwr->dev, "Enabling PASSPORT\n");
-					cirrus_pwr->passport_enable_left = 1;
 				}
 			}
-		}
 
-		dev_dbg(cirrus_pwr->dev, "Right Amp: Passport %s\n",
-				cirrus_pwr->passport_enable_right ?
-				"Enabled" : "Disabled");
-		dev_dbg(cirrus_pwr->dev, "Left Amp: Passport %s\n",
-				cirrus_pwr->passport_enable_left ?
-				"Enabled" : "Disabled");
+			dev_dbg(cirrus_pwr->dev, "Amp cs35l41%s: Passport %s\n",
+					amp->mfd_suffix,
+					cirrus_pwr->passport_enable[i] ?
+					"Enabled" : "Disabled");
+		}
 
 		break;
 	case CIRRUS_PWR_STATUS_ERROR:
@@ -392,15 +406,20 @@ static ssize_t cirrus_pwr_uptime_store(struct device *dev,
 	return size;
 }
 
-static ssize_t cirrus_pwr_power_left_show(struct device *dev,
+static ssize_t cirrus_pwr_power_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
+	const char *suffix = &(attr->attr.name[strlen("value")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
 	unsigned int power_squared;
 	unsigned int power = 0;
 
-	if (cirrus_pwr->amp_left_active) {
-		regmap_read(cirrus_pwr->regmap_left,
+	if (!amp)
+		return 0;
+
+	if (cirrus_pwr->amp_active[amp->index]) {
+		regmap_read(amp->regmap,
 			CIRRUS_PWR_CSPL_OUTPUT_POWER_SQ,
 			&power_squared);
 		power = convert_power(power_squared);
@@ -409,31 +428,7 @@ static ssize_t cirrus_pwr_power_left_show(struct device *dev,
 	return sprintf(buf, "%x\n", power);
 }
 
-static ssize_t cirrus_pwr_power_left_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t size)
-{
-	return size;
-}
-
-static ssize_t cirrus_pwr_power_right_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	unsigned int power_squared;
-	unsigned int power = 0;
-
-	if (cirrus_pwr->amp_right_active) {
-		regmap_read(cirrus_pwr->regmap_right,
-			CIRRUS_PWR_CSPL_OUTPUT_POWER_SQ,
-			&power_squared);
-		power = convert_power(power_squared);
-	}
-
-	return sprintf(buf, "%x\n", power);
-}
-
-static ssize_t cirrus_pwr_power_right_store(struct device *dev,
+static ssize_t cirrus_pwr_power_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t size)
 {
@@ -499,144 +494,120 @@ static ssize_t cirrus_pwr_target_min_time_ms_store(struct device *dev,
 	return size;
 }
 
-static ssize_t cirrus_pwr_target_temp_left_show(struct device *dev,
+static ssize_t cirrus_pwr_target_temp_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
-	return sprintf(buf, "%d\n", cirrus_pwr->target_temp_left);
+	const char *suffix = &(attr->attr.name[strlen("target_temp")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	return sprintf(buf, "%d\n", cirrus_pwr->target_temp[amp->index]);
 }
 
-static ssize_t cirrus_pwr_target_temp_left_store(struct device *dev,
+static ssize_t cirrus_pwr_target_temp_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t size)
 {
-	if (kstrtou32(buf, 0, &cirrus_pwr->target_temp_left))
+	const char *suffix = &(attr->attr.name[strlen("target_temp")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	if (kstrtou32(buf, 0, &cirrus_pwr->target_temp[amp->index]))
 		dev_err(cirrus_pwr->dev,
 			"%s: Failed to convert from str to u32.\n",
 			__func__);
 	return size;
 }
 
-static ssize_t cirrus_pwr_target_temp_right_show(struct device *dev,
+static ssize_t cirrus_pwr_exit_temp_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
-	return sprintf(buf, "%d\n", cirrus_pwr->target_temp_right);
+	const char *suffix = &(attr->attr.name[strlen("exit_temp")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	return sprintf(buf, "%d\n", cirrus_pwr->exit_temp[amp->index]);
 }
 
-static ssize_t cirrus_pwr_target_temp_right_store(struct device *dev,
+static ssize_t cirrus_pwr_exit_temp_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t size)
 {
-	if (kstrtou32(buf, 0, &cirrus_pwr->target_temp_right))
+	const char *suffix = &(attr->attr.name[strlen("exit_temp")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	if (kstrtou32(buf, 0, &cirrus_pwr->exit_temp[amp->index]))
 		dev_err(cirrus_pwr->dev,
 			"%s: Failed to convert from str to u32.\n",
 			__func__);
 	return size;
 }
 
-static ssize_t cirrus_pwr_exit_temp_left_show(struct device *dev,
+static ssize_t cirrus_pwr_amb_temp_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
-	return sprintf(buf, "%d\n", cirrus_pwr->exit_temp_left);
+	const char *suffix = &(attr->attr.name[strlen("amb_temp")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	return sprintf(buf, "%d\n", cirrus_pwr->amb_temp[amp->index]);
 }
 
-static ssize_t cirrus_pwr_exit_temp_left_store(struct device *dev,
+static ssize_t cirrus_pwr_amb_temp_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t size)
 {
-	if (kstrtou32(buf, 0, &cirrus_pwr->exit_temp_left))
+	const char *suffix = &(attr->attr.name[strlen("amb_temp")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	if (kstrtou32(buf, 0, &cirrus_pwr->amb_temp[amp->index]))
 		dev_err(cirrus_pwr->dev,
 			"%s: Failed to convert from str to u32.\n",
 			__func__);
 	return size;
 }
 
-static ssize_t cirrus_pwr_exit_temp_right_show(struct device *dev,
+static ssize_t cirrus_pwr_spk_temp_show(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
-	return sprintf(buf, "%d\n", cirrus_pwr->exit_temp_right);
+	const char *suffix = &(attr->attr.name[strlen("spk_t")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
+
+	if (!amp)
+		return 0;
+
+	return sprintf(buf, "%d\n", cirrus_pwr->spk_temp[amp->index]);
 }
 
-static ssize_t cirrus_pwr_exit_temp_right_store(struct device *dev,
+static ssize_t cirrus_pwr_spk_temp_store(struct device *dev,
 					struct device_attribute *attr,
 					const char *buf, size_t size)
 {
-	if (kstrtou32(buf, 0, &cirrus_pwr->exit_temp_right))
-		dev_err(cirrus_pwr->dev,
-			"%s: Failed to convert from str to u32.\n",
-			__func__);
-	return size;
-}
+	const char *suffix = &(attr->attr.name[strlen("spk_t")]);
+	struct cirrus_mfd_amp *amp = cirrus_pwr_get_amp_from_suffix(suffix);
 
-static ssize_t cirrus_pwr_amb_temp_left_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	return sprintf(buf, "%d\n", cirrus_pwr->amb_temp_left);
-}
+	if (!amp)
+		return 0;
 
-static ssize_t cirrus_pwr_amb_temp_left_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t size)
-{
-	if (kstrtou32(buf, 0, &cirrus_pwr->amb_temp_left))
-		dev_err(cirrus_pwr->dev,
-			"%s: Failed to convert from str to u32.\n",
-			__func__);
-	return size;
-}
-
-static ssize_t cirrus_pwr_amb_temp_right_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	return sprintf(buf, "%d\n", cirrus_pwr->amb_temp_right);
-}
-
-static ssize_t cirrus_pwr_amb_temp_right_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t size)
-{
-	if (kstrtou32(buf, 0, &cirrus_pwr->amb_temp_right))
-		dev_err(cirrus_pwr->dev,
-			"%s: Failed to convert from str to u32.\n",
-			__func__);
-	return size;
-}
-
-static ssize_t cirrus_pwr_spk_temp_left_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	return sprintf(buf, "%d\n", cirrus_pwr->spk_temp_left);
-}
-
-static ssize_t cirrus_pwr_spk_temp_left_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t size)
-{
-	if (kstrtou32(buf, 0, &cirrus_pwr->spk_temp_left))
-		dev_err(cirrus_pwr->dev,
-			"%s: Failed to convert from str to u32.\n",
-			__func__);
-	return size;
-}
-
-static ssize_t cirrus_pwr_spk_temp_right_show(struct device *dev,
-					struct device_attribute *attr,
-					char *buf)
-{
-	return sprintf(buf, "%d\n", cirrus_pwr->spk_temp_right);
-}
-
-static ssize_t cirrus_pwr_spk_temp_right_store(struct device *dev,
-					struct device_attribute *attr,
-					const char *buf, size_t size)
-{
-	if (kstrtou32(buf, 0, &cirrus_pwr->spk_temp_right))
+	if (kstrtou32(buf, 0, &cirrus_pwr->spk_temp[amp->index]))
 		dev_err(cirrus_pwr->dev,
 			"%s: Failed to convert from str to u32.\n",
 			__func__);
@@ -655,6 +626,7 @@ static ssize_t cirrus_pwr_global_enable_store(struct device *dev,
 					const char *buf, size_t size)
 {
 	unsigned int enable;
+	int i;
 
 	if (kstrtou32(buf, 0, &enable)) {
 		dev_err(cirrus_pwr->dev,
@@ -667,79 +639,130 @@ static ssize_t cirrus_pwr_global_enable_store(struct device *dev,
 
 	if (enable == 0 &&
 		cirrus_pwr->status == CIRRUS_PWR_STATUS_ENABLED) {
-		/* Stop both amps */
-		cirrus_pwr_stop(true);
-		cirrus_pwr_stop(false);
+		/* Stop all amps */
+		for (i = 0; i < cirrus_pwr->num_amps; i++)
+			cirrus_pwr_stop(cirrus_pwr->amps[i].mfd_suffix);
 	}
 
 	return size;
 }
 
-
 static DEVICE_ATTR(version, 0444, cirrus_pwr_version_show,
 				cirrus_pwr_version_store);
 static DEVICE_ATTR(uptime, 0444, cirrus_pwr_uptime_show,
 				cirrus_pwr_uptime_store);
-static DEVICE_ATTR(value, 0444, cirrus_pwr_power_left_show,
-				cirrus_pwr_power_left_store);
-static DEVICE_ATTR(value_r, 0444, cirrus_pwr_power_right_show,
-				cirrus_pwr_power_right_store);
+static DEVICE_ATTR(global_enable, 0664, cirrus_pwr_global_enable_show,
+				cirrus_pwr_global_enable_store);
 static DEVICE_ATTR(interval, 0664, cirrus_pwr_interval_show,
 				cirrus_pwr_interval_store);
 static DEVICE_ATTR(status, 0664, cirrus_pwr_status_show,
 				cirrus_pwr_status_store);
 static DEVICE_ATTR(target_min_time_ms, 0664, cirrus_pwr_target_min_time_ms_show,
 				cirrus_pwr_target_min_time_ms_store);
-static DEVICE_ATTR(target_temp, 0664, cirrus_pwr_target_temp_left_show,
-				cirrus_pwr_target_temp_left_store);
-static DEVICE_ATTR(target_temp_r, 0664, cirrus_pwr_target_temp_right_show,
-				cirrus_pwr_target_temp_right_store);
-static DEVICE_ATTR(exit_temp, 0664, cirrus_pwr_exit_temp_left_show,
-				cirrus_pwr_exit_temp_left_store);
-static DEVICE_ATTR(exit_temp_r, 0664, cirrus_pwr_exit_temp_right_show,
-				cirrus_pwr_exit_temp_right_store);
-static DEVICE_ATTR(env_temp, 0664, cirrus_pwr_amb_temp_left_show,
-				cirrus_pwr_amb_temp_left_store);
-static DEVICE_ATTR(env_temp_r, 0664, cirrus_pwr_amb_temp_right_show,
-				cirrus_pwr_amb_temp_right_store);
-static DEVICE_ATTR(spk_t, 0664, cirrus_pwr_spk_temp_left_show,
-				cirrus_pwr_spk_temp_left_store);
-static DEVICE_ATTR(spk_t_r, 0664, cirrus_pwr_spk_temp_right_show,
-				cirrus_pwr_spk_temp_right_store);
-static DEVICE_ATTR(global_enable, 0664, cirrus_pwr_global_enable_show,
-				cirrus_pwr_global_enable_store);
 
-static struct attribute *cirrus_pwr_attr[] = {
+static struct attribute *cirrus_pwr_attr_base[] = {
 	&dev_attr_version.attr,
 	&dev_attr_uptime.attr,
-	&dev_attr_value.attr,
-	&dev_attr_value_r.attr,
 	&dev_attr_interval.attr,
 	&dev_attr_status.attr,
 	&dev_attr_target_min_time_ms.attr,
-	&dev_attr_target_temp.attr,
-	&dev_attr_target_temp_r.attr,
-	&dev_attr_exit_temp.attr,
-	&dev_attr_exit_temp_r.attr,
-	&dev_attr_env_temp.attr,
-	&dev_attr_env_temp_r.attr,
-	&dev_attr_spk_t.attr,
-	&dev_attr_spk_t_r.attr,
 	&dev_attr_global_enable.attr,
 	NULL,
 };
 
-static struct attribute_group cirrus_pwr_attr_grp = {
-	.attrs = cirrus_pwr_attr,
+static struct device_attribute generic_amp_attrs[CIRRUS_PWR_NUM_ATTRS_AMP] = {
+	{
+		.attr = {.mode = VERIFY_OCTAL_PERMISSIONS(0444)},
+		.show = cirrus_pwr_power_show,
+		.store = cirrus_pwr_power_store,
+	},
+	{
+		.attr = {.mode = VERIFY_OCTAL_PERMISSIONS(0664)},
+		.show = cirrus_pwr_target_temp_show,
+		.store = cirrus_pwr_target_temp_store,
+	},
+	{
+		.attr = {.mode = VERIFY_OCTAL_PERMISSIONS(0664)},
+		.show = cirrus_pwr_exit_temp_show,
+		.store = cirrus_pwr_exit_temp_store,
+	},
+	{
+		.attr = {.mode = VERIFY_OCTAL_PERMISSIONS(0664)},
+		.show = cirrus_pwr_amb_temp_show,
+		.store = cirrus_pwr_amb_temp_store,
+	},
+	{
+		.attr = {.mode = VERIFY_OCTAL_PERMISSIONS(0664)},
+		.show = cirrus_pwr_spk_temp_show,
+		.store = cirrus_pwr_spk_temp_store,
+	},
 };
 
-int __init cirrus_pwr_init(struct class *cirrus_amp_class)
+static const char *generic_amp_attr_names[CIRRUS_PWR_NUM_ATTRS_AMP] = {
+	"value",
+	"target_temp",
+	"exit_temp",
+	"env_temp",
+	"spk_t",
+};
+
+static struct device_attribute
+		amp_attrs_prealloc[CIRRUS_MAX_AMPS][CIRRUS_PWR_NUM_ATTRS_AMP];
+static char attr_names_prealloc[CIRRUS_MAX_AMPS][CIRRUS_PWR_NUM_ATTRS_AMP][20];
+
+struct device_attribute *cirrus_pwr_create_amp_attrs(const char *mfd_suffix,
+							int index)
 {
-	int ret;
+	struct device_attribute *amp_attrs_new;
+	int i, suffix_len = strlen(mfd_suffix);
+
+	amp_attrs_new = &(amp_attrs_prealloc[index][0]);
+	if (amp_attrs_new == NULL)
+		return amp_attrs_new;
+
+	memcpy(amp_attrs_new, &generic_amp_attrs,
+		sizeof(struct device_attribute) *
+		CIRRUS_PWR_NUM_ATTRS_AMP);
+
+	for (i = 0; i < CIRRUS_PWR_NUM_ATTRS_AMP; i++) {
+		amp_attrs_new[i].attr.name = attr_names_prealloc[index][i];
+		snprintf((char *)amp_attrs_new[i].attr.name,
+			strlen(generic_amp_attr_names[i]) + suffix_len + 1,
+			"%s%s", generic_amp_attr_names[i], mfd_suffix);
+	}
+
+	return amp_attrs_new;
+}
+
+int cirrus_pwr_init(struct class *cirrus_amp_class, int num_amps,
+					const char **mfd_suffixes)
+{
+	int ret = 0, i, j;
+	struct device_attribute *new_attrs;
 
 	cirrus_pwr = kzalloc(sizeof(struct cirrus_pwr_t), GFP_KERNEL);
 	if (cirrus_pwr == NULL)
 		return -ENOMEM;
+
+	cirrus_pwr->amps = kzalloc(sizeof(struct cirrus_mfd_amp) * num_amps,
+								GFP_KERNEL);
+	if (cirrus_pwr->amps == NULL) {
+		kfree(cirrus_pwr);
+		return -ENOMEM;
+	}
+
+	cirrus_pwr->num_amps = num_amps;
+
+	for (i = 0; i < num_amps; i++) {
+		cirrus_pwr->amps[i].mfd_suffix = mfd_suffixes[i];
+		cirrus_pwr->amps[i].index = i;
+
+		cirrus_pwr->amb_temp[i] = 2500;
+		cirrus_pwr->spk_temp[i] = 2500;
+		cirrus_pwr->target_temp[i] = 3400;
+		cirrus_pwr->exit_temp[i] = 3250;
+		cirrus_pwr->passport_enable[i] = 0;
+	}
 
 	cirrus_pwr->pwr_class = cirrus_amp_class;
 
@@ -752,6 +775,26 @@ int __init cirrus_pwr_init(struct class *cirrus_amp_class)
 		goto err;
 	}
 
+	cirrus_pwr_attr_grp.attrs = kzalloc(sizeof(struct attribute *) *
+					(CIRRUS_PWR_NUM_ATTRS_AMP * num_amps +
+					CIRRUS_PWR_NUM_ATTRS_BASE + 1),
+							GFP_KERNEL);
+	for (i = 0; i < num_amps; i++) {
+		new_attrs = cirrus_pwr_create_amp_attrs(mfd_suffixes[i], i);
+		for (j = 0; j < CIRRUS_PWR_NUM_ATTRS_AMP; j++) {
+			dev_dbg(cirrus_pwr->dev, "New attribute: %s\n",
+				new_attrs[j].attr.name);
+			cirrus_pwr_attr_grp.attrs[i * CIRRUS_PWR_NUM_ATTRS_AMP
+						 + j] = &new_attrs[j].attr;
+		}
+	}
+
+	memcpy(&cirrus_pwr_attr_grp.attrs[num_amps * CIRRUS_PWR_NUM_ATTRS_AMP],
+		cirrus_pwr_attr_base, sizeof(struct attribute *) *
+					CIRRUS_PWR_NUM_ATTRS_BASE);
+	cirrus_pwr_attr_grp.attrs[num_amps * CIRRUS_PWR_NUM_ATTRS_AMP +
+			CIRRUS_PWR_NUM_ATTRS_BASE] = NULL;
+
 	cirrus_pwr->pwr_workqueue = create_singlethread_workqueue(
 						CIRRUS_PWR_WORKQ_NAME);
 	if (cirrus_pwr->pwr_workqueue == NULL) {
@@ -761,19 +804,9 @@ int __init cirrus_pwr_init(struct class *cirrus_amp_class)
 	}
 
 	cirrus_pwr->interval = 10000;
-	cirrus_pwr->amb_temp_right = 2500;
-	cirrus_pwr->amb_temp_left = 2500;
-	cirrus_pwr->spk_temp_right = 2500;
-	cirrus_pwr->spk_temp_left = 2500;
-	cirrus_pwr->target_temp_right = 3400;
-	cirrus_pwr->target_temp_left = 3400;
-	cirrus_pwr->exit_temp_right = 3250;
-	cirrus_pwr->exit_temp_left = 3250;
 	cirrus_pwr->uptime_ms = 0;
 	cirrus_pwr->target_min_time_ms = 300000;
 	cirrus_pwr->global_enable = 1;
-	cirrus_pwr->passport_enable_right = 0;
-	cirrus_pwr->passport_enable_left = 0;
 
 	ret = sysfs_create_group(&cirrus_pwr->dev->kobj, &cirrus_pwr_attr_grp);
 	if (ret) {

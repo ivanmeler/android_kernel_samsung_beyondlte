@@ -20,6 +20,7 @@
 #include <linux/mm_types.h>
 #include <asm/cacheflush.h>
 #include "abox_dbg.h"
+#include "abox_proc.h"
 #include "abox_gic.h"
 #include "abox_core.h"
 
@@ -27,18 +28,6 @@
 #define ABOX_DBG_DUMP_MAGIC_DRAM	0x3231303038504D44ull /* DMP80012 */
 #define ABOX_DBG_DUMP_MAGIC_SFR		0x5246533030504D44ull /* DMP00SFR */
 #define ABOX_DBG_DUMP_LIMIT_NS		(5 * NSEC_PER_SEC)
-
-static struct dentry *abox_dbg_root_dir __read_mostly;
-
-struct dentry *abox_dbg_get_root_dir(void)
-{
-	pr_debug("%s\n", __func__);
-
-	if (abox_dbg_root_dir == NULL)
-		abox_dbg_root_dir = debugfs_create_dir("abox", NULL);
-
-	return abox_dbg_root_dir;
-}
 
 void abox_dbg_print_gpr_from_addr(struct device *dev, struct abox_data *data,
 		unsigned int *addr)
@@ -519,6 +508,8 @@ static int samsung_abox_debug_probe(struct platform_device *pdev)
 			dev_warn(dev, "Failed to create file: %s\n",
 					battr->attr.name);
 	}
+
+	abox_proc_symlink_kobj("debug", &dev->kobj);
 
 	return ret;
 }

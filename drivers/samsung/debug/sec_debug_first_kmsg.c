@@ -38,12 +38,10 @@ static inline bool check_eob(char *buf, size_t size)
  */
 static void sec_debug_first_kmsg_hook(const char *buf, size_t size)
 {
-	if (unlikely(check_eob(curr_ptr, size) != true )) {
+	if (unlikely(check_eob(curr_ptr, size) != true)) {
 		memcpy(curr_ptr, buf, size);
 		curr_ptr += size;
 	}
-
-	return;
 }
 
 int __init sec_first_kmsg_init(void)

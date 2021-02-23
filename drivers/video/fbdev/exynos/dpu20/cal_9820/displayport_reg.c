@@ -17,8 +17,6 @@
 #include "../../../drivers/usb/dwc3/dwc3-exynos.h"
 #endif
 
-u32 (*phy_tune_parameters)[4][5];
-
 #if defined(CONFIG_SOC_EXYNOS9820_EVT0)
 u32 phy_default_value[DEFAULT_SFR_CNT][2] = {
 	{0x0020, 0x48}, {0x0050, 0x04}, {0x0054, 0x02}, {0x0058, 0x26}, {0x005C, 0x22},
@@ -42,30 +40,30 @@ u32 phy_default_value[DEFAULT_SFR_CNT][2] = {
 	{0x014C, 0x34},
 };
 
-u32 phy_tune_param_default[4][4][5] = { /* {amp, post, pre, idrv} */
+u32 phy_tune_parameters[4][4][4] = { /* {amp, post, pre, idrv} */
 	{	/* Swing Level_0 */
-		{0x21, 0x10, 0x42, 0x1C, 0x60}, /* Pre-emphasis Level_0 */
-		{0x25, 0x14, 0x42, 0x1C, 0x60}, /* Pre-emphasis Level_1 */
-		{0x26, 0x17, 0x43, 0x1C, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x1C, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_3 */
+		{0x21, 0x10, 0x42, 0x1C}, /* Pre-emphasis Level_0 */
+		{0x25, 0x14, 0x42, 0x1C}, /* Pre-emphasis Level_1 */
+		{0x26, 0x17, 0x43, 0x1C}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x1C, 0x43, 0x1D}, /* Pre-emphasis Level_3 */
 	},
 	{	/* Swing Level_1 */
-		{0x26, 0x10, 0x42, 0x1D, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x15, 0x42, 0x1D, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x18, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x18, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_3 */
+		{0x26, 0x10, 0x42, 0x1D}, /* Pre-emphasis Level_0 */
+		{0x2B, 0x15, 0x42, 0x1D}, /* Pre-emphasis Level_1 */
+		{0x2B, 0x18, 0x43, 0x1D}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x18, 0x43, 0x1D}, /* Pre-emphasis Level_3 */
 	},
 	{	/* Swing Level_2 */
-		{0x2A, 0x10, 0x42, 0x1D, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x15, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x15, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x15, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_3 */
+		{0x2A, 0x10, 0x42, 0x1D}, /* Pre-emphasis Level_0 */
+		{0x2B, 0x15, 0x43, 0x1D}, /* Pre-emphasis Level_1 */
+		{0x2B, 0x15, 0x43, 0x1D}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x15, 0x43, 0x1D}, /* Pre-emphasis Level_3 */
 	},
 	{	/* Swing Level_3 */
-		{0x2B, 0x10, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x10, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x10, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x10, 0x43, 0x1D, 0x60}, /* Pre-emphasis Level_3 */
+		{0x2B, 0x10, 0x43, 0x1D}, /* Pre-emphasis Level_0 */
+		{0x2B, 0x10, 0x43, 0x1D}, /* Pre-emphasis Level_1 */
+		{0x2B, 0x10, 0x43, 0x1D}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x10, 0x43, 0x1D}, /* Pre-emphasis Level_3 */
 	},
 };
 #else /* EVT1 */
@@ -79,124 +77,71 @@ u32 phy_default_value[DEFAULT_SFR_CNT][2] = {
 	{0x0070, 0x76}, {0x0234, 0xE8},
 };
 
-u32 phy_tune_param_default[4][4][5] = { /* {amp, post, pre, idrv} */
+u32 phy_tune_parameters[4][4][4] = { /* {amp, post, pre, idrv} */
 	{	/* Swing Level_0 */
-		{0x21, 0x10, 0x42, 0xE5, 0x60}, /* Pre-emphasis Level_0 */
-		{0x25, 0x14, 0x42, 0xE5, 0x60}, /* Pre-emphasis Level_1 */
-		{0x26, 0x17, 0x43, 0xE5, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x1C, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
+		{0x21, 0x10, 0x42, 0xE5}, /* Pre-emphasis Level_0 */
+		{0x25, 0x14, 0x42, 0xE5}, /* Pre-emphasis Level_1 */
+		{0x26, 0x17, 0x43, 0xE5}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x1C, 0x43, 0xE7}, /* Pre-emphasis Level_3 */
 	},
 	{	/* Swing Level_1 */
-		{0x26, 0x10, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x15, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x18, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x18, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
+		{0x26, 0x10, 0x42, 0xE7}, /* Pre-emphasis Level_0 */
+		{0x2B, 0x15, 0x42, 0xE7}, /* Pre-emphasis Level_1 */
+		{0x2B, 0x18, 0x43, 0xE7}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x18, 0x43, 0xE7}, /* Pre-emphasis Level_3 */
 	},
 	{	/* Swing Level_2 */
-		{0x2A, 0x10, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x15, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x15, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x15, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
+		{0x2A, 0x10, 0x42, 0xE7}, /* Pre-emphasis Level_0 */
+		{0x2B, 0x15, 0x43, 0xE7}, /* Pre-emphasis Level_1 */
+		{0x2B, 0x15, 0x43, 0xE7}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x15, 0x43, 0xE7}, /* Pre-emphasis Level_3 */
 	},
 	{	/* Swing Level_3 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
+		{0x2B, 0x10, 0x43, 0xE7}, /* Pre-emphasis Level_0 */
+		{0x2B, 0x10, 0x43, 0xE7}, /* Pre-emphasis Level_1 */
+		{0x2B, 0x10, 0x43, 0xE7}, /* Pre-emphasis Level_2 */
+		{0x2B, 0x10, 0x43, 0xE7}, /* Pre-emphasis Level_3 */
 	},
 };
 #endif
 
-u32 phy_tune_param_davinci[4][4][5] = { /* {amp, post, pre, idrv} */
-	{	/* Swing Level_0 */
-		{0x22, 0x10, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x26, 0x14, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x26, 0x16, 0x43, 0xE7, 0x70}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x1B, 0x43, 0xE7, 0x78}, /* Pre-emphasis Level_3 */
-	},
-	{	/* Swing Level_1 */
-		{0x27, 0x10, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x15, 0x42, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x18, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x18, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
-	},
-	{	/* Swing Level_2 */
-		{0x28, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x15, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x15, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x15, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
-	},
-	{	/* Swing Level_3 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_0 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_1 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_2 */
-		{0x2B, 0x10, 0x43, 0xE7, 0x60}, /* Pre-emphasis Level_3 */
-	},
-};
-
-u32 *phy_tune_param_table[] = {
-	/*default*/(u32 *)phy_tune_param_default,
-	/*davinci*/(u32 *)phy_tune_param_davinci
-};
-
-const int phy_tune_num = ARRAY_SIZE(phy_tune_param_table);
-
-
 /* supported_videos[] is to be arranged in the order of pixel clock */
 struct displayport_supported_preset supported_videos[] = {
-	/* video_format,	dv_timings,	fps,	v_sync_pol,	h_sync_pol,	vic, ratio,	name,	dex_support, pro_audio, displayid_timing */
-	{V640X480P60,	V4L2_DV_BT_DMT_640X480P60,	60, SYNC_NEGATIVE, SYNC_NEGATIVE, 1, RATIO_4_3, "V640X480P60",	DEX_FHD_SUPPORT},
-	{V720X480P60,	V4L2_DV_BT_CEA_720X480P59_94,	60, SYNC_NEGATIVE, SYNC_NEGATIVE, 2, RATIO_16_9, "V720X480P60",	DEX_FHD_SUPPORT},
-	{V720X576P50,	V4L2_DV_BT_CEA_720X576P50,	50, SYNC_NEGATIVE, SYNC_NEGATIVE, 17, RATIO_4_3, "V720X576P50",	DEX_FHD_SUPPORT},
-	{V1280X800P60RB, V4L2_DV_BT_DMT_1280X800P60_RB,	60, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_16_10, "V1280X800P60RB",	DEX_FHD_SUPPORT},
-	{V1280X720P50,	V4L2_DV_BT_CEA_1280X720P50,	50, SYNC_POSITIVE, SYNC_POSITIVE, 19, RATIO_16_9, "V1280X720P50",	DEX_FHD_SUPPORT},
-	{V1280X720P60EXT,	DISPLAYID_720P_EXT, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V1280X720P60EXT",	DEX_FHD_SUPPORT, false, DISPLAYID_EXT},
-	{V1280X720P60,	V4L2_DV_BT_CEA_1280X720P60,	60, SYNC_POSITIVE, SYNC_POSITIVE, 4, RATIO_16_9, "V1280X720P60",	DEX_FHD_SUPPORT, true},
-	{V1366X768P60,  V4L2_DV_BT_DMT_1366X768P60,     60, SYNC_POSITIVE, SYNC_NEGATIVE,   0, RATIO_16_9, "V1366X768P60", DEX_FHD_SUPPORT},
-	{V1280X1024P60,	V4L2_DV_BT_DMT_1280X1024P60,	60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_4_3, "V1280X1024P60", DEX_FHD_SUPPORT},
-	{V1920X1080P24,	V4L2_DV_BT_CEA_1920X1080P24,	24, SYNC_POSITIVE, SYNC_POSITIVE, 32, RATIO_16_9, "V1920X1080P24",	DEX_FHD_SUPPORT},
-	{V1920X1080P25,	V4L2_DV_BT_CEA_1920X1080P25,	25, SYNC_POSITIVE, SYNC_POSITIVE, 33, RATIO_16_9, "V1920X1080P25",	DEX_FHD_SUPPORT},
-	{V1920X1080P30,	V4L2_DV_BT_CEA_1920X1080P30,	30, SYNC_POSITIVE, SYNC_POSITIVE, 34, RATIO_16_9, "V1920X1080P30",	DEX_FHD_SUPPORT, true},
-	{V1600X900P59, V4L2_DV_BT_CVT_1600X900P59_ADDED, 59, SYNC_POSITIVE,	SYNC_POSITIVE, RATIO_16_9, 0, "V1600X900P59", DEX_FHD_SUPPORT},
-	{V1600X900P60RB, V4L2_DV_BT_DMT_1600X900P60_RB,	60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V1600X900P60RB",	DEX_FHD_SUPPORT},
-	{V1920X1080P50,	V4L2_DV_BT_CEA_1920X1080P50,	50, SYNC_POSITIVE, SYNC_POSITIVE, 31, RATIO_16_9, "V1920X1080P50",	DEX_FHD_SUPPORT},
-	{V1920X1080P60EXT,	DISPLAYID_1080P_EXT, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V1920X1080P60EXT", DEX_FHD_SUPPORT, false, DISPLAYID_EXT},
-	{V1920X1080P59,	V4L2_DV_BT_CVT_1920X1080P59_ADDED, 59, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V1920X1080P59", DEX_FHD_SUPPORT},
-	{V1920X1080P60,	V4L2_DV_BT_CEA_1920X1080P60,	60, SYNC_POSITIVE, SYNC_POSITIVE, 16, RATIO_16_9, "V1920X1080P60",	DEX_FHD_SUPPORT, true},
-	{V1920X1200P60RB, V4L2_DV_BT_DMT_1920X1200P60_RB, 60, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_16_10, "V1920X1200P60RB", DEX_WQHD_SUPPORT},
-	{V1920X1200P60,	V4L2_DV_BT_DMT_1920X1200P60,	60, SYNC_POSITIVE, SYNC_NEGATIVE, 0, RATIO_16_10, "V1920X1200P60",	DEX_WQHD_SUPPORT},
-	{V2560X1080P60, V4L2_DV_BT_CVT_2560x1080P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_21_9, "V2560X1080P60", DEX_WQHD_SUPPORT},
-	{V2048X1536P60,	V4L2_DV_BT_CVT_2048X1536P60_ADDED, 60, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_4_3, "V2048X1536P60"},
-	{V1920X1440P60,	V4L2_DV_BT_DMT_1920X1440P60,	60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_4_3, "V1920X1440P60"},
-	{V2400X1200P90RELU, DISPLAYID_2400X1200P90_RELUMINO, 90, SYNC_NEGATIVE, SYNC_NEGATIVE, 0, RATIO_ETC, "V2400X1200P90RELU", DEX_NOT_SUPPORT},
-	{V2560X1440P60EXT,	DISPLAYID_1440P_EXT, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V2560X1440P60EXT", DEX_WQHD_SUPPORT, false, DISPLAYID_EXT},
-	{V2560X1440P59,	V4L2_DV_BT_CVT_2560X1440P59_ADDED, 59, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V2560X1440P59", DEX_WQHD_SUPPORT},
-	{V1440x2560P60,	V4L2_DV_BT_CVT_1440X2560P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_ETC, "V1440x2560P60"},
-	{V1440x2560P75,	V4L2_DV_BT_CVT_1440X2560P75_ADDED, 75, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_ETC, "V1440x2560P75"},
-	{V2560X1440P60,	V4L2_DV_BT_CVT_2560X1440P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V2560X1440P60", DEX_WQHD_SUPPORT},
-	{V2560X1600P60,	V4L2_DV_BT_CVT_2560X1600P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_10, "V2560X1600P60", DEX_WQHD_SUPPORT},
-	{V3200X1600P70, DISPLAYID_3200X1600P70_ADDED, 70, SYNC_NEGATIVE, SYNC_NEGATIVE, 0, RATIO_ETC, "V3200X1600P70", DEX_NOT_SUPPORT},
-	{V3200X1600P72, DISPLAYID_3200X1600P72_ADDED, 72, SYNC_NEGATIVE, SYNC_NEGATIVE, 0, RATIO_ETC, "V3200X1600P72", DEX_NOT_SUPPORT},
-	{V3440X1440P50,	V4L2_DV_BT_CVT_3440X1440P50_ADDED, 50, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_21_9, "V3440X1440P50", DEX_WQHD_SUPPORT},
-	{V3840X1080P60,	V4L2_DV_BT_CEA_3840X1080P60_ADDED,	60, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_ETC, "V3840X1080P60"},
-	{V3840X1200P60,	V4L2_DV_BT_CEA_3840X1200P60_ADDED,	60, SYNC_NEGATIVE,	SYNC_POSITIVE, 0, RATIO_ETC, "V3840X1200P60"},
-	{V3440X1440P60,	V4L2_DV_BT_CVT_3440X1440P60_ADDED, 60, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_21_9, "V3440X1440P60", DEX_WQHD_SUPPORT},
-/*	{V3440X1440P100, V4L2_DV_BT_CVT_3440X1440P100_ADDED, 100, SYNC_NEGATIVE, SYNC_POSITIVE, 0, RATIO_21_9, "V3440X1440P100"}, */
-	{V3840X2160P24,	V4L2_DV_BT_CEA_3840X2160P24,	24, SYNC_POSITIVE, SYNC_POSITIVE, 93, RATIO_16_9, "V3840X2160P24"},
-	{V3840X2160P25,	V4L2_DV_BT_CEA_3840X2160P25,	25, SYNC_POSITIVE, SYNC_POSITIVE, 94, RATIO_16_9, "V3840X2160P25"},
-	{V3840X2160P30,	V4L2_DV_BT_CEA_3840X2160P30,	30, SYNC_POSITIVE, SYNC_POSITIVE, 95, RATIO_16_9, "V3840X2160P30",	DEX_NOT_SUPPORT, true},
-	{V4096X2160P24,	V4L2_DV_BT_CEA_4096X2160P24,	24, SYNC_POSITIVE, SYNC_POSITIVE, 98, RATIO_16_9, "V4096X2160P24"},
-	{V4096X2160P25,	V4L2_DV_BT_CEA_4096X2160P25,	25, SYNC_POSITIVE, SYNC_POSITIVE, 99, RATIO_16_9, "V4096X2160P25"},
-	{V4096X2160P30,	V4L2_DV_BT_CEA_4096X2160P30,	30, SYNC_POSITIVE, SYNC_POSITIVE, 100, RATIO_16_9, "V4096X2160P30"},
-	{V3840X2160P60EXT,	DISPLAYID_2160P_EXT, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V3840X2160P60EXT", DEX_NOT_SUPPORT, false, DISPLAYID_EXT},
-	{V3840X2160P59RB, V4L2_DV_BT_CVT_3840X2160P59_ADDED, 59, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_16_9, "V3840X2160P59RB"},
-	{V3840X2160P50,	V4L2_DV_BT_CEA_3840X2160P50,	50, SYNC_POSITIVE, SYNC_POSITIVE, 96, RATIO_16_9, "V3840X2160P50"},
-	{V3840X2160P60,	V4L2_DV_BT_CEA_3840X2160P60,	60, SYNC_POSITIVE, SYNC_POSITIVE, 97, RATIO_16_9, "V3840X2160P60",	DEX_NOT_SUPPORT, true},
-	{V2160X3840P72,	DISPLAYID_2160X3840P72_ADDED,	72, SYNC_NEGATIVE, SYNC_NEGATIVE, 0, RATIO_ETC, "V2160X3840P72", DEX_NOT_SUPPORT},
-	{V4096X2160P50, V4L2_DV_BT_CEA_4096X2160P50,	50, SYNC_POSITIVE, SYNC_POSITIVE, 101, RATIO_16_9, "V4096X2160P50"},
-	{V4096X2160P60,	V4L2_DV_BT_CEA_4096X2160P60,	60, SYNC_POSITIVE, SYNC_POSITIVE, 102, RATIO_16_9, "V4096X2160P60"},
-	{V640X10P60SACRC, V4L2_DV_BT_CVT_640x10P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE, 0, RATIO_ETC, "V640X10P60SACRC"},
-	{VDUMMYTIMING, V4L2_DV_BT_CVT_640x10P60_ADDED,	60, SYNC_POSITIVE, SYNC_POSITIVE,  0, RATIO_ETC, "VDUMMYTIMING"},
+	{V640X480P60,      V4L2_DV_BT_DMT_640X480P60,         60, SYNC_NEGATIVE, SYNC_NEGATIVE,   1, "V640X480P60"},
+	{V720X480P60,      V4L2_DV_BT_CEA_720X480P59_94,      60, SYNC_NEGATIVE, SYNC_NEGATIVE,   2, "V720X480P60"},
+	{V720X576P50,      V4L2_DV_BT_CEA_720X576P50,         50, SYNC_NEGATIVE, SYNC_NEGATIVE,  17, "V720X576P50"},
+	{V1280X800P60RB,   V4L2_DV_BT_DMT_1280X800P60_RB,     60, SYNC_NEGATIVE, SYNC_POSITIVE,   0, "V1280X800P60RB"},
+	{V1280X720P50,     V4L2_DV_BT_CEA_1280X720P50,        50, SYNC_POSITIVE, SYNC_POSITIVE,  19, "V1280X720P50"},
+	{V1280X720P60,     V4L2_DV_BT_CEA_1280X720P60,        60, SYNC_POSITIVE, SYNC_POSITIVE,   4, "V1280X720P60"},
+	{V1366X768P60,     V4L2_DV_BT_DMT_1366X768P60,        60, SYNC_POSITIVE, SYNC_NEGATIVE,   0, "V1366X768P60"},
+	{V1280X1024P60,    V4L2_DV_BT_DMT_1280X1024P60,       60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1280X1024P60"},
+	{V1920X1080P24,    V4L2_DV_BT_CEA_1920X1080P24,       24, SYNC_POSITIVE, SYNC_POSITIVE,  32, "V1920X1080P24"},
+	{V1920X1080P25,    V4L2_DV_BT_CEA_1920X1080P25,       25, SYNC_POSITIVE, SYNC_POSITIVE,  33, "V1920X1080P25"},
+	{V1920X1080P30,    V4L2_DV_BT_CEA_1920X1080P30,       30, SYNC_POSITIVE, SYNC_POSITIVE,  34, "V1920X1080P30"},
+	{V1600X900P59,     V4L2_DV_BT_CVT_1600X900P59_ADDED,  59, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1600X900P59"},
+	{V1600X900P60RB,   V4L2_DV_BT_DMT_1600X900P60_RB,     60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1600X900P60RB"},
+	{V1920X1080P50,    V4L2_DV_BT_CEA_1920X1080P50,       50, SYNC_POSITIVE, SYNC_POSITIVE,  31, "V1920X1080P50"},
+	{V1920X1080P59,    V4L2_DV_BT_CVT_1920X1080P59_ADDED, 59, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1920X1080P59"},
+	{V1920X1080P60,    V4L2_DV_BT_CEA_1920X1080P60,       60, SYNC_POSITIVE, SYNC_POSITIVE,  16, "V1920X1080P60"},
+	{V2048X1536P60,    V4L2_DV_BT_CVT_2048X1536P60_ADDED, 60, SYNC_NEGATIVE, SYNC_POSITIVE,   0, "V2048X1536P60"},
+	{V1920X1440P60,    V4L2_DV_BT_DMT_1920X1440P60,       60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1920X1440P60"},
+	{V2560X1440P59,    V4L2_DV_BT_CVT_2560X1440P59_ADDED, 59, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V2560X1440P59"},
+	{V1440x2560P60,    V4L2_DV_BT_CVT_1440X2560P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1440x2560P60"},
+	{V1440x2560P75,    V4L2_DV_BT_CVT_1440X2560P75_ADDED, 75, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V1440x2560P75"},
+	{V2560X1440P60,    V4L2_DV_BT_CVT_2560X1440P60_ADDED, 60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V2560X1440P60"},
+	{V3840X2160P24,    V4L2_DV_BT_CEA_3840X2160P24,       24, SYNC_POSITIVE, SYNC_POSITIVE,  93, "V3840X2160P24"},
+	{V3840X2160P25,    V4L2_DV_BT_CEA_3840X2160P25,       25, SYNC_POSITIVE, SYNC_POSITIVE,  94, "V3840X2160P25"},
+	{V3840X2160P30,    V4L2_DV_BT_CEA_3840X2160P30,       30, SYNC_POSITIVE, SYNC_POSITIVE,  95, "V3840X2160P30"},
+	{V4096X2160P24,    V4L2_DV_BT_CEA_4096X2160P24,       24, SYNC_POSITIVE, SYNC_POSITIVE,  98, "V4096X2160P24"},
+	{V4096X2160P25,    V4L2_DV_BT_CEA_4096X2160P25,       25, SYNC_POSITIVE, SYNC_POSITIVE,  99, "V4096X2160P25"},
+	{V4096X2160P30,    V4L2_DV_BT_CEA_4096X2160P30,       30, SYNC_POSITIVE, SYNC_POSITIVE, 100, "V4096X2160P30"},
+	{V3840X2160P59RB,  V4L2_DV_BT_CVT_3840X2160P59_ADDED, 59, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V3840X2160P59RB"},
+	{V3840X2160P50,    V4L2_DV_BT_CEA_3840X2160P50,       50, SYNC_POSITIVE, SYNC_POSITIVE,  96, "V3840X2160P50"},
+	{V3840X2160P60,    V4L2_DV_BT_CEA_3840X2160P60,       60, SYNC_POSITIVE, SYNC_POSITIVE,  97, "V3840X2160P60"},
+	{V4096X2160P50,    V4L2_DV_BT_CEA_4096X2160P50,       50, SYNC_POSITIVE, SYNC_POSITIVE, 101, "V4096X2160P50"},
+	{V4096X2160P60,    V4L2_DV_BT_CEA_4096X2160P60,       60, SYNC_POSITIVE, SYNC_POSITIVE, 102, "V4096X2160P60"},
+	{V640X10P60SACRC,  V4L2_DV_BT_CVT_640x10P60_ADDED,    60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "V640X10P60SACRC"},
+	{VDUMMYTIMING,     V4L2_DV_BT_CVT_640x10P60_ADDED,    60, SYNC_POSITIVE, SYNC_POSITIVE,   0, "VDUMMYTIMING"},
 };
 
 const int supported_videos_pre_cnt = ARRAY_SIZE(supported_videos);
@@ -271,7 +216,7 @@ void displayport_reg_phy_init_setting(void)
 	for (i = 0; i < DEFAULT_SFR_CNT; i++)
 		displayport_phy_write(phy_default_value[i][0], phy_default_value[i][1]);
 
-	displayport_phy_write_mask(CMN_REG0009, 0xD, ANA_AUX_TX_LVL_CTRL);
+	displayport_phy_write_mask(CMN_REG0009, 0xA, ANA_AUX_TX_LVL_CTRL);
 }
 
 void displayport_reg_phy_mode_setting(void)
@@ -378,7 +323,7 @@ void displayport_reg_phy_ssc_enable(u32 en)
 
 void displayport_reg_wait_phy_pll_lock(void)
 {
-	u32 cnt = 300;	/* wait for 150us + 10% margin */
+	u32 cnt = 165;	/* wait for 150us + 10% margin */
 	u32 state;
 
 	do {
@@ -388,7 +333,7 @@ void displayport_reg_wait_phy_pll_lock(void)
 	} while (!state && cnt);
 
 	if (!cnt)
-		displayport_err("%s is timeout 300us\n", __func__);
+		displayport_err("%s is timeout.\n", __func__);
 }
 
 void displayport_reg_phy_set_link_bw(u8 link_rate)
@@ -500,7 +445,7 @@ void displayport_reg_set_phy_tune(u32 phy_lane_num, u32 amp_lvl, u32 pre_emp_lvl
 		break;
 	}
 
-	for (i = AMP; i <= ACCDRV; i++) {
+	for (i = AMP; i <= IDRV; i++) {
 		val = phy_tune_parameters[amp_lvl][pre_emp_lvl][i];
 		displayport_phy_write(addr + i * 4, val);
 	}
@@ -1033,12 +978,6 @@ int displayport_reg_dpcd_write(u32 address, u32 length, u8 *data)
 		retry_cnt--;
 	}
 
-#ifdef CONFIG_SEC_DISPLAYPORT_BIGDATA
-	if (ret == 0)
-		secdp_bigdata_clr_error_cnt(ERR_AUX);
-	else if (displayport->ccic_hpd)
-		secdp_bigdata_inc_error_cnt(ERR_AUX);
-#endif
 	mutex_unlock(&displayport->aux_lock);
 
 	return ret;
@@ -1068,12 +1007,6 @@ int displayport_reg_dpcd_read(u32 address, u32 length, u8 *data)
 	if (ret == 0)
 		displayport_reg_aux_ch_received_buf(data, length);
 
-#ifdef CONFIG_SEC_DISPLAYPORT_BIGDATA
-	if (ret == 0)
-		secdp_bigdata_clr_error_cnt(ERR_AUX);
-	else if (displayport->ccic_hpd)
-		secdp_bigdata_inc_error_cnt(ERR_AUX);
-#endif
 	mutex_unlock(&displayport->aux_lock);
 
 	return ret;
@@ -1389,16 +1322,18 @@ void displayport_reg_lh_p_ch_power(u32 en)
 	u32 state;
 
 	if (en) {
+		displayport_write_mask(SYSTEM_SST1_FUNCTION_ENABLE, 1,
+				SST1_LH_PWR_ON);
 		do {
-			displayport_write_mask(SYSTEM_SST1_FUNCTION_ENABLE, 1,
-					SST1_LH_PWR_ON);
-			udelay(1);
 			state = displayport_read_mask(
 					SYSTEM_SST1_FUNCTION_ENABLE,
 					SST1_LH_PWR_ON_STATUS);
 			cnt--;
+			udelay(1);
 		} while (!state && cnt);
 
+		if (!cnt)
+			displayport_err("%s on is timeout[%d].\n", __func__, state);
 	} else {
 		displayport_write_mask(SYSTEM_SST1_FUNCTION_ENABLE, 0,
 				SST1_LH_PWR_ON);
@@ -1410,9 +1345,7 @@ void displayport_reg_lh_p_ch_power(u32 en)
 			udelay(1);
 		} while (state && cnt);
 
-	}
-	if (!cnt) {
-			displayport_err("%s(%d) timeout[%d].\n", __func__, en, state);
+		if (!cnt) {
 			displayport_err("SYSTEM_CLK_CONTROL[0x%08x]\n",
 				displayport_read(SYSTEM_CLK_CONTROL));
 			displayport_err("SYSTEM_PLL_LOCK_CONTROL[0x%08x]\n",
@@ -1433,6 +1366,7 @@ void displayport_reg_lh_p_ch_power(u32 en)
 				displayport_read(SYSTEM_COMMON_FUNCTION_ENABLE));
 			displayport_err("SYSTEM_SST1_FUNCTION_ENABLE[0x%08x]\n",
 				displayport_read(SYSTEM_SST1_FUNCTION_ENABLE));
+		}
 	}
 }
 
@@ -1446,13 +1380,9 @@ void displayport_reg_sw_function_en(u32 en)
 
 void displayport_reg_phy_init(void)
 {
-#if defined(CONFIG_PHY_SAMSUNG_USB_CAL)
-	dwc3_exynos_phy_enable(1, 1);
-#endif
 	displayport_reg_phy_reset(1);
 	displayport_reg_phy_init_setting();
 	displayport_reg_phy_mode_setting();
-	displayport_reg_phy_ssc_enable(0);
 	displayport_reg_phy_reset(0);
 	displayport_reg_wait_phy_pll_lock();
 }
@@ -1556,7 +1486,6 @@ void displayport_reg_set_avi_infoframe(struct infoframe avi_infoframe)
 	displayport_write_mask(SST1_INFOFRAME_SEND_CONTROL, 1, AVI_INFO_SEND);
 }
 
-#ifdef FEATURE_SUPPORT_SPD_INFOFRAME
 void displayport_reg_set_spd_infoframe(struct infoframe spd_infoframe)
 {
 	int i, j;
@@ -1578,7 +1507,6 @@ void displayport_reg_set_spd_infoframe(struct infoframe spd_infoframe)
 	displayport_write_mask(SST1_INFOFRAME_UPDATE_CONTROL, 1, SPD_INFO_UPDATE);
 	displayport_write_mask(SST1_INFOFRAME_SEND_CONTROL, 1, SPD_INFO_SEND);
 }
-#endif
 
 void displayport_reg_set_audio_infoframe(struct infoframe audio_infoframe, u32 en)
 {
@@ -2053,6 +1981,7 @@ void displayport_audio_enable(struct displayport_audio_config_data *audio_config
 	displayport_reg_set_dp_audio_enable(audio_config_data->audio_enable);
 	displayport_set_audio_ch_status(audio_config_data);
 	displayport_reg_set_audio_ch_status_same(1);
+	displayport_reg_set_dma_req_gen(1);
 	displayport_reg_set_audio_master_mode_enable(audio_config_data->audio_enable);
 #endif
 	displayport_reg_print_audio_state();
@@ -2100,8 +2029,7 @@ void displayport_audio_dma_force_req_release(void)
 #if defined(CONFIG_SOC_EXYNOS9820_EVT0)
 	displayport_reg_set_dma_force_req_low(0);
 #else
-	displayport_info("skip displayport_audio_dma_force_req_release(not need)\n");
-	displayport_reg_set_dma_req_gen(1);
+	displayport_info("skip displayport_audio_dma_force_req_release(not need)");
 #endif
 }
 

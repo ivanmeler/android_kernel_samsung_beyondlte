@@ -16,7 +16,9 @@
 #include <linux/file.h>
 
 #include "dd_common.h"
+#ifdef CONFIG_FSCRYPT_SDP
 #include "../../fs/crypto/sdp/sdp_crypto.h"
+#endif
 
 #define DD_XTS_TWEAK_SIZE       16
 
@@ -28,10 +30,12 @@
 static int get_dd_file_key(struct dd_crypt_context *crypt_context,
 		struct fscrypt_key *dd_master_key, unsigned char *raw_key);
 
-extern int fscrypt_get_encryption_kek(struct inode *inode,
-								struct fscrypt_info *crypt_info,
-								struct fscrypt_key *kek);
-extern int fscrypt_get_encryption_key(struct inode *inode, struct fscrypt_key *key);
+extern int fscrypt_get_encryption_kek(
+						struct fscrypt_info *crypt_info,
+						struct fscrypt_key *kek);
+extern int fscrypt_get_encryption_key(
+						struct fscrypt_info *crypt_info,
+						struct fscrypt_key *key);
 
 #define DD_CRYPT_MODE_INVALID     0
 #define DD_CRYPT_MODE_AES_256_XTS 1
@@ -51,24 +55,26 @@ static struct dd_crypt_mode {
 	},
 };
 
-static struct dd_crypt_mode* dd_get_crypt_mode(const struct dd_policy* policy) {
+static struct dd_crypt_mode *dd_get_crypt_mode(const struct dd_policy *policy)
+{
 	char version;
 	if (policy == NULL)
 		return &available_modes[DD_CRYPT_MODE_INVALID];
 
 	version = policy->version;
-	switch(version) {
-		case DDAR_DRIVER_VERSION_0:
-		case DDAR_DRIVER_VERSION_1:
-			return &available_modes[DD_CRYPT_MODE_AES_256_XTS];
-		case DDAR_DRIVER_VERSION_2:
-			return &available_modes[DD_CRYPT_MODE_AES_256_CBC];
-		default:
-			return &available_modes[DD_CRYPT_MODE_INVALID];
+	switch (version) {
+	case DDAR_DRIVER_VERSION_0:
+	case DDAR_DRIVER_VERSION_1:
+		return &available_modes[DD_CRYPT_MODE_AES_256_XTS];
+	case DDAR_DRIVER_VERSION_2:
+		return &available_modes[DD_CRYPT_MODE_AES_256_CBC];
+	default:
+		return &available_modes[DD_CRYPT_MODE_INVALID];
 	}
 }
 
-int dd_create_crypt_context(struct inode *inode, const struct dd_policy *policy, void *fs_data) {
+int dd_create_crypt_context(struct inode *inode, const struct dd_policy *policy, void *fs_data)
+{
 	struct dd_crypt_context crypt_context;
 	int rc = 0;
 
@@ -88,7 +94,7 @@ int dd_create_crypt_context(struct inode *inode, const struct dd_policy *policy,
 		unsigned char *tag;
 		unsigned char *file_encryption_key;
 		unsigned char *cipher_file_encryption_key;
-		struct dd_crypt_mode* mode = dd_get_crypt_mode(policy);
+		struct dd_crypt_mode *mode = dd_get_crypt_mode(policy);
 		dd_verbose("%s - cipher : %s, keysize : %d\n", __func__, mode->cipher_str, mode->keysize);
 
 		rc = get_dd_master_key(policy->userid, &master_key);
@@ -113,8 +119,10 @@ int dd_create_crypt_context(struct inode *inode, const struct dd_policy *policy,
 
 		dd_dump("ddar master key", master_key.raw, master_key.size);
 
+#ifdef CONFIG_FSCRYPT_SDP
 		rc = sdp_crypto_generate_key(file_encryption_key, mode->keysize);
 		if (rc)
+#endif
 			memset(file_encryption_key, 0, mode->keysize);
 
 		dd_dump("ddar file key", file_encryption_key, mode->keysize);
@@ -175,10 +183,14 @@ out:
 			memzero_explicit(file_encryption_key, mode->keysize);
 			kfree(file_encryption_key);
 		}
-		if (cipher_file_encryption_key) kfree(cipher_file_encryption_key);
-		if (aad) kfree(aad);
-		if (tag) kfree(tag);
-		if (aead_req) aead_request_free(aead_req);
+		if (cipher_file_encryption_key)
+			kfree(cipher_file_encryption_key);
+		if (aad)
+			kfree(aad);
+		if (tag)
+			kfree(tag);
+		if (aead_req)
+			aead_request_free(aead_req);
 		secure_zeroout(__func__, master_key.raw, master_key.size);
 	}
 
@@ -190,7 +202,8 @@ out:
 }
 
 #if USE_KEYRING
-int get_dd_master_key(int userid, void *key) {
+int get_dd_master_key(int userid, void *key)
+{
 	struct fscrypt_key *dd_master_key = (struct fscrypt_key *)key;
 	int key_desc_len = DD_KEY_DESC_PREFIX_LEN + 3;
 	unsigned char key_desc[key_desc_len];
@@ -247,7 +260,8 @@ struct dd_master_key {
 	struct fscrypt_key key;
 };
 
-int dd_add_master_key(int userid, void *key, int len) {
+int dd_add_master_key(int userid, void *key, int len)
+{
 	struct dd_master_key *mk = NULL;
 	struct list_head *entry;
 
@@ -274,7 +288,7 @@ int dd_add_master_key(int userid, void *key, int len) {
 	mk->userid = userid;
 
 	memcpy(&mk->key, key, sizeof(struct fscrypt_key));
-	if (mk->key.size > FS_MAX_KEY_SIZE) {
+	if (mk->key.size > FSCRYPT_MAX_KEY_SIZE) {
 		//handle wrong size
 		dd_error("failed to add master key: size error");
 		kzfree(mk);
@@ -287,7 +301,8 @@ int dd_add_master_key(int userid, void *key, int len) {
 	return 0;
 }
 
-void dd_evict_master_key(int userid) {
+void dd_evict_master_key(int userid)
+{
 	struct dd_master_key *mk = NULL;
 	struct list_head *entry;
 
@@ -308,7 +323,8 @@ void dd_evict_master_key(int userid) {
 	}
 }
 
-int get_dd_master_key(int userid, void *key) {
+int get_dd_master_key(int userid, void *key)
+{
 	struct list_head *entry;
 	int rc = -ENOENT;
 
@@ -338,7 +354,7 @@ int dd_dump_key(int userid, int fd)
 	struct inode *inode;
 	unsigned char *dd_inner_file_encryption_key = NULL;
 	int rc = 0;
-	struct dd_crypt_mode* mode;
+	struct dd_crypt_mode *mode;
 
 	dd_error("########## DUALDAR_DUMP - START ##########\n");
 	f = fdget(fd);
@@ -392,7 +408,7 @@ int dd_dump_key(int userid, int fd)
 	/**
 	 * DUMPM KEY FOR OUTER LAYER
 	 */
-	rc = fscrypt_get_encryption_kek(inode, inode->i_crypt_info, &dd_outer_master_key);
+	rc = fscrypt_get_encryption_kek(inode->i_crypt_info, &dd_outer_master_key);
 	if (rc) {
 		dd_error("[DUALDAR_DUMP] failed to retrieve outer master key, rc : %d\n", rc);
 		goto out;
@@ -400,7 +416,7 @@ int dd_dump_key(int userid, int fd)
 	dd_hex_key_dump("[DUALDAR_DUMP] OUTER LAYER MASTER KEY", dd_outer_master_key.raw, dd_outer_master_key.size);
 
 	memset(&dd_outer_file_encryption_key, 0, sizeof(dd_outer_file_encryption_key));
-	rc = fscrypt_get_encryption_key(inode, &dd_outer_file_encryption_key);
+	rc = fscrypt_get_encryption_key(inode->i_crypt_info, &dd_outer_file_encryption_key);
 	if (rc) {
 		dd_error("[DUALDAR_DUMP] failed to retrieve outer fek, rc:%d\n", rc);
 		goto out;
@@ -408,7 +424,8 @@ int dd_dump_key(int userid, int fd)
 	dd_hex_key_dump("[DUALDAR_DUMP] OUTER LAYER FILE ENCRYPTION KEY", dd_outer_file_encryption_key.raw, dd_outer_file_encryption_key.size);
 
 out:
-	if (dd_inner_file_encryption_key) kfree(dd_inner_file_encryption_key);
+	if (dd_inner_file_encryption_key)
+		kfree(dd_inner_file_encryption_key);
 	if (f.file)
 		fdput(f);
 	dd_error("########## DUALDAR_DUMP - END ##########\n");
@@ -419,7 +436,8 @@ out:
 #endif
 
 static int get_dd_file_key(struct dd_crypt_context *crypt_context,
-		struct fscrypt_key *dd_master_key, unsigned char *raw_key) {
+		struct fscrypt_key *dd_master_key, unsigned char *raw_key)
+{
 	struct crypto_aead *key_aead = NULL;
 	struct aead_request *aead_req = NULL;
 	struct scatterlist src_sg[3], dst_sg[3];
@@ -429,7 +447,7 @@ static int get_dd_file_key(struct dd_crypt_context *crypt_context,
 
 	int rc = 0;
 	unsigned char *cipher_file_encryption_key;
-	struct dd_crypt_mode* mode = dd_get_crypt_mode(&(crypt_context->policy));
+	struct dd_crypt_mode *mode = dd_get_crypt_mode(&(crypt_context->policy));
 	dd_verbose("%s - cipher : %s, keysize : %d\n", __func__, mode->cipher_str, mode->keysize);
 
 	cipher_file_encryption_key = kzalloc(mode->keysize, GFP_KERNEL);
@@ -493,24 +511,29 @@ static int get_dd_file_key(struct dd_crypt_context *crypt_context,
 
 	dd_dump("ddar file key", raw_key, mode->keysize);
 out:
-    if (rc)
-        dd_error("file key derivation failed\n");
+	if (rc)
+		dd_error("file key derivation failed\n");
 
 	crypto_free_aead(key_aead);
-	if (cipher_file_encryption_key) kfree(cipher_file_encryption_key);
-	if (aad) kfree(aad);
-	if (tag) kfree(tag);
-	if (aead_req) aead_request_free(aead_req);
+	if (cipher_file_encryption_key)
+		kfree(cipher_file_encryption_key);
+	if (aad)
+		kfree(aad);
+	if (tag)
+		kfree(tag);
+	if (aead_req)
+		aead_request_free(aead_req);
 
 	return rc;
 }
 
-struct crypto_skcipher *dd_alloc_ctfm(struct dd_crypt_context *crypt_context, void *key) {
+struct crypto_skcipher *dd_alloc_ctfm(struct dd_crypt_context *crypt_context, void *key)
+{
 	struct fscrypt_key *dd_master_key = (struct fscrypt_key *)key;
 	struct crypto_skcipher *ctfm = NULL;
 	unsigned char *raw_key;
 	int rc;
-	struct dd_crypt_mode* mode = dd_get_crypt_mode(&(crypt_context->policy));
+	struct dd_crypt_mode *mode = dd_get_crypt_mode(&(crypt_context->policy));
 	dd_verbose("%s - cipher : %s, keysize : %d\n", __func__, mode->cipher_str, mode->keysize);
 
 	raw_key = kzalloc(mode->keysize, GFP_KERNEL);
@@ -533,7 +556,7 @@ struct crypto_skcipher *dd_alloc_ctfm(struct dd_crypt_context *crypt_context, vo
 	}
 
 	crypto_skcipher_clear_flags(ctfm, ~0);
-	crypto_skcipher_set_flags(ctfm, CRYPTO_TFM_REQ_WEAK_KEY);
+	crypto_skcipher_set_flags(ctfm, CRYPTO_TFM_REQ_FORBID_WEAK_KEYS);
 	rc = crypto_skcipher_setkey(ctfm, raw_key, mode->keysize);
 	if (rc) {
 		dd_error("failed to set file key rc:%d\n", rc);
@@ -557,7 +580,8 @@ out:
 }
 
 int dd_sec_crypt_page(struct dd_info *info, dd_crypto_direction_t rw,
-		struct page *src_page, struct page *dst_page) {
+		struct page *src_page, struct page *dst_page)
+{
 	struct skcipher_request *req = NULL;
 	DECLARE_CRYPTO_WAIT(wait);
 	struct scatterlist dst, src;
@@ -596,7 +620,8 @@ int dd_sec_crypt_page(struct dd_info *info, dd_crypto_direction_t rw,
 }
 
 int dd_sec_crypt_bio_pages(struct dd_info *info, struct bio *orig,
-		struct bio *clone, dd_crypto_direction_t rw) {
+		struct bio *clone, dd_crypto_direction_t rw)
+{
     struct bvec_iter iter_backup;
     int rc = 0;
 
@@ -620,11 +645,11 @@ int dd_sec_crypt_bio_pages(struct dd_info *info, struct bio *orig,
 			}
 			dd_dump("dd_crypto_bio_pages::encryption finished", page_address(ciphertext_page), PAGE_SIZE);
 
-            bio_advance_iter(orig, &orig->bi_iter, 1 << PAGE_SHIFT);
-            bio_advance_iter(clone, &clone->bi_iter, 1 << PAGE_SHIFT);
+			bio_advance_iter(orig, &orig->bi_iter, 1 << PAGE_SHIFT);
+			bio_advance_iter(clone, &clone->bi_iter, 1 << PAGE_SHIFT);
 		} else {
-            struct bio_vec orig_bv = bio_iter_iovec(orig, orig->bi_iter);
-            struct page *ciphertext_page = orig_bv.bv_page;
+			struct bio_vec orig_bv = bio_iter_iovec(orig, orig->bi_iter);
+			struct page *ciphertext_page = orig_bv.bv_page;
 
 			BUG_ON(info->ino != orig_bv.bv_page->mapping->host->i_ino);
 			dd_dump("dd_crypto_bio_pages::decryption start", page_address(ciphertext_page), PAGE_SIZE);
@@ -635,22 +660,22 @@ int dd_sec_crypt_bio_pages(struct dd_info *info, struct bio *orig,
 			}
 			dd_dump("dd_crypto_bio_pages::decryption finished", page_address(ciphertext_page), PAGE_SIZE);
 
-            bio_advance_iter(orig, &orig->bi_iter, 1 << PAGE_SHIFT);
+			bio_advance_iter(orig, &orig->bi_iter, 1 << PAGE_SHIFT);
 		}
-    }
+	}
 
-    memcpy(&orig->bi_iter, &iter_backup, sizeof(struct bvec_iter));
-    if (rw == DD_ENCRYPT)
-        memcpy(&clone->bi_iter, &iter_backup, sizeof(struct bvec_iter));
+	memcpy(&orig->bi_iter, &iter_backup, sizeof(struct bvec_iter));
+	if (rw == DD_ENCRYPT)
+		memcpy(&clone->bi_iter, &iter_backup, sizeof(struct bvec_iter));
 
 	return 0;
 }
 
-void dd_hex_key_dump(const char* tag, uint8_t *data, size_t data_len)
+void dd_hex_key_dump(const char *tag, uint8_t *data, unsigned int data_len)
 {
 	static const char *hex = "0123456789ABCDEF";
 	static const char delimiter = ' ';
-	int i;
+	unsigned int i;
 	char *buf;
 	size_t buf_len;
 
@@ -663,7 +688,7 @@ void dd_hex_key_dump(const char* tag, uint8_t *data, size_t data_len)
 	if (buf == NULL) {
 		return;
 	}
-	for (i= 0 ; i < data_len ; i++) {
+	for (i = 0; i < data_len; i++) {
 		buf[i*3 + 0] = hex[(data[i] >> 4) & 0x0F];
 		buf[i*3 + 1] = hex[(data[i]) & 0x0F];
 		buf[i*3 + 2] = delimiter;

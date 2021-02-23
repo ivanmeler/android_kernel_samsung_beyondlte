@@ -308,7 +308,8 @@ void fimc_is_hw_paf_rdma_reset(void __iomem *base_reg)
 		err("PAFSTAT RDMA reset fail\n");
 }
 
-void fimc_is_hw_paf_rdma_config(void __iomem *base_reg, u32 hw_format, u32 bitwidth, u32 width, u32 height)
+void fimc_is_hw_paf_rdma_config(void __iomem *base_reg, u32 hw_format, u32 bitwidth,
+		u32 width, u32 height, u32 pix_stride)
 {
 	enum pafstat_rdma_format dma_format = PAFSTAT_RDMA_FORMAT_12BIT_PACK_LSB_ALIGN;
 	u32 stride_size;
@@ -332,21 +333,21 @@ void fimc_is_hw_paf_rdma_config(void __iomem *base_reg, u32 hw_format, u32 bitwi
 	/* same as CSIS WDMA align */
 	switch (dma_format) {
 	case PAFSTAT_RDMA_FORMAT_8BIT_PACK:
-		stride_size = round_up(width, DMA_OUTPUT_BIT_WIDTH_16BIT);
+		stride_size = round_up(pix_stride, DMA_OUTPUT_BIT_WIDTH_16BIT);
 		break;
 	case PAFSTAT_RDMA_FORMAT_10BIT_PACK:
 	case PAFSTAT_RDMA_FORMAT_ANDROID10:
-		stride_size = round_up((width * 5 / 4), DMA_OUTPUT_BIT_WIDTH_16BIT);
+		stride_size = round_up((pix_stride * 5 / 4), DMA_OUTPUT_BIT_WIDTH_16BIT);
 		break;
 	case PAFSTAT_RDMA_FORMAT_12BIT_PACK_LSB_ALIGN:
 	case PAFSTAT_RDMA_FORMAT_12BIT_PACK_MSB_ALIGN:
-		stride_size = round_up((width * 3 / 2), DMA_OUTPUT_BIT_WIDTH_16BIT);
+		stride_size = round_up((pix_stride * 3 / 2), DMA_OUTPUT_BIT_WIDTH_16BIT);
 		break;
 	case PAFSTAT_RDMA_FORMAT_16BIT_PACK_LSB_ALIGN:
-		stride_size = round_up((width * 2), DMA_OUTPUT_BIT_WIDTH_16BIT);
+		stride_size = round_up((pix_stride * 2), DMA_OUTPUT_BIT_WIDTH_16BIT);
 		break;
 	default:
-		stride_size = round_up(width, DMA_OUTPUT_BIT_WIDTH_16BIT);
+		stride_size = round_up(pix_stride, DMA_OUTPUT_BIT_WIDTH_16BIT);
 		break;
 	}
 

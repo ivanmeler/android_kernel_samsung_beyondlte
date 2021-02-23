@@ -14,6 +14,10 @@
  */
 #include "../ssp.h"
 
+#if defined(CONFIG_SENSORS_SSP_STK33917)
+#define	VENDOR		"SITRON"
+#define CHIP_ID		"STK33917"
+#else
 #define	VENDOR		"AMS"
 #if defined(CONFIG_SENSORS_SSP_TMG399x)
 #define	CHIP_ID		"TMG399X"
@@ -34,7 +38,7 @@
 #else
 #define CHIP_ID		"UNKNOWN"
 #endif
-
+#endif
 #define CONFIG_PANEL_NOTIFY	1
 /*************************************************************************/
 /* factory Sysfs                                                         */
@@ -66,9 +70,9 @@ static ssize_t light_lux_show(struct device *dev,
 	struct ssp_data *data = dev_get_drvdata(dev);
 
 	return sprintf(buf, "%u,%u,%u,%u,%u,%u\n",
-		data->buf[UNCAL_LIGHT_SENSOR].r, data->buf[UNCAL_LIGHT_SENSOR].g,
-		data->buf[UNCAL_LIGHT_SENSOR].b, data->buf[UNCAL_LIGHT_SENSOR].w,
-		data->buf[UNCAL_LIGHT_SENSOR].a_time, data->buf[UNCAL_LIGHT_SENSOR].a_gain);
+		data->buf[UNCAL_LIGHT_SENSOR].light_t.r, data->buf[UNCAL_LIGHT_SENSOR].light_t.g,
+		data->buf[UNCAL_LIGHT_SENSOR].light_t.b, data->buf[UNCAL_LIGHT_SENSOR].light_t.w,
+		data->buf[UNCAL_LIGHT_SENSOR].light_t.a_time, data->buf[UNCAL_LIGHT_SENSOR].light_t.a_gain);
 }
 
 static ssize_t light_data_show(struct device *dev,
@@ -77,9 +81,9 @@ static ssize_t light_data_show(struct device *dev,
 	struct ssp_data *data = dev_get_drvdata(dev);
 
 	return sprintf(buf, "%u,%u,%u,%u,%u,%u\n",
-		data->buf[UNCAL_LIGHT_SENSOR].r, data->buf[UNCAL_LIGHT_SENSOR].g,
-		data->buf[UNCAL_LIGHT_SENSOR].b, data->buf[UNCAL_LIGHT_SENSOR].w,
-		data->buf[UNCAL_LIGHT_SENSOR].a_time, data->buf[UNCAL_LIGHT_SENSOR].a_gain);
+		data->buf[UNCAL_LIGHT_SENSOR].light_t.r, data->buf[UNCAL_LIGHT_SENSOR].light_t.g,
+		data->buf[UNCAL_LIGHT_SENSOR].light_t.b, data->buf[UNCAL_LIGHT_SENSOR].light_t.w,
+		data->buf[UNCAL_LIGHT_SENSOR].light_t.a_time, data->buf[UNCAL_LIGHT_SENSOR].light_t.a_gain);
 }
 
 static ssize_t light_coef_show(struct device *dev,
@@ -395,6 +399,11 @@ static ssize_t light_circle_show(struct device *dev,
 			set_decimal_point(&diameter, 2, 4);
 			break;
 	}
+#elif defined(CONFIG_SENSORS_SSP_F62)
+			set_decimal_point(&x, 46, 38);
+			set_decimal_point(&y, 5, 73);
+			set_decimal_point(&diameter, 2, 8);
+			pr_info("[SSP] %s  aptype : %d", __func__,data->ap_type);
 #endif	
 
 	return snprintf(buf, PAGE_SIZE, "%d.%d %d.%d %d.%d\n", x.integer, x.point,

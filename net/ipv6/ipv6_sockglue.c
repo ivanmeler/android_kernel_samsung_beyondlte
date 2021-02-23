@@ -48,10 +48,6 @@
 #include <net/addrconf.h>
 #include <net/inet_common.h>
 #include <net/tcp.h>
-#ifdef CONFIG_MPTCP
-#include <net/mptcp.h>
-#include <net/mptcp_v4.h>
-#endif
 #include <net/udp.h>
 #include <net/udplite.h>
 #include <net/xfrm.h>
@@ -72,8 +68,6 @@ int ip6_ra_control(struct sock *sk, int sel)
 		return -ENOPROTOOPT;
 
 	new_ra = (sel >= 0) ? kmalloc(sizeof(*new_ra), GFP_KERNEL) : NULL;
-	if (sel >= 0 && !new_ra)
-		return -ENOMEM;
 
 	write_lock_bh(&ip6_ra_lock);
 	for (rap = &ip6_ra_chain; (ra = *rap) != NULL; rap = &ra->next) {
@@ -191,8 +185,14 @@ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
 					retv = -EBUSY;
 					break;
 				}
-			} else if (sk->sk_protocol != IPPROTO_TCP)
+			} else if (sk->sk_protocol == IPPROTO_TCP) {
+				if (sk->sk_prot != &tcpv6_prot) {
+					retv = -EBUSY;
+					break;
+				}
+			} else {
 				break;
+			}
 
 			if (sk->sk_state != TCP_ESTABLISHED) {
 				retv = -ENOTCONN;
@@ -222,12 +222,7 @@ static int do_ipv6_setsockopt(struct sock *sk, int level, int optname,
 				sock_prot_inuse_add(net, &tcp_prot, 1);
 				local_bh_enable();
 				sk->sk_prot = &tcp_prot;
-#ifdef CONFIG_MPTCP
-				if (sock_flag(sk, SOCK_MPTCP))
-					icsk->icsk_af_ops = &mptcp_v4_specific;
-				else
-#endif
-					icsk->icsk_af_ops = &ipv4_specific;
+				icsk->icsk_af_ops = &ipv4_specific;
 				sk->sk_socket->ops = &inet_stream_ops;
 				sk->sk_family = PF_INET;
 				tcp_sync_mss(sk, icsk->icsk_pmtu_cookie);

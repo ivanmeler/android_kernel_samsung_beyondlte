@@ -1014,18 +1014,18 @@ static ufs_cal_errno ufs_cal_config_uic(struct ufs_cal_param *p,
 				break;
 			case UNIPRO_ADAPT_LENGTH:
 				if (i == 0) {
-					u32 value;
+				u32 value;
 
-					ufs_lld_dme_get(hba, UIC_ARG_MIB(cfg->addr), &value);
-					if (value & 0x80) {
-						if ((value & 0x7F) < 2)
-							ufs_lld_dme_set(hba, UIC_ARG_MIB(cfg->addr), 0x82);
+				ufs_lld_dme_get(hba, UIC_ARG_MIB(cfg->addr), &value);
+				if (value & 0x80) {
+					if ((value & 0x7F) < 2)
+						ufs_lld_dme_set(hba, UIC_ARG_MIB(cfg->addr), 0x82);
 					} else {
 						if (((value + 1) % 4) != 0) {
-							do {
-								value++;
-							} while (((value + 1) % 4) != 0);
-							ufs_lld_dme_set(hba, UIC_ARG_MIB(cfg->addr), value);
+						do {
+							value++;
+						} while (((value + 1) % 4) != 0);
+						ufs_lld_dme_set(hba, UIC_ARG_MIB(cfg->addr), value);
 						}
 					}
 				}

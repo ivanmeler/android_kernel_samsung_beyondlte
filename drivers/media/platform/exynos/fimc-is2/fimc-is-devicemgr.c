@@ -430,7 +430,10 @@ int fimc_is_devicemgr_shot_callback(struct fimc_is_group *group,
 			       group, frame, frame->index, child_group ? "OTF" : "M2M");
 
 		/* OTF */
-		if (child_group) {
+		/* FIMC_IS_SENSOR_OTF_OUTPUT bit needs to check also.
+ 		 * because this bit can be cleared for not operate child_group_shot at remosaic sensor mode
+ 		 */
+		if (child_group && test_bit(FIMC_IS_SENSOR_OTF_OUTPUT, &group->device->sensor->state)) {
 			child_group->shot_callback(child_group->device, frame);
 		/* M2M */
 		} else {

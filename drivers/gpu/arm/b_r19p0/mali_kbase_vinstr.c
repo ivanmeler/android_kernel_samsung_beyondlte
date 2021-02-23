@@ -28,9 +28,6 @@
 #include "mali_kbase_ioctl.h"
 #include "mali_malisw.h"
 #include "mali_kbase_debug.h"
-//SRUK-START
-#include "mali_kbase.h"
-//SRUK-END
 
 #include <linux/anon_inodes.h>
 #include <linux/fcntl.h>
@@ -41,10 +38,6 @@
 #include <linux/poll.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
-
-//SRUK-START
-#include <mali_kbase_hwaccess_time.h>
-//SRUK-END
 
 /* Hwcnt reader API version */
 #define HWCNT_READER_API 1
@@ -77,9 +70,6 @@ struct kbase_vinstr_context {
 	struct list_head clients;
 	struct hrtimer dump_timer;
 	struct work_struct dump_work;
-//SRUK-START
-	struct kbase_device* kbdev;
-//SRUK-END
 };
 
 /**
@@ -449,9 +439,6 @@ error:
 }
 
 int kbase_vinstr_init(
-//SRUK-START
-	struct kbase_device* kbdev,
-//SRUK-END
 	struct kbase_hwcnt_virtualizer *hvirt,
 	struct kbase_vinstr_context **out_vctx)
 {
@@ -471,9 +458,6 @@ int kbase_vinstr_init(
 
 	vctx->hvirt = hvirt;
 	vctx->metadata = metadata;
-//SRUK-START
-	vctx->kbdev = kbdev;
-//SRUK-END
 
 	mutex_init(&vctx->lock);
 	INIT_LIST_HEAD(&vctx->clients);
@@ -582,13 +566,23 @@ int kbase_vinstr_hwcnt_reader_setup(
 	struct kbase_vinstr_client *vcli = NULL;
 
 	if (!vctx || !setup ||
-			(setup->buffer_count == 0) ||
-			(setup->buffer_count > MAX_BUFFER_COUNT))
+	    (setup->buffer_count == 0) ||
+	    (setup->buffer_count > MAX_BUFFER_COUNT))
 		return -EINVAL;
 
 	errcode = kbasep_vinstr_client_create(vctx, setup, &vcli);
 	if (errcode)
 		goto error;
+
+	errcode = anon_inode_getfd(
+		"[mali_vinstr_desc]",
+		&vinstr_client_fops,
+		vcli,
+		O_RDONLY | O_CLOEXEC);
+	if (errcode < 0)
+		goto error;
+
+	fd = errcode;
 
 	/* Add the new client. No need to reschedule worker, as not periodic */
 	mutex_lock(&vctx->lock);
@@ -598,26 +592,7 @@ int kbase_vinstr_hwcnt_reader_setup(
 
 	mutex_unlock(&vctx->lock);
 
-	/* Expose to user-space */
-	errcode = anon_inode_getfd(
-			"[mali_vinstr_desc]",
-			&vinstr_client_fops,
-			vcli,
-			O_RDONLY | O_CLOEXEC);
-	if (errcode < 0)
-		goto client_installed_error;
-
-	fd = errcode;
-
 	return fd;
-
-client_installed_error:
-	mutex_lock(&vctx->lock);
-
-	vctx->client_count--;
-	list_del(&vcli->node);
-
-	mutex_unlock(&vctx->lock);
 error:
 	kbasep_vinstr_client_destroy(vcli);
 	return errcode;
@@ -854,72 +829,6 @@ static long kbasep_vinstr_hwcnt_reader_ioctl_get_hwver(
 	}
 }
 
-//SRUK-START
-/* The number of nanoseconds in a second. */
-#define NSECS_IN_SEC            1000000000ull /* ns */
-
-static int kbase_vinstr_get_cpu_gpu_time(struct kbase_vinstr_client *cli, void __user *buffer, int size)
-{
-	int	rcode = 0;
-	struct kbase_vinstr_context *vinstr_ctx;
-	u64 cycle_counter = 0;
-	u64 system_time = 0;
-	struct timespec ts;
-	struct kbase_hwcnt_reader_cpu_gpu_time cpuGpuTime;
-
-	int pm_active_err;
-
-	if (!cli)
-		return -EINVAL;
-
-	if (sizeof(struct kbase_hwcnt_reader_cpu_gpu_time) != size) {
-		printk(KERN_ERR "Error: Invalid size=%d %s %d %s \n", size, __func__, __LINE__, __FILE__);
-		return -EINVAL;
-	}
-
-	vinstr_ctx = cli->vctx;
-	mutex_lock(&vinstr_ctx->lock);
-
-	// TODO: KBASE_PM_SUSPEND_HANDLER_DONT_REACTIVATE keeps the GPU alive and is not suitable
-	// KBASE_PM_SUSPEND_HANDLER_DONT_INCREASE is suitable but ARM doesn't support this yet!
-	// The new implementation takes care so that the GPU can be powered off while
-	// the hw counter module is active. We need to make sure the GPU is not off
-	// while requesting this timestamp
-	if(!vinstr_ctx->kbdev->pm.backend.gpu_powered) {
-		// the gpu is not on!
-		cpuGpuTime.gpu_time_tick = 0;
-		cpuGpuTime.cpu_timestamp = 0;
-		printk(KERN_ERR "Error: GPU is off! %s %d %s \n", __func__, __LINE__, __FILE__);
-	} else {
-		// The gpu is powered but may not be active so we need to activate it!
-		pm_active_err = kbase_pm_context_active_handle_suspend(vinstr_ctx->kbdev, KBASE_PM_SUSPEND_HANDLER_DONT_REACTIVATE);
-		if (pm_active_err) {
-			// the gpu can't be activated
-			cpuGpuTime.gpu_time_tick = 0;
-			cpuGpuTime.cpu_timestamp = 0;
-			printk(KERN_ERR "Error: GPU can't be activated ! %s %d %s \n", __func__, __LINE__, __FILE__);
-			
-		} else {
-			kbase_backend_get_gpu_time(vinstr_ctx->kbdev, &cycle_counter, &system_time, &ts);
-			cpuGpuTime.gpu_time_tick = system_time;
-			cpuGpuTime.cpu_timestamp = (u64)(ts.tv_sec) * NSECS_IN_SEC + ts.tv_nsec;
-			kbase_pm_context_idle(vinstr_ctx->kbdev); // remove the ref count and let the GPU go off if needed
-		}
-	}
-
-	printk(KERN_INFO "Info: cpuGpuTime.gpu_time_tick = %llu cpuGpuTime.cpu_timestamp=%llu %s %d %s \n",
-		cpuGpuTime.gpu_time_tick, cpuGpuTime.cpu_timestamp,  __func__, __LINE__, __FILE__);
-
-	/* Copy timestamps to user. */
-	if (copy_to_user(buffer, &cpuGpuTime, size)) {
-		rcode = -EFAULT;
-	}
-	mutex_unlock(&vinstr_ctx->lock);
-
-	return rcode;
-}
-//SRUK-END
-
 /**
  * kbasep_vinstr_hwcnt_reader_ioctl() - hwcnt reader's ioctl.
  * @filp:   Non-NULL pointer to file structure.
@@ -982,12 +891,6 @@ static long kbasep_vinstr_hwcnt_reader_ioctl(
 		rcode = kbasep_vinstr_hwcnt_reader_ioctl_disable_event(
 			cli, (enum base_hwcnt_reader_event)arg);
 		break;
-//SRUK-START
-	case KBASE_HWCNT_READER_GET_CPU_GPU_TIME:
-		rcode = kbase_vinstr_get_cpu_gpu_time(
-			cli, (void __user *)arg, _IOC_SIZE(cmd));
-		break;
-//SRUK-END
 	default:
 		WARN_ON(true);
 		rcode = -EINVAL;

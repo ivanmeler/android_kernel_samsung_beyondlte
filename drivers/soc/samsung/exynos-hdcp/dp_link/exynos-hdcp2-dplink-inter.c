@@ -36,7 +36,6 @@ int hdcp_dplink_auth_check(enum auth_signal hdcp_signal)
 #if defined(CONFIG_HDCP2_FUNC_TEST_MODE)
 	ret = exynos_smc(SMC_DRM_HDCP_FUNC_TEST, 1, 0, 0);
 #endif
-	hdcp_info("hdcp auth check (%x)\n", hdcp_signal);
 	switch (hdcp_signal) {
 		case HDCP_DRM_OFF:
 			ret = 0;
@@ -59,7 +58,6 @@ int hdcp_dplink_auth_check(enum auth_signal hdcp_signal)
 			ret = HDCP_ERROR_INVALID_STATE;
 
 	}
-	hdcp_info("hdcp auth check done.\n");
 	return ret;
 }
 

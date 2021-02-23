@@ -571,7 +571,7 @@ void typec_unregister_partner(struct typec_partner *partner)
 	if (partner) {
 		pr_info("%s\n", __func__);
 		device_unregister(&partner->dev);
-#if defined(CONFIG_USB_NOTIFY_LAYER)	
+#if defined(CONFIG_USB_NOTIFY_LAYER)
 		if (o_notify)
 			send_otg_notify(o_notify, NOTIFY_EVENT_PD_CONTRACT, 0);
 #endif
@@ -1004,7 +1004,7 @@ port_type_store(struct device *dev, struct device_attribute *attr,
 	type = ret;
 	mutex_lock(&port->port_type_lock);
 //temp
-#if 0 
+#if 0
 	if (port->port_type == type) {
 		ret = size;
 		goto unlock_and_ret;

@@ -25,6 +25,17 @@
 
 #define FIMC_IS_READ_MAX_EEP_CAL_SIZE	(32 * 1024)
 
+#define I2C_WRITE 3
+#define I2C_BYTE  2
+#define I2C_DATA  1
+#define I2C_ADDR  0
+
+enum i2c_write {
+	I2C_WRITE_ADDR8_DATA8 = 0x0,
+	I2C_WRITE_ADDR16_DATA8,
+	I2C_WRITE_ADDR16_DATA16
+};
+
 bool force_caldata_dump = false;
 
 static int cam_id = CAMERA_SINGLE_REAR;
@@ -136,7 +147,7 @@ bool fimc_is_sec_fw_module_compare_for_dump(char *fw_ver1, char *fw_ver2)
 	return true;
 }
 
-int fimc_is_sec_compare_ver(int rom_id)
+int fimc_is_sec_compare_ver(int rom_id, int rom_type)
 {
 	struct fimc_is_rom_info *finfo = NULL;
 
@@ -147,6 +158,8 @@ int fimc_is_sec_compare_ver(int rom_id)
 		&& finfo->cal_map_ver[2] >= '0' && finfo->cal_map_ver[2] <= '9'
 		&& finfo->cal_map_ver[3] >= '0' && finfo->cal_map_ver[3] <= '9') {
 		return ((finfo->cal_map_ver[2] - '0') * 10) + (finfo->cal_map_ver[3] - '0');
+	} else if (rom_type == ROM_TYPE_OTPROM) {
+		return ((finfo->cal_map_ver[1] - '0') * 100) + ((finfo->cal_map_ver[2] - '0') * 10) + (finfo->cal_map_ver[3] - '0');
 	} else {
 		err("ROM core version is invalid. version is %c%c%c%c",
 			finfo->cal_map_ver[0], finfo->cal_map_ver[1], finfo->cal_map_ver[2], finfo->cal_map_ver[3]);
@@ -160,6 +173,8 @@ bool fimc_is_sec_check_rom_ver(struct fimc_is_core *core, int rom_id)
 	char compare_version;
 	int rom_ver;
 	int latest_rom_ver;
+	struct fimc_is_vender_specific *specific = core->vender.private_data;
+	int rom_type;
 
 	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);
 
@@ -176,7 +191,8 @@ bool fimc_is_sec_check_rom_ver(struct fimc_is_core *core, int rom_id)
 	latest_rom_ver = finfo->cal_map_es_version;
 	compare_version = finfo->camera_module_es_version;
 
-	rom_ver = fimc_is_sec_compare_ver(rom_id);
+	rom_type = specific->rom_type[rom_id];
+	rom_ver = fimc_is_sec_compare_ver(rom_id, rom_type);
 
 	if ((rom_ver < latest_rom_ver) ||
 		(finfo->header_ver[10] < compare_version)) {
@@ -198,12 +214,8 @@ bool fimc_is_sec_check_cal_crc32(char *buf, int rom_id)
 	u32 address_boundary;
 	bool crc32_temp, crc32_header_temp, crc32_dual_temp;
 	struct fimc_is_rom_info *finfo = NULL;
-	struct fimc_is_core *core;
-	struct fimc_is_vender_specific *specific;
  	int i;
 
-	core = (struct fimc_is_core *)dev_get_drvdata(fimc_is_dev);
-	specific = core->vender.private_data;
 	buf32 = (u32 *)buf;
 
 	info("+++ %s\n", __func__);
@@ -306,6 +318,66 @@ out:
 
 	return crc32_temp && crc32_header_temp;
 }
+
+#ifdef CAMERA_REAR3_OTP_GC5035
+bool fimc_is_sec_check_otp_crc32(char *buf, int rom_id) {
+	u32 *buf32 = NULL;
+	u32 checksum;
+	u32 checksumFromOTP;
+	bool crc32_check_temp, crc32_header_temp;
+
+	int32_t otp_header_start_addr;
+	int32_t otp_header_checksum_addr;
+	int32_t otp_header_checksum_len;
+	struct fimc_is_rom_info *finfo = NULL;
+	int i;
+
+	buf32 = (u32 *)buf;
+
+	info("+++ %s\n", __func__);
+
+	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);
+	finfo->crc_error = 0; /* clear all bits */
+
+	crc32_check_temp = true;
+	crc32_header_temp = true;
+
+	if (test_bit(FIMC_IS_ROM_STATE_SKIP_CRC_CHECK, &finfo->rom_state)) {
+		info("%s : skip crc check. return\n", __func__);
+		return true;
+	}
+
+	/* header crc check */
+	for (i = 0; i < finfo->header_crc_check_list_len; i += 3) {
+		otp_header_start_addr = finfo->header_crc_check_list[i];
+		otp_header_checksum_addr = finfo->header_crc_check_list[i + 2];
+		otp_header_checksum_len = finfo->header_crc_check_list[i + 1] - finfo->header_crc_check_list[i] + 1;
+
+		checksumFromOTP = buf[otp_header_checksum_addr] + (buf[otp_header_checksum_addr+1] << 8)
+						+ (buf[otp_header_checksum_addr+2] << 16) + (buf[otp_header_checksum_addr+3] << 24);
+		checksum = (u32)getCRC((u16 *)&buf32[otp_header_start_addr], otp_header_checksum_len, NULL, NULL);
+		if(checksum != checksumFromOTP) {
+			crc32_check_temp = crc32_header_temp = false;
+			err("Camera: CRC32 error at the header data section (0x%08X != 0x%08X)",
+					checksum, checksumFromOTP);
+			goto out;
+		} else {
+			crc32_check_temp = crc32_header_temp = true;
+			dbg("Camera: End checking CRC32 (0x%08X = 0x%08X)", checksum, checksumFromOTP);
+		}
+	}
+
+out:
+	if (!crc32_check_temp)
+		set_bit(FIMC_IS_CRC_ERROR_ALL_SECTION, &finfo->crc_error);
+	if (!crc32_header_temp)
+		set_bit(FIMC_IS_CRC_ERROR_HEADER, &finfo->crc_error);
+
+	info("[rom_id:%d] crc32_check %d crc32_header %d \n", rom_id, crc32_check_temp, crc32_header_temp);
+
+	return crc32_check_temp && crc32_header_temp;
+}
+#endif
 
 #if defined(CONFIG_CAMERA_FROM) && defined(CAMERA_MODULE_DUALIZE)
 bool fimc_is_sec_check_fw_crc32(char *buf, u32 checksum_seed, unsigned long size)
@@ -855,6 +927,40 @@ int fimc_is_i2c_write(struct i2c_client *client, u16 addr, u8 data)
 	return 0;
 }
 
+int fimc_is_sec_set_registers(struct i2c_client *client, const u32 *regs, const u32 size)
+{
+	int ret = 0;
+	int i = 0;
+
+	FIMC_BUG(!regs);
+
+	for (i = 0; i < size; i += I2C_WRITE) {
+		if (regs[i + I2C_BYTE] == I2C_WRITE_ADDR8_DATA8) {
+			ret = fimc_is_sensor_addr8_write8(client, regs[i + I2C_ADDR], regs[i + I2C_DATA]);
+			if (ret < 0) {
+				err("fimc_is_sensor_addr8_write8 fail, ret(%d), addr(%#x), data(%#x)",
+					ret, regs[i + I2C_ADDR], regs[i + I2C_DATA]);
+				break;
+			}
+		} else if (regs[i + I2C_BYTE] == I2C_WRITE_ADDR16_DATA8) {
+			ret = fimc_is_sensor_write8(client, regs[i + I2C_ADDR], regs[i + I2C_DATA]);
+			if (ret < 0) {
+				err("fimc_is_sensor_write8 fail, ret(%d), addr(%#x), data(%#x)",
+					ret, regs[i + I2C_ADDR], regs[i + I2C_DATA]);
+				break;
+			}
+		} else if (regs[i + I2C_BYTE] == I2C_WRITE_ADDR16_DATA16) {
+			ret = fimc_is_sensor_write16(client, regs[i + I2C_ADDR], regs[i + I2C_DATA]);
+			if (ret < 0) {
+				err("fimc_is_sensor_write16 fail, ret(%d), addr(%#x), data(%#x)",
+					ret, regs[i + I2C_ADDR], regs[i + I2C_DATA]);
+				break;
+			}
+		}
+	}
+	return ret;
+}
+
 int fimc_is_sec_check_reload(struct fimc_is_core *core)
 {
 	struct file *reload_key_fp = NULL;
@@ -1014,7 +1120,6 @@ int fimc_is_sec_parse_rom_info(struct fimc_is_rom_info *finfo, char *buf, int ro
 	}
 #endif
 
-#if 1
 	/* debug info dump */
 	info("++++ ROM data info - rom_id:%d\n", rom_id);
 	info("1. Header info\n");
@@ -1038,7 +1143,7 @@ int fimc_is_sec_parse_rom_info(struct fimc_is_rom_info *finfo, char *buf, int ro
 		finfo->rom_module_id[6], finfo->rom_module_id[7], finfo->rom_module_id[8],
 		finfo->rom_module_id[9]);
 	info("---- ROM data info\n");
-#endif
+
 	return 0;
 }
 
@@ -1103,9 +1208,6 @@ int fimc_is_sec_readcal_eeprom(struct device *dev, int rom_id)
 	int cal_size = 0;
 	u32 read_addr = 0x0;
 	struct i2c_client *client = NULL;
-#ifdef DEBUG_FORCE_DUMP_ENABLE
-	loff_t pos = 0;
-#endif
 	struct fimc_is_device_eeprom *eeprom;
 
 	info("Camera: read cal data from EEPROM (rom_id:%d)\n", rom_id);
@@ -1113,11 +1215,8 @@ int fimc_is_sec_readcal_eeprom(struct device *dev, int rom_id)
 	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);
 	fimc_is_sec_get_cal_buf(&buf, rom_id);
 	client = specific->eeprom_client[rom_id];
-
 	eeprom = i2c_get_clientdata(client);
-
 	cal_size = finfo->rom_size;
-	info("%s: rom_id : %d, cal_size :%d\n", __func__, rom_id, cal_size);
 
 	if (finfo->rom_header_cal_map_ver_start_addr != -1) {
 		ret = fimc_is_i2c_read(client, finfo->cal_map_ver,
@@ -1241,7 +1340,7 @@ exit:
 }
 
 #if defined(CONFIG_CAMERA_OTPROM_SUPPORT_REAR) || defined(CONFIG_CAMERA_OTPROM_SUPPORT_FRONT)
-int fimc_is_sec_readcal_otprom(struct device *dev, int rom_id)
+int fimc_is_sec_readcal_otprom_legacy(struct device *dev, int rom_id)
 {
 	int ret = 0;
 	char *buf = NULL;
@@ -2745,7 +2844,7 @@ read_phone_fw_exit:
 		info("from_fw_revision = %d, phone_fw_revision = %d, dump_fw_revision = %d\n",
 			from_fw_revision, phone_fw_revision, dump_fw_revision);
 
-		if (fimc_is_sec_compare_ver(ROM_ID_REAR) >= 0 /* Check if a module is connected or not */
+		if (fimc_is_sec_compare_ver(ROM_ID_REAR, ROM_TYPE_EEPROM) >= 0 /* Check if a module is connected or not */
 			&& (!fimc_is_sec_fw_module_compare_for_dump(finfo->header_ver, phone_fw_version) ||
 				(from_fw_revision > phone_fw_revision))) {
 			is_dumped_fw_loading_needed = true;
@@ -2907,10 +3006,10 @@ int fimc_is_sec_sensorid_find(struct fimc_is_core *core)
 	snprintf(finfo->load_fw_name, sizeof(FIMC_IS_DDK), "%s", FIMC_IS_DDK);
 
 	if (fimc_is_sec_fw_module_compare(finfo->header_ver, FW_2L4_L)) {
-		specific->rear_sensor_id = SENSOR_NAME_SAK2L4;
+		specific->sensor_id[SENSOR_POSITION_REAR] = SENSOR_NAME_SAK2L4;
 	}
 
-	info("%s sensor id %d\n", __func__, specific->rear_sensor_id);
+	info("%s sensor id %d\n", __func__, specific->sensor_id[SENSOR_POSITION_REAR]);
 
 	return 0;
 }
@@ -2923,10 +3022,10 @@ int fimc_is_sec_sensorid_find_front(struct fimc_is_core *core)
 	fimc_is_sec_get_sysfs_finfo(&finfo, ROM_ID_FRONT);
 
 	if (fimc_is_sec_fw_module_compare(finfo->header_ver, FW_3J1_X)) {
-		specific->front_sensor_id = SENSOR_NAME_S5K3J1;
+		specific->sensor_id[SENSOR_POSITION_FRONT] = SENSOR_NAME_S5K3J1;
 	}
 
-	info("%s sensor id %d\n", __func__, specific->front_sensor_id);
+	info("%s sensor id %d\n", __func__, specific->sensor_id[SENSOR_POSITION_FRONT]);
 
 	return 0;
 }
@@ -3044,7 +3143,7 @@ int fimc_is_get_dual_cal_buf(int slave_position, char **buf, int *size)
 	} else if (rom_dualcal_index == ROM_DUALCAL_SLAVE1) {
 		rom_dual_cal_start_addr = finfo->rom_dualcal_slave1_start_addr;
 		rom_dual_cal_size = finfo->rom_dualcal_slave1_size;
-		rom_dual_flag_dummy_addr = ROM_REAR3_FLAG_DUMMY_ADDR;
+		//rom_dual_flag_dummy_addr = ROM_REAR3_FLAG_DUMMY_ADDR;
 	} else {
 		err("[index:%d] not supported index.", rom_dualcal_index);
 		return -EINVAL;
@@ -3062,11 +3161,300 @@ int fimc_is_get_dual_cal_buf(int slave_position, char **buf, int *size)
 	return 0;
 }
 
+#if defined(CAMERA_REAR3_OTP_GC5035)
+int fimc_is_sec_readcal_otprom_header(char * buf, int position)
+{
+	int ret = 0;
+	struct fimc_is_core *core = dev_get_drvdata(fimc_is_dev);
+	struct fimc_is_vender_specific *specific = core->vender.private_data;
+	struct fimc_is_rom_info *finfo = NULL;
+	int rom_id = position;
+
+	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);	/* Replace rom_addr with finfo */
+
+	info("%s E (rom_id:%d)\n",__func__, rom_id);
+	
+	/* HEARDER Data : Module/Manufacturer Information */
+	memcpy(finfo->header_ver, &buf[finfo->rom_header_cal_data_start_addr], FIMC_IS_HEADER_VER_SIZE);
+	finfo->header_ver[FIMC_IS_HEADER_VER_SIZE] = '\0';
+	/* HEARDER Data : Cal Map Version */
+	memcpy(finfo->cal_map_ver, &buf[finfo->rom_header_cal_map_ver_start_addr], FIMC_IS_CAL_MAP_VER_SIZE);
+
+	if (finfo->rom_header_module_id_addr > 0) {
+		memcpy(finfo->rom_module_id, &buf[finfo->rom_header_module_id_addr], FIMC_IS_MODULE_ID_SIZE);
+		finfo->rom_module_id[FIMC_IS_MODULE_ID_SIZE] = '\0';
+	}
+
+	if (finfo->rom_header_sensor_id_addr > 0) {
+		memcpy(finfo->rom_sensor_id, &buf[finfo->rom_header_sensor_id_addr], FIMC_IS_SENSOR_ID_SIZE);
+		finfo->rom_sensor_id[FIMC_IS_SENSOR_ID_SIZE] = '\0';
+	}
+
+	if (finfo->rom_header_project_name_start_addr > 0) {
+		memcpy(finfo->project_name, &buf[finfo->rom_header_project_name_start_addr], FIMC_IS_PROJECT_NAME_SIZE);
+		finfo->project_name[FIMC_IS_PROJECT_NAME_SIZE] = '\0';
+	}
+
+	if(finfo->cal_map_ver[0] != 'V') {
+		info("Camera: Cal Map version read fail or there's no available data.\n");
+		ret = -EINVAL;
+		goto exit;
+	}
+
+	info("Camera[%d]: OTPROM Cal map_version = %c%c%c%c\n", rom_id,
+		finfo->cal_map_ver[0], finfo->cal_map_ver[1], finfo->cal_map_ver[2], finfo->cal_map_ver[3]);
+
+	/* debug info dump */
+
+	info("++++ OTPROM data info\n");
+	info(" Header info\n");
+	info(" Module info : %s\n", finfo->header_ver);
+	info(" ID : %c\n", finfo->header_ver[FW_CORE_VER]);
+	info(" Pixel num : %c%c\n", finfo->header_ver[FW_PIXEL_SIZE], finfo->header_ver[FW_PIXEL_SIZE+1]);
+	info(" ISP ID : %c\n", finfo->header_ver[FW_ISP_COMPANY]);
+	info(" Sensor Maker : %c\n", finfo->header_ver[FW_SENSOR_MAKER]);
+	info(" Year : %c\n", finfo->header_ver[FW_PUB_YEAR]);
+	info(" Month : %c\n", finfo->header_ver[FW_PUB_MON]);
+	info(" Release num : %c%c\n", finfo->header_ver[FW_PUB_NUM], finfo->header_ver[FW_PUB_NUM+1]);
+	info(" Manufacturer ID : %c\n", finfo->header_ver[FW_MODULE_COMPANY]);
+	info(" Module ver : %c\n", finfo->header_ver[FW_VERSION_INFO]);
+	info(" Module ID : %c%c%c%c%c%X%X%X%X%X\n",
+			finfo->rom_module_id[0], finfo->rom_module_id[1], finfo->rom_module_id[2],
+			finfo->rom_module_id[3], finfo->rom_module_id[4], finfo->rom_module_id[5],
+			finfo->rom_module_id[6], finfo->rom_module_id[7], finfo->rom_module_id[8],
+			finfo->rom_module_id[9]);
+	info("---- OTPROM data info\n");
+
+	if (specific->use_module_check) {
+		if (finfo->header_ver[10] >= finfo->camera_module_es_version) {
+			set_bit(FIMC_IS_ROM_STATE_LATEST_MODULE, &finfo->rom_state);
+		} else {
+			clear_bit(FIMC_IS_ROM_STATE_LATEST_MODULE, &finfo->rom_state);
+		}
+
+		if (finfo->header_ver[10] == FIMC_IS_LATEST_ROM_VERSION_M) {
+			set_bit(FIMC_IS_ROM_STATE_FINAL_MODULE, &finfo->rom_state);
+		} else {
+			clear_bit(FIMC_IS_ROM_STATE_FINAL_MODULE, &finfo->rom_state);
+		}
+	} else {
+		set_bit(FIMC_IS_ROM_STATE_LATEST_MODULE, &finfo->rom_state);
+		set_bit(FIMC_IS_ROM_STATE_FINAL_MODULE, &finfo->rom_state);
+	}
+
+exit:
+	return ret;
+}
+
+int fimc_is_i2c_read_otp_gc5035(struct i2c_client *client, char *buf, u16 start_addr, size_t size)
+{
+	u16 curr_addr = start_addr;
+	u8 start_addr_h = 0;
+	u8 start_addr_l = 0;
+	u8 busy_flag = 0;
+	int retry = 8;
+	int ret = 0;
+	int index;
+
+	for (index = 0; index < size; index++)
+	{
+		start_addr_h = ((curr_addr>>8) & 0x1F);
+		start_addr_l = (curr_addr & 0xFF);
+		fimc_is_sensor_write8(client, GC5035_OTP_PAGE_ADDR, GC5035_OTP_PAGE);
+		fimc_is_sensor_addr8_write8(client, GC5035_OTP_ACCESS_ADDR_HIGH, start_addr_h);
+		fimc_is_sensor_addr8_write8(client, GC5035_OTP_ACCESS_ADDR_LOW, start_addr_l);
+		fimc_is_sensor_addr8_write8(client, GC5035_OTP_MODE_ADDR, 0x20);
+		fimc_is_sensor_addr8_read8(client, GC5035_OTP_BUSY_ADDR, &busy_flag); 
+		while ((busy_flag & 0x2) > 0 && retry > 0) {
+			fimc_is_sensor_addr8_read8(client, GC5035_OTP_BUSY_ADDR, &busy_flag); 
+			retry--;
+			msleep(1);
+		}
+
+		if ((busy_flag & 0x1))
+		{
+			err("Sensor OTP_check_flag failed\n");
+			goto exit;
+		}
+
+		ret = fimc_is_sensor_addr8_read8(client, GC5035_OTP_READ_ADDR, &buf[index]);
+		if (unlikely(ret))
+		{
+			err("failed to fimc_is_sensor_addr8_read8 (%d)\n", ret);
+			goto exit;
+		}
+		curr_addr += 8;
+	}
+
+exit:
+	return ret;
+}
+
+int fimc_is_sec_readcal_otprom_gc5035(struct device *dev, int rom_id)
+{
+	int ret = 0;
+	int retry = FIMC_IS_CAL_RETRY_CNT;
+	char *buf = NULL;
+	u8 otp_bank = 0;
+	u16 start_addr = 0;
+	u8 busy_flag = 0;
+	bool camera_running;
+
+	struct fimc_is_core *core = dev_get_drvdata(fimc_is_dev);
+	struct fimc_is_vender_specific *specific = core->vender.private_data;
+	struct fimc_is_rom_info *finfo = NULL;
+	struct i2c_client *client = NULL;
+
+	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);
+	fimc_is_sec_get_cal_buf(&buf, rom_id);
+	client = specific->eeprom_client[rom_id];
+
+	camera_running = fimc_is_vendor_check_camera_running(finfo->rom_power_position);
+	if (camera_running == false) {
+		ret = fimc_is_sec_set_registers(client, sensor_global_gc5035, sensor_global_gc5035_size);
+		if (unlikely(ret)) {
+			err("failed to fimc_is_sec_set_registers (%d)\n", ret);
+			ret = -EINVAL;
+		}
+	}
+	fimc_is_sec_set_registers(client, sensor_mode_read_initial_setting_gc5035, sensor_mode_read_initial_setting_gc5035_size);
+
+	/* Read OTP page */
+	fimc_is_sensor_write8(client, GC5035_OTP_PAGE_ADDR, GC5035_OTP_PAGE);
+	fimc_is_sensor_write8(client, GC5035_OTP_ACCESS_ADDR_HIGH, ((GC5035_BANK_SELECT_ADDR>>8) & 0x1F));
+	fimc_is_sensor_write8(client, GC5035_OTP_ACCESS_ADDR_LOW, (GC5035_BANK_SELECT_ADDR & 0xFF));
+	fimc_is_sensor_addr8_write8(client, GC5035_OTP_MODE_ADDR, 0x20);
+
+	fimc_is_sensor_addr8_read8(client, GC5035_OTP_BUSY_ADDR, &busy_flag); 
+	while ((busy_flag & 0x2) > 0 && retry > 0) {
+		fimc_is_sensor_addr8_read8(client, GC5035_OTP_BUSY_ADDR, &busy_flag); 
+		retry--;
+		msleep(1);
+	}
+
+	if ((busy_flag & 0x1))
+	{
+		err("Sensor OTP_check_flag failed\n");
+		goto exit;
+	}
+
+	fimc_is_sensor_read8(client, GC5035_OTP_READ_ADDR, &otp_bank);
+
+	/* select start address */
+	switch(otp_bank) {
+	case 0x01 :
+		start_addr = GC5035_OTP_START_ADDR_BANK1;
+		break;
+	case 0x03 :
+		start_addr = GC5035_OTP_START_ADDR_BANK2;
+		break;
+	case 0x07 :
+		start_addr = GC5035_OTP_START_ADDR_BANK3;
+		break;
+	case 0x0F :
+		start_addr = GC5035_OTP_START_ADDR_BANK4;
+		break;
+	default :
+		start_addr = GC5035_OTP_START_ADDR_BANK1;
+		break;
+	}
+
+	info("%s: otp_bank = %d otp_start_addr = %x\n", __func__, otp_bank, start_addr);
+	if (unlikely(ret)) {
+		err("failed to fimc_is_sec_set_registers (%d)\n", ret);
+		ret = -EINVAL;
+		goto exit;
+	}
+
+crc_retry:
+	/* read cal data */
+	info("I2C read cal data\n");
+	fimc_is_i2c_read_otp_gc5035(client, buf, start_addr, GC5035_OTP_USED_CAL_SIZE);
+
+	ret = fimc_is_sec_readcal_otprom_header(buf, rom_id);
+	if (unlikely(ret)) {
+		if(retry >= 0) {
+			retry--;
+			goto crc_retry;
+		}
+	}
+
+#ifdef DEBUG_FORCE_DUMP_ENABLE
+	{
+		char file_path[100];
+
+		loff_t pos = 0;
+
+		memset(file_path, 0x00, sizeof(file_path));
+		snprintf(file_path, sizeof(file_path), "%srom%d_dump.bin", FIMC_IS_FW_DUMP_PATH, rom_id);
+
+		if (write_data_to_file(file_path, buf, finfo->rom_size, &pos) < 0) {
+			info("Failed to dump cal data. rom_id:%d\n", rom_id);
+		}
+	}
+#endif
+
+	/* CRC check */
+	if (!fimc_is_sec_check_otp_crc32(buf, rom_id) && (retry > 0)) {
+		err("OTP CRC failed (retry:%d)", retry);
+		retry--;
+		goto crc_retry;
+	}
+exit:
+	return ret;
+}
+#endif
+
+int fimc_is_sec_readcal_otprom(struct device *dev, int rom_id)
+{
+	int ret = 0;
+	bool is_ldo_enabled;
+	struct fimc_is_core *core = (struct fimc_is_core *)dev_get_drvdata(fimc_is_dev);
+	struct fimc_is_vender_specific *specific = core->vender.private_data;
+	struct fimc_is_rom_info *finfo = NULL;
+	struct fimc_is_rom_info *pinfo = NULL;
+	bool camera_running;
+
+	fimc_is_sec_get_sysfs_pinfo(&pinfo, rom_id);
+	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);
+
+	is_ldo_enabled = false;
+
+	/* Use mutex for i2c read */
+	mutex_lock(&specific->rom_lock);
+	if (!test_bit(FIMC_IS_ROM_STATE_CAL_READ_DONE, &finfo->rom_state) || force_caldata_dump) {
+		if (force_caldata_dump)
+			info("forced caldata dump!!\n");
+
+		fimc_is_sec_rom_power_on(core, finfo->rom_power_position);
+		is_ldo_enabled = true;
+
+		info("Camera: read cal data from OTPROM (ROM ID:%d)\n", rom_id);
+#if defined(CAMERA_REAR3_OTP_GC5035)
+		if (!fimc_is_sec_readcal_otprom_gc5035(dev, rom_id)) {
+			set_bit(FIMC_IS_ROM_STATE_CAL_READ_DONE, &finfo->rom_state);
+		}
+#else
+		if (!fimc_is_sec_readcal_otprom_legacy(dev, rom_id)) {
+			set_bit(FIMC_IS_ROM_STATE_CAL_READ_DONE, &finfo->rom_state);
+		}
+#endif
+	}
+
+	camera_running = fimc_is_vendor_check_camera_running(finfo->rom_power_position);
+	if (is_ldo_enabled && !camera_running)
+		fimc_is_sec_rom_power_off(core, finfo->rom_power_position);
+
+	mutex_unlock(&specific->rom_lock);
+
+	return ret;
+}
+
 int fimc_is_sec_fw_find(struct fimc_is_core *core)
 {
 	struct fimc_is_vender_specific *specific = core->vender.private_data;
-	int front_id = specific->front_sensor_id;
-	int rear_id = specific->rear_sensor_id;
+	int front_id = specific->sensor_id[SENSOR_POSITION_FRONT];
+	int rear_id = specific->sensor_id[SENSOR_POSITION_REAR];
 	struct fimc_is_rom_info *finfo = NULL;
 	struct fimc_is_rom_info *finfo_front = NULL;
 
@@ -3084,6 +3472,9 @@ int fimc_is_sec_fw_find(struct fimc_is_core *core)
 #endif
 		snprintf(finfo->load_rta_fw_name, sizeof(FIMC_IS_RTA), "%s", FIMC_IS_RTA);
 		break;
+	case SENSOR_NAME_IMX682:
+		snprintf(finfo->load_setfile_name, sizeof(FIMC_IS_IMX682_SETF), "%s", FIMC_IS_IMX682_SETF);
+		snprintf(finfo->load_rta_fw_name, sizeof(FIMC_IS_RTA), "%s", FIMC_IS_RTA);
 	default:
 		snprintf(finfo->load_setfile_name, sizeof(FIMC_IS_2L4_SETF), "%s", FIMC_IS_2L4_SETF);
 		snprintf(finfo->load_rta_fw_name, sizeof(FIMC_IS_RTA), "%s", FIMC_IS_RTA);
@@ -3096,6 +3487,9 @@ int fimc_is_sec_fw_find(struct fimc_is_core *core)
 		break;
 	case SENSOR_NAME_S5K4HA:
 		snprintf(finfo_front->load_front_setfile_name, sizeof(FIMC_IS_4HA_SETF), "%s", FIMC_IS_4HA_SETF);
+		break;
+	case SENSOR_NAME_IMX616:
+		snprintf(finfo_front->load_front_setfile_name, sizeof(FIMC_IS_IMX616_SETF), "%s", FIMC_IS_IMX616_SETF);
 		break;
 	default:
 		snprintf(finfo_front->load_front_setfile_name, sizeof(FIMC_IS_3J1_SETF), "%s", FIMC_IS_3J1_SETF);
@@ -3120,8 +3514,10 @@ int fimc_is_sec_run_fw_sel(struct device *dev, int rom_id)
 	struct fimc_is_vender_specific *specific = core->vender.private_data;
 	struct fimc_is_rom_info *finfo = NULL;
 	struct fimc_is_rom_info *finfo_rear = NULL;
+	int rom_type = ROM_TYPE_NONE;
 
 	fimc_is_sec_get_sysfs_finfo(&finfo, rom_id);
+	rom_type = specific->rom_type[rom_id];
 
 	/* FIMC_IS_FW_DUMP_PATH folder cannot access until User unlock handset */
 	if (!test_bit(FIMC_IS_ROM_STATE_CAL_RELOAD, &finfo->rom_state)) {
@@ -3159,11 +3555,16 @@ int fimc_is_sec_run_fw_sel(struct device *dev, int rom_id)
 #if defined(CONFIG_CAMERA_FROM)
 		ret = fimc_is_sec_fw_sel(core, dev, false);
 #else
-		ret = fimc_is_sec_fw_sel_eeprom(dev, rom_id, false);
+		if (rom_type == ROM_TYPE_EEPROM)
+			ret = fimc_is_sec_fw_sel_eeprom(dev, rom_id, false);
+		else
+			ret = fimc_is_sec_readcal_otprom(dev, rom_id);
 #endif
 	}
 
-	if (specific->check_sensor_vendor) {
+	if (rom_type == ROM_TYPE_OTPROM) {
+		dbg("Do not check module_state for OTPROM");
+	} else if (specific->check_sensor_vendor) {
 		if (fimc_is_sec_check_rom_ver(core, rom_id)) {
 			fimc_is_sec_check_module_state(finfo);
 
@@ -3202,7 +3603,6 @@ int fimc_is_sec_fw_sel_eeprom(struct device *dev, int rom_id, bool headerOnly)
 
 	/* Use mutex for i2c read */
 	mutex_lock(&specific->rom_lock);
-
 	if (!test_bit(FIMC_IS_ROM_STATE_CAL_READ_DONE, &finfo->rom_state) || force_caldata_dump) {
 		if (rom_id == ROM_ID_REAR)
 			is_dumped_fw_loading_needed = false;
@@ -3213,7 +3613,6 @@ int fimc_is_sec_fw_sel_eeprom(struct device *dev, int rom_id, bool headerOnly)
 		fimc_is_sec_rom_power_on(core, finfo->rom_power_position);
 		is_ldo_enabled = true;
 
-		info("Camera: read cal data from EEPROM (ROM ID:%d)\n", rom_id);
 		if (rom_id == ROM_ID_REAR && headerOnly) {
 			fimc_is_sec_read_eeprom_header(dev, rom_id);
 		} else {
@@ -3322,7 +3721,6 @@ int fimc_is_sec_fw_sel(struct fimc_is_core *core, struct device *dev, bool heade
 		err("core->pdata is null\n");
 		return -EINVAL;
 	}
-
 	/* Use mutex for spi read */
 	mutex_lock(&specific->rom_lock);
 	if (!test_bit(FIMC_IS_ROM_STATE_CAL_READ_DONE, &finfo->rom_state) || force_caldata_dump) {

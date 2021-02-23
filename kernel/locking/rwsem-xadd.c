@@ -18,7 +18,6 @@
 #include <linux/sched/wake_q.h>
 #include <linux/sched/debug.h>
 #include <linux/osq_lock.h>
-#include <linux/sec_debug.h>
 
 #include "rwsem.h"
 
@@ -131,6 +130,7 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
 {
 	struct rwsem_waiter *waiter, *tmp;
 	long oldcount, woken = 0, adjustment = 0;
+	struct list_head wlist;
 
 	/*
 	 * Take a peek at the queue head waiter such that we can determine
@@ -189,18 +189,42 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
 	 * of the queue. We know that woken will be at least 1 as we accounted
 	 * for above. Note we increment the 'active part' of the count by the
 	 * number of readers before waking any processes up.
+	 *
+	 * We have to do wakeup in 2 passes to prevent the possibility that
+	 * the reader count may be decremented before it is incremented. It
+	 * is because the to-be-woken waiter may not have slept yet. So it
+	 * may see waiter->task got cleared, finish its critical section and
+	 * do an unlock before the reader count increment.
+	 *
+	 * 1) Collect the read-waiters in a separate list, count them and
+	 *    fully increment the reader count in rwsem.
+	 * 2) For each waiters in the new list, clear waiter->task and
+	 *    put them into wake_q to be woken up later.
 	 */
-	list_for_each_entry_safe(waiter, tmp, &sem->wait_list, list) {
-		struct task_struct *tsk;
-
+	list_for_each_entry(waiter, &sem->wait_list, list) {
 		if (waiter->type == RWSEM_WAITING_FOR_WRITE)
 			break;
 
 		woken++;
-		tsk = waiter->task;
+	}
+	list_cut_before(&wlist, &sem->wait_list, &waiter->list);
 
+	adjustment = woken * RWSEM_ACTIVE_READ_BIAS - adjustment;
+	if (list_empty(&sem->wait_list)) {
+		/* hit end of list above */
+		adjustment -= RWSEM_WAITING_BIAS;
+	}
+
+	if (adjustment)
+		atomic_long_add(adjustment, &sem->count);
+
+	/* 2nd pass */
+	list_for_each_entry_safe(waiter, tmp, &wlist, list) {
+		struct task_struct *tsk;
+
+		tsk = waiter->task;
 		get_task_struct(tsk);
-		list_del(&waiter->list);
+
 		/*
 		 * Ensure calling get_task_struct() before setting the reader
 		 * waiter to nil such that rwsem_down_read_failed() cannot
@@ -216,15 +240,6 @@ static void __rwsem_mark_wake(struct rw_semaphore *sem,
 		/* wake_q_add() already take the task ref */
 		put_task_struct(tsk);
 	}
-
-	adjustment = woken * RWSEM_ACTIVE_READ_BIAS - adjustment;
-	if (list_empty(&sem->wait_list)) {
-		/* hit end of list above */
-		adjustment -= RWSEM_WAITING_BIAS;
-	}
-
-	if (adjustment)
-		atomic_long_add(adjustment, &sem->count);
 }
 
 /*
@@ -263,7 +278,6 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	wake_up_q(&wake_q);
 
 	/* wait to be given the lock */
-	sec_debug_wtsk_set_data(DTYPE_RWSEM, (void *)sem);
 	while (true) {
 		set_current_state(state);
 		if (!waiter.task)
@@ -279,7 +293,6 @@ __rwsem_down_read_failed_common(struct rw_semaphore *sem, int state)
 	}
 
 	__set_current_state(TASK_RUNNING);
-	sec_debug_wtsk_clear_data();
 	return sem;
 out_nolock:
 	list_del(&waiter.list);
@@ -287,7 +300,6 @@ out_nolock:
 		atomic_long_add(-RWSEM_WAITING_BIAS, &sem->count);
 	raw_spin_unlock_irq(&sem->wait_lock);
 	__set_current_state(TASK_RUNNING);
-	sec_debug_wtsk_clear_data();
 	return ERR_PTR(-EINTR);
 }
 
@@ -562,7 +574,6 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 		count = atomic_long_add_return(RWSEM_WAITING_BIAS, &sem->count);
 
 	/* wait until we successfully acquire the lock */
-	sec_debug_wtsk_set_data(DTYPE_RWSEM, (void *)sem);
 	set_current_state(state);
 	while (true) {
 		if (rwsem_try_write_lock(count, sem))
@@ -581,7 +592,6 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 		raw_spin_lock_irq(&sem->wait_lock);
 	}
 	__set_current_state(TASK_RUNNING);
-	sec_debug_wtsk_clear_data();
 	list_del(&waiter.list);
 	raw_spin_unlock_irq(&sem->wait_lock);
 
@@ -589,7 +599,6 @@ __rwsem_down_write_failed_common(struct rw_semaphore *sem, int state)
 
 out_nolock:
 	__set_current_state(TASK_RUNNING);
-	sec_debug_wtsk_clear_data();
 	raw_spin_lock_irq(&sem->wait_lock);
 	list_del(&waiter.list);
 	if (list_empty(&sem->wait_list))

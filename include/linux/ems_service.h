@@ -26,7 +26,6 @@ struct kpp {
 	bool active;
 };
 
-
 #ifdef CONFIG_SCHED_EMS
 /* prefer perf */
 extern int kpp_status(int grp_idx);

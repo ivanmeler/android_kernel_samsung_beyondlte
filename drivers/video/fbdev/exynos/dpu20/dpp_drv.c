@@ -86,7 +86,6 @@ static int dpp_wb_wait_for_framedone(struct dpp_device *dpp)
 static void dpp_get_params(struct dpp_device *dpp, struct dpp_params_info *p)
 {
 	u64 src_w, src_h, dst_w, dst_h;
-
 	struct decon_win_config *config = &dpp->dpp_config->config;
 	struct dpp_restriction *res = &dpp->restriction;
 
@@ -333,7 +332,7 @@ static int dpp_check_format(struct dpp_device *dpp, struct dpp_params_info *p)
 		return -EINVAL;
 	}
 
-	if ((p->hdr < DPP_HDR_OFF) || (p->hdr > DPP_TRANSFER_GAMMA2_8)) {
+	if ((p->hdr < DPP_HDR_OFF) || (p->hdr > DPP_HDR_HLG)) {
 		dpp_err("Unsupported HDR standard in DPP%d, HDR std(%d)\n",
 				dpp->id, p->hdr);
 		return -EINVAL;
@@ -542,18 +541,7 @@ static int dpp_mcd_reset(struct dpp_device *dpp)
 	return ret;
 }
 
-#if 0
-static int dpp_mcd_dump(struct dpp_device *dpp)
-{
-	int ret = 0;
-	int param = 0;
 
-	ret = v4l2_subdev_call(dpp->mcd_sd,
-		core, ioctl, DUMP_MCD_IP, &param);
-
-	return ret;
-}
-#endif
 #endif
 
 
@@ -641,7 +629,7 @@ err:
 static long dpp_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg)
 {
 	struct dpp_device *dpp = v4l2_get_subdevdata(sd);
-	bool reset = true;
+	bool reset = (bool)arg;
 	int ret = 0;
 	int *afbc_enabled;
 
@@ -654,8 +642,6 @@ static long dpp_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg
 		break;
 
 	case DPP_STOP:
-		if (&arg != NULL)
-			reset = (bool)arg;
 #ifdef CONFIG_EXYNOS_MCD_HDR
 		ret = dpp_mcd_stop(dpp);
 #endif
@@ -702,11 +688,6 @@ static long dpp_subdev_ioctl(struct v4l2_subdev *sd, unsigned int cmd, void *arg
 				sizeof(struct dpp_restriction));
 		((struct dpp_ch_restriction *)arg)->id = dpp->id;
 		((struct dpp_ch_restriction *)arg)->attr = dpp->attr;
-		break;
-
-	case DPP_GET_RECOVERY_CNT:
-		if (arg)
-			*((int *)arg) = dpp->d.recovery_cnt;
 		break;
 
 	default:
@@ -975,11 +956,6 @@ static irqreturn_t dma_irq_handler(int irq, void *priv)
 			dpp->d.recovery_cnt++;
 			dpp_info("dma%d recovery start(0x%x).. cnt(%d)\n",
 					dpp->id, irqs, dpp->d.recovery_cnt);
-
-#ifdef CONFIG_SEC_ABC
-			if (!(dpp->d.recovery_cnt % 10))
-				sec_abc_send_event("MODULE=display@ERROR=afbc_recovery");
-#endif
 			goto irq_end;
 		}
 		if ((irqs & IDMA_AFBC_TIMEOUT_IRQ) ||
@@ -1102,43 +1078,6 @@ static int dpp_init_resources(struct dpp_device *dpp, struct platform_device *pd
 	return 0;
 }
 
-#ifdef CONFIG_EXYNOS_MCD_HDR
-#if 0
-static char *dpp_attr_string[DPP_ATTR_DPP + 1] = {
-	"DPP_ATTR_AFBC",
-	"DPP_ATTR_BLOCK",
-	"DPP_ATTR_FLIP",
-	"DPP_ATTR_ROT",
-	"DPP_ATTR_CSC",
-	"DPP_ATTR_SCALE",
-	"DPP_ATTR_HDR",
-	"DPP_ATTR_C_HDR",
-	"DPP_ATTR_C_HDR10_PLUS",
-	"DPP_ATTR_WCG",
-	"None10",
-	"None11",
-	"None12",
-	"None13",
-	"None14",
-	"None15",
-	"DPP_ATTR_IDMA",
-	"DPP_ATTR_ODMA",
-	"DPP_ATTR_DPP",
-
-};
-
-static void print_dpp_restrict(unsigned long attr)
-{
-	int i = 0;
-
-	for (i = 0; i <= DPP_ATTR_DPP; i++) {
-		if ((attr & (1 << i)) && (dpp_attr_string[i] != NULL))
-			dpp_info("DPP ATTR : %s\n", dpp_attr_string[i]);
-	}
-}
-#endif
-#endif
-
 static int dpp_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
@@ -1186,9 +1125,7 @@ static int dpp_probe(struct platform_device *pdev)
 		dpp->attr |= (1 << DPP_ATTR_WCG);
 
 	dpp_info("DPP:INFO:%s:%x attr : %x", __func__, dpp->id, dpp->attr);
-#if 0
-	print_dpp_restrict(dpp->attr);
-#endif
+
 #endif
 
 	platform_set_drvdata(pdev, dpp);

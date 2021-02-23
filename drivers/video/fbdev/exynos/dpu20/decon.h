@@ -79,7 +79,6 @@
 #define MAX_DPP_SUBDEV		7
 
 #define DISP_RESTRICTION_VER	20180608
-
 #define DPU_LOG_VALID_MARK	(0xA0A0A1A1)
 
 #if defined(CONFIG_SUPPORT_LEGACY_ION)
@@ -218,12 +217,8 @@ void dpu_debug_printk(const char *function_name, const char *format, ...);
 			dpu_debug_printk("FENCE", fmt, ##args);			\
 	} while (0)
 
-
-
 #ifdef CONFIG_EXYNOS_MCD_HDR
-
 #define IS_HDR_FMT(hdr_std) ((hdr_std == DPP_HDR_ST2084) || (hdr_std == DPP_HDR_HLG))
-
 #endif
 
 /* DECON systrace related */
@@ -342,16 +337,14 @@ enum dpp_csc_eq {
 	CSC_BT_709 = 1,
 	CSC_BT_2020 = 2,
 	CSC_DCI_P3 = 3,
-/*-> add to support wcg*/
-	CSC_BT_601_625,
-	CSC_BT_601_625_UNADJUSTED,
-	CSC_BT_601_525,
-	CSC_BT_601_525_UNADJUSTED,
-	CSC_BT_2020_CONSTANT_LUMINANCE,
-	CSC_BT_470M,
-	CSC_FILM,
-	CSC_ADOBE_RGB,
-/*<-*/
+	CSC_BT_601_625 = 4,
+	CSC_BT_601_625_UNADJUSTED = 5,
+	CSC_BT_601_525 = 6,
+	CSC_BT_601_525_UNADJUSTED = 7,
+	CSC_BT_2020_CONSTANT_LUMINANCE = 8,
+	CSC_BT_470M = 9,
+	CSC_FILM = 10,
+	CSC_ADOBE_RGB = 11,
 	CSC_STANDARD_UNSPECIFIED = 63,
 	/* eq_mode : 3bits [8:6] */
 	CSC_RANGE_SHIFT = 6,
@@ -385,6 +378,7 @@ enum dpp_hdr_standard {
 };
 
 enum decon_color_mode {
+/*-> add to support wcg*/
 	HAL_COLOR_MODE_NATIVE                        = 0,
 	HAL_COLOR_MODE_STANDARD_BT601_625            = 1,
 	HAL_COLOR_MODE_STANDARD_BT601_625_UNADJUSTED = 2,
@@ -396,6 +390,7 @@ enum decon_color_mode {
 	HAL_COLOR_MODE_ADOBE_RGB                     = 8,
 	HAL_COLOR_MODE_DISPLAY_P3                    = 9,
 	HAL_COLOR_MODE_NUM_MAX,
+/*<-*/
 };
 
 struct decon_color_mode_info {
@@ -622,7 +617,6 @@ typedef enum dpu_event_type {
 	DPU_EVT_UPDATE_HANDLER_WIN_CONFIG_6,
 
 	DPU_EVT_UPDATE_HANDLER_WIN,
-
 	DPU_EVT_DSIM_COMMAND,
 	DPU_EVT_TRIG_MASK,
 	DPU_EVT_TRIG_UNMASK,
@@ -804,10 +798,8 @@ typedef enum dpu_event_log_level_type {
 	DPU_EVENT_LEVEL_HIGH,
 } dpu_log_level_t;
 
-
 #define REQ_DSI_DUMP	1
 #define IGN_DSI_DUMP	0
-
 
 /* APIs below are used in the DECON/DSIM/DPP driver */
 #define DPU_EVENT_START() ktime_t start = ktime_get()
@@ -829,6 +821,7 @@ void dpu_memmap_inc(struct decon_device *decon, dma_addr_t target);
 #ifdef CONFIG_SUPPORT_RDX_DUMP
 void *rdx_mem_alloc(size_t s);
 #endif
+
 
 /* DPU fence event logger */
 typedef enum dpu_f_evt_type {
@@ -1049,6 +1042,7 @@ struct decon_hiber {
 	wait_queue_head_t wait;
 #endif
 	ktime_t timestamp;
+
 	struct mutex lock;
 	struct task_struct *thread;
 	struct kthread_worker worker;
@@ -1166,13 +1160,11 @@ struct decon_freq_hop {
 	u32 request_k;	/* user requested k value */
 };
 
-
 #ifdef CONFIG_SUPPORT_DISPLAY_PROFILER
 struct profile_data {
 	unsigned int win_cnt;
 };
 #endif
-
 
 struct decon_device {
 	int id;
@@ -1272,14 +1264,13 @@ struct decon_device {
 #endif
 
 #ifdef CONFIG_DYNAMIC_FREQ
+	ktime_t last_update_time;
 	struct df_status_info *df_status;
 #endif
 #ifdef CONFIG_SUPPORT_DISPLAY_PROFILER
 	struct v4l2_subdev *profile_sd;
 #endif
 };
-
-
 
 #ifdef CONFIG_EXYNOS_MCD_HDR
 
@@ -1809,7 +1800,6 @@ static inline bool IS_DECON_DOZE_STATE(struct decon_device *decon)
 }
 #endif
 
-
 static inline bool IS_DECON_HIBER_STATE(struct decon_device *decon)
 {
 	return decon->state == DECON_STATE_HIBER;
@@ -1872,7 +1862,6 @@ int decon_update_last_regs(struct decon_device *decon,
 #endif
 
 int decon_panel_ioc_update_ffc(struct decon_device *decon);
-
 
 /* cursor async mode functions */
 void decon_set_cursor_reset(struct decon_device *decon,
@@ -1941,4 +1930,5 @@ int _decon_enable(struct decon_device *decon, enum decon_state state);
 #define V4L2_EVENT_DECON_FRAME_DONE     (V4L2_EVENT_DECON + 2)
 #define V4L2_EVENT_DECON_VSYNC          (V4L2_EVENT_DECON + 3)
 #endif
+
 #endif /* ___SAMSUNG_DECON_H__ */

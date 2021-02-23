@@ -21,19 +21,27 @@
 #define RKP_PA_READ	0
 #define RKP_PA_WRITE	1
 
+#define RKP_ROBUFFER_ARG_TEST 1
+
 /**********************************************************
  *			FIMC defines
  **********************************************************/
 #ifdef CONFIG_USE_DIRECT_IS_CONTROL //which means FIMC
-#define FIMC_LIB_OFFSET_VA		(VMALLOC_START + 0xF6000000 - 0x8000000)
-#define FIMC_LIB_START_VA		(FIMC_LIB_OFFSET_VA + 0x04000000)
 
-#define VRA_START_VA	FIMC_LIB_START_VA
+#define CDH_CODE_SIZE		(SZ_16K)			/* CDH : Camera Debug Helper */
+#define CDH_DATA_SIZE		(SZ_128K - SZ_16K)
+
+#define FIMC_LIB_OFFSET_VA	(VMALLOC_START + 0xF6000000 - 0x8000000)
+#define FIMC_LIB_START_VA	(FIMC_LIB_OFFSET_VA + 0x04000000 - CDH_CODE_SIZE - CDH_DATA_SIZE)
+
+#define CDH_START_VA	FIMC_LIB_START_VA
+
+#define VRA_START_VA	(CDH_START_VA + CDH_CODE_SIZE + CDH_DATA_SIZE)
 // #define VRA_CODE_SIZE	0x40000 /* for Great and Crown */
 #define VRA_CODE_SIZE	0x80000
 #define VRA_DATA_SIZE	0x40000
 
-#define DDK_START_VA	(FIMC_LIB_START_VA + VRA_CODE_SIZE + VRA_DATA_SIZE)
+#define DDK_START_VA	(VRA_START_VA + VRA_CODE_SIZE + VRA_DATA_SIZE)
 // #define DDK_CODE_SIZE	0x300000 /* for Great and Crown */
 #define DDK_CODE_SIZE	0x340000
 #define DDK_DATA_SIZE	0x100000
@@ -69,8 +77,8 @@ char rkp_test_buf[RKP_BUF_SIZE];
 unsigned long rkp_test_len = 0;
 unsigned long prot_user_l2 = 1;
 
-u64 *ha1;
-u64 *ha2;
+static u64 *ha1;
+static u64 *ha2;
 
 void buf_print(const char *fmt, ...)
 {
@@ -113,7 +121,7 @@ static void hyp_check_l23pgt_rw(u64 *pg_l, unsigned int level, struct test_data_
 	unsigned int i;
 
 	// Level is 0 1 2
-	if (level >= 3) 
+	if (level >= 3)
 		return;
 
 	for (i = 0; i < 512; i++) {
@@ -146,8 +154,8 @@ static pmd_t * get_addr_pmd(struct mm_struct *mm, unsigned long addr)
 	pmd = pmd_offset(pud, addr);
 	if (pmd_none(*pmd))
 		return NULL;
-	
-	return pmd; 
+
+	return pmd;
 }
 
 static int test_case_user_pgtable_ro(void)
@@ -159,22 +167,21 @@ static int test_case_user_pgtable_ro(void)
 
 	for_each_process(task) {
 		mm = task->active_mm;
-		if (!(mm) || !(mm->context.id.counter)) {
+		if (!(mm) || !(mm->context.id.counter) || !(mm->pgd)) {
 			continue;
 		}
-		if (!(mm->pgd))
-			continue;
-		if (hyp_check_page_ro((u64)(mm->pgd))) {
+
+		if (hyp_check_page_ro((u64)(mm->pgd)))
 			test[0].read++;
-		} else {
+		else
 			test[0].write++;
-		}
+
 		test[0].iter++;
 		hyp_check_l23pgt_rw(((u64 *) (mm->pgd)), 1, test);
 	}
 	for (i = 0; i < 3; i++)	{
 		buf_print("\t\tL%d TOTAL PAGES %6llu | READ ONLY %6llu | WRITABLE %6llu\n",
-			i+1, test[i].iter, test[i].read, test[i].write);
+				i+1, test[i].iter, test[i].read, test[i].write);
 	}
 
 	//L1 and L2 pgtable should be RO
@@ -202,7 +209,7 @@ static int test_case_kernel_pgtable_ro(void)
 
 	for (i = 0; i < 3; i++)
 		buf_print("\t\tL%d TOTAL PAGE TABLES %6llu | READ ONLY %6llu |WRITABLE %6llu\n",
-			i+1, test[i].iter, test[i].read, test[i].write);
+				i+1, test[i].iter, test[i].read, test[i].write);
 
 	if ((0 == test[0].write) && (0 == test[1].write))
 		return 0;
@@ -258,11 +265,10 @@ static void page_pxn_set(struct mm_struct *mm, unsigned long addr, u64 *xn, u64 
 	if (pmd_sect(*pmd)) {
 		if ((pmd_val(*pmd) & L012_BLOCK_PXN) > 0)
 			*xn +=1;
-		else 
+		else
 			*x +=1;
 		return;
-	}
-	else {
+	} else {
 		if ((pmd_val(*pmd) & L012_TABLE_PXN) > 0) {
 			*xn +=1;
 			return;
@@ -274,19 +280,20 @@ static void page_pxn_set(struct mm_struct *mm, unsigned long addr, u64 *xn, u64 
 	if (!pte_none(*pte)) {
 		if ((pte_val(*pte) & L3_PAGE_PXN) > 0)
 			*xn +=1;
-		else 
+		else
 			*x +=1;
 	}
 
 	pte_unmap(pte);
 }
 
-static void count_pxn(unsigned long pxn, int level, struct test_data_struct *test){
-	test[level].iter ++;	
+static void count_pxn(unsigned long pxn, int level, struct test_data_struct *test)
+{
+	test[level].iter ++;
 	if (pxn)
-		test[level].pxn ++;	
+		test[level].pxn ++;
 	else
-		test[level].no_pxn ++;	
+		test[level].no_pxn ++;
 }
 
 static void walk_pte(pmd_t *pmd, int level, struct test_data_struct *test)
@@ -296,7 +303,7 @@ static void walk_pte(pmd_t *pmd, int level, struct test_data_struct *test)
 	unsigned long prot;
 
 	for (i = 0; i < PTRS_PER_PTE; i++, pte++) {
-		if (pte_none(*pte)){
+		if (pte_none(*pte)) {
 			continue;
 		} else {
 			prot = pte_val(*pte) & L3_PAGE_PXN;
@@ -312,17 +319,17 @@ static void walk_pmd(pud_t *pud, int level, struct test_data_struct *test)
 	unsigned long prot;
 
 	for (i = 0; i < PTRS_PER_PMD; i++, pmd++) {
-		if (pmd_none(*pmd)){
+		if (pmd_none(*pmd)) {
 			continue;
 		} else if (pmd_sect(*pmd)) {
 			prot = pmd_val(*pmd) & L012_BLOCK_PXN;
 			count_pxn(prot, level, test);
 		} else {
-		/*
-		 * For user space, all L2 should have PXN, including block and
-		 * table. Only kernel text head and tail L2 table can have no
-		 * pxn, and kernel text middle L2 blocks can have no pxn
-		 */
+			/*
+			 * For user space, all L2 should have PXN, including block and
+			 * table. Only kernel text head and tail L2 table can have no
+			 * pxn, and kernel text middle L2 blocks can have no pxn
+			 */
 			BUG_ON(pmd_bad(*pmd));
 			prot = pmd_val(*pmd) & L012_TABLE_PXN;
 			count_pxn(prot, level, test);
@@ -360,7 +367,6 @@ static void walk_pgd(struct mm_struct *mm, int level, struct test_data_struct *t
 		} else { //table
 			prot = pgd_val(*pgd) & L012_TABLE_PXN;
 			count_pxn(prot, level, test);
-
 			walk_pud(pgd, level+1, test);
 		}
 	}
@@ -375,10 +381,7 @@ static int test_case_user_pxn(void)
 
 	for_each_process(task) {
 		mm = task->active_mm;
-		if (!(mm) || !(mm->context.id.counter)) {
-			continue;
-		}
-		if (!(mm->pgd))
+		if (!(mm) || !(mm->context.id.counter) || !(mm->pgd))
 			continue;
 
 		/* Check if PXN bit is set */
@@ -387,27 +390,26 @@ static int test_case_user_pxn(void)
 
 	for (i = 0; i < 3; i++)	{
 		buf_print("\t\tL%d TOTAL ENTRIES %6llu | PXN %6llu | NO_PXN %6llu\n",
-			i+1, test[i].iter, test[i].pxn, test[i].no_pxn);
+				i+1, test[i].iter, test[i].pxn, test[i].no_pxn);
 	}
 
 	//all 2nd level entries should be PXN
 	if (0 == test[0].no_pxn) {
 		prot_user_l2 = 0;
 		return 0;
-	}
-	else if (0 == test[1].no_pxn) {
+	} else if (0 == test[1].no_pxn) {
 		prot_user_l2 = 1;
 		return 0;
-	}
-	else
+	} else {
 		return 1;
+	}
 }
 
 static void range_pxn_set(unsigned long va_start, unsigned long count, u64 *xn, u64 *x)
 {
 	unsigned long i;
 	for (i = 0; i < count; i++) {
-		 page_pxn_set(&init_mm, (va_start + i*PAGE_SIZE), xn, x);
+		page_pxn_set(&init_mm, (va_start + i*PAGE_SIZE), xn, x);
 	}
 }
 
@@ -425,8 +427,11 @@ static int test_case_kernel_range_rwx(void)
 	u64 ro = 0, rw = 0;
 	u64 xn = 0, x = 0;
 	int i;
-	u64 fixmap_va = __fix_to_virt(FIX_ENTRY_TRAMP_TEXT);
-
+#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+	u64 fixmap_va = TRAMP_VALIAS;
+#else
+	u64 fixmap_va = MEM_END;
+#endif
 	struct mem_range_struct test_ranges[] = {
 		{(u64)VMALLOC_START,		((u64)_text) - ((u64)VMALLOC_START),	"VMALLOC -  STEXT", false, true},
 		{((u64)_text),			((u64)_etext) - ((u64)_text),		"STEXT - ETEXT   ", true, false},
@@ -434,6 +439,7 @@ static int test_case_kernel_range_rwx(void)
 		// For STAR, two bit maps are between etext and srodata
 		{((u64)_etext),			((u64) __end_rodata) - ((u64)_etext),	"ETEXT -  ERODATA", true, true},
 		// For STAR, FIMC is after erodata
+#ifdef CONFIG_USE_DIRECT_IS_CONTROL
 		{((u64) __end_rodata),		VRA_START_VA-((u64) __end_rodata),	"ERODATA - S_FIMC", false, true},
 		{VRA_START_VA,			VRA_CODE_SIZE,				"     VRA CODE   ", true, false},
 		{VRA_START_VA+VRA_CODE_SIZE,	VRA_DATA_SIZE,				"     VRA DATA   ", false, true},
@@ -442,22 +448,25 @@ static int test_case_kernel_range_rwx(void)
 		{RTA_START_VA,			RTA_CODE_SIZE,				"     RTA CODE   ", true, false},
 		{RTA_START_VA+RTA_CODE_SIZE,	RTA_DATA_SIZE,				"     RTA DATA   ", false, true},
 		{((u64)FIMC_LIB_END_VA),	fixmap_va - ((u64)FIMC_LIB_END_VA),	"FIMC_END- FIXMAP", false, true},
+#endif
+#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
 		{((u64)fixmap_va),		((u64) PAGE_SIZE),			"     FIXMAP     ", true, false},
 		{((u64)fixmap_va+PAGE_SIZE),	((u64) MEM_END-(fixmap_va+PAGE_SIZE)),	"FIXMAP - MEM_END", false, true},
+#endif
 	};
 
 	int len = sizeof(test_ranges)/sizeof(struct mem_range_struct);
 
 	buf_print("\t\t| MEMORY RANGES  | %16s - %16s | %8s %8s %8s %8s\n",
-		"START", "END", "RO", "RW", "PXN", "PX");
+			"START", "END", "RO", "RW", "PXN", "PX");
 	for (i = 0; i < len; i++) {
 		hyp_check_range_rw(test_ranges[i].start_va, test_ranges[i].size/PAGE_SIZE, &ro, &rw);
 		range_pxn_set(test_ranges[i].start_va, test_ranges[i].size/PAGE_SIZE, &xn, &x);
 
 		buf_print("\t\t|%s| %016llx - %016llx | %8llu %8llu %8llu %8llu\n",
-			test_ranges[i].info, test_ranges[i].start_va,
-			test_ranges[i].start_va + test_ranges[i].size,
-			ro, rw, xn, x);
+				test_ranges[i].info, test_ranges[i].start_va,
+				test_ranges[i].start_va + test_ranges[i].size,
+				ro, rw, xn, x);
 
 		if (test_ranges[i].no_rw && (0 != rw)) {
 			buf_print("RKP_TEST FAILED, NO RW PAGE ALLOWED, rw=%llu\n", rw);
@@ -474,7 +483,7 @@ static int test_case_kernel_range_rwx(void)
 			ret++;
 		}
 
-		ro = 0; rw = 0;	
+		ro = 0; rw = 0;
 		xn = 0; x = 0;
 	}
 
@@ -494,6 +503,7 @@ ssize_t	rkp_read(struct file *filep, char __user *buffer, size_t count, loff_t *
 	int tc_num = sizeof(test_cases)/sizeof(struct test_case_struct);
 
 	static bool done = false;
+
 	if (done)
 		return 0;
 	done = true;
@@ -508,8 +518,8 @@ ssize_t	rkp_read(struct file *filep, char __user *buffer, size_t count, loff_t *
 		temp_ret = test_cases[i].fn();
 
 		if (temp_ret) {
-			buf_print("RKP_TEST_CASE %d ===========> %s FAILED WITH %d ERRORS\n", 
-				i, test_cases[i].describe, temp_ret);
+			buf_print("RKP_TEST_CASE %d ===========> %s FAILED WITH %d ERRORS\n",
+					i, test_cases[i].describe, temp_ret);
 		} else {
 			buf_print("RKP_TEST_CASE %d ===========> %s PASSED\n", i, test_cases[i].describe);
 		}
@@ -517,11 +527,10 @@ ssize_t	rkp_read(struct file *filep, char __user *buffer, size_t count, loff_t *
 		ret += temp_ret;
 	}
 
-	if (ret) {
+	if (ret)
 		buf_print("RKP_TEST SUMMARY: FAILED WITH %d ERRORS\n", ret);
-	} else {
+	else
 		buf_print("RKP_TEST SUMMARY: PASSED\n");
-	}
 
 error:
 	return simple_read_from_buffer(buffer, count, ppos, rkp_test_buf, rkp_test_len);
@@ -536,18 +545,13 @@ static int __init rkp_test_init(void)
 	phys_addr_t ret = 0;
 
 	if (proc_create("rkp_test", 0444, NULL, &rkp_proc_fops) == NULL) {
-		printk(KERN_ERR "RKP_TEST: Error creating proc entry");
+		pr_err("RKP_TEST: Error creating proc entry");
 		return -1;
 	}
 
-	ret = uh_call(UH_APP_RKP, RKP_RKP_ROBUFFER_ALLOC, 1, 0, 0, 0);
+	uh_call(UH_APP_RKP, RKP_ROBUFFER_ALLOC, (u64)&ret | (u64)RKP_ROBUFFER_ARG_TEST, 0, 0, 0);
 	ha1 = (u64 *)(__va(ret));
 	ha2 = (u64 *)(__va(ret) + 8);
-
-	/*
-	ha1 = (u64 *)(__va(RKP_ROBUF_START)+RKP_ROBUF_SIZE-16);
-	ha2 = (u64 *)(__va(RKP_ROBUF_START)+RKP_ROBUF_SIZE-8);
-	*/
 
 	return 0;
 }

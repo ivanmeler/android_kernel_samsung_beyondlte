@@ -41,6 +41,10 @@
 #include <linux/usb/class-dual-role.h>
 #endif
 
+#define AVAILABLE_VOLTAGE 12000
+#define UNIT_FOR_VOLTAGE 50
+#define UNIT_FOR_CURRENT 10
+
 #define REG_I2C_SLV_CMD		0x10
 #define REG_TX_SINK_CAPA_MSG    0x0220
 #define REG_TX_REQUEST_MSG	0x0240

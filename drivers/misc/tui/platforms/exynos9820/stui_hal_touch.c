@@ -27,7 +27,7 @@ static int request_touch(void)
 	}
 
 	touch_requested = 1;
-	printk(KERN_DEBUG "[STUI] Touch requested\n");
+	pr_info(KERN_DEBUG "[STUI] Touch requested\n");
 
 	return ret;
 }
@@ -46,7 +46,7 @@ static int release_touch(void)
 	}
 
 	touch_requested = 0;
-	printk(KERN_DEBUG "[STUI] Touch release\n");
+	pr_info(KERN_DEBUG "[STUI] Touch release\n");
 
 	return ret;
 }
@@ -55,7 +55,7 @@ int stui_i2c_protect(bool is_protect)
 {
 	int ret;
 
-	printk(KERN_DEBUG "[STUI] %s(%s) called\n",
+	pr_info(KERN_DEBUG "[STUI] %s(%s) called\n",
 			__func__, is_protect ? "true" : "false");
 
 	if (is_protect)

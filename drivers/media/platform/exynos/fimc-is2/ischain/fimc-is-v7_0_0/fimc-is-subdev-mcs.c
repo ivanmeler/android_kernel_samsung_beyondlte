@@ -77,6 +77,46 @@ p_err:
 }
 #endif
 
+void fimc_is_ischain_mcs_stripe_cfg(struct fimc_is_subdev *subdev,
+		struct fimc_is_frame *frame,
+		struct fimc_is_crop *incrop,
+		struct fimc_is_crop *otcrop)
+{
+	u32 stripe_w;
+
+	if (!frame->stripe_info.region_id) {
+		/* Left region */
+		stripe_w = frame->stripe_info.in.h_pix_num;
+	} else if (frame->stripe_info.region_id < frame->stripe_info.region_num - 1) {
+		/* Middle region */
+		stripe_w = frame->stripe_info.in.h_pix_num - frame->stripe_info.in.prev_h_pix_num;
+		stripe_w += STRIPE_MARGIN_WIDTH;
+	} else {
+		/* Right region */
+		stripe_w = incrop->w - frame->stripe_info.in.prev_h_pix_num;
+	}
+
+	stripe_w += STRIPE_MARGIN_WIDTH;
+
+	incrop->w = stripe_w;
+
+	/**
+	 * Output crop configuration.
+	 * No crop & scale.
+	 */
+	otcrop->x = 0;
+	otcrop->y = 0;
+	otcrop->w = incrop->w;
+	otcrop->h = incrop->h;
+
+	mdbg_pframe("stripe_in_crop[%d][%d, %d, %d, %d]\n", subdev, subdev, frame,
+			frame->stripe_info.region_id,
+			incrop->x, incrop->y, incrop->w, incrop->h);
+	mdbg_pframe("stripe_ot_crop[%d][%d, %d, %d, %d]\n", subdev, subdev, frame,
+			frame->stripe_info.region_id,
+			otcrop->x, otcrop->y, otcrop->w, otcrop->h);
+}
+
 static int fimc_is_ischain_mcs_cfg(struct fimc_is_subdev *leader,
 	void *device_data,
 	struct fimc_is_frame *frame,
@@ -93,6 +133,7 @@ static int fimc_is_ischain_mcs_cfg(struct fimc_is_subdev *leader,
 	struct param_mcs_input *input;
 	struct param_control *control;
 	struct fimc_is_device_ischain *device;
+	struct fimc_is_crop incrop_cfg, otcrop_cfg;
 #ifdef USE_VRA_OTF
 	struct fimc_is_subdev *subdev = NULL, *subdev_temp = NULL, *temp;
 #endif
@@ -108,6 +149,9 @@ static int fimc_is_ischain_mcs_cfg(struct fimc_is_subdev *leader,
 	FIMC_BUG(!indexes);
 
 	group = &device->group_mcs;
+	incrop_cfg = *incrop;
+	otcrop_cfg = *otcrop;
+
 	queue = GET_SUBDEV_QUEUE(leader);
 	if (!queue) {
 		merr("queue is NULL", device);
@@ -115,22 +159,24 @@ static int fimc_is_ischain_mcs_cfg(struct fimc_is_subdev *leader,
 		goto p_err;
 	}
 
-
+	if (IS_ENABLED(CHAIN_USE_STRIPE_PROCESSING) && frame && frame->stripe_info.region_num)
+		fimc_is_ischain_mcs_stripe_cfg(leader, frame,
+				&incrop_cfg, &otcrop_cfg);
 	input = fimc_is_itf_g_param(device, frame, PARAM_MCS_INPUT);
 	if (test_bit(FIMC_IS_GROUP_OTF_INPUT, &group->state)) {
 		input->otf_cmd = OTF_INPUT_COMMAND_ENABLE;
 		input->dma_cmd = DMA_INPUT_COMMAND_DISABLE;
-		input->width = incrop->w;
-		input->height = incrop->h;
+		input->width = incrop_cfg.w;
+		input->height = incrop_cfg.h;
 	} else {
 		input->otf_cmd = OTF_INPUT_COMMAND_DISABLE;
 		input->dma_cmd = DMA_INPUT_COMMAND_ENABLE;
 		input->width = leader->input.canv.w;
 		input->height = leader->input.canv.h;
-		input->dma_crop_offset_x = leader->input.canv.x + incrop->x;
-		input->dma_crop_offset_y = leader->input.canv.y + incrop->y;
-		input->dma_crop_width = incrop->w;
-		input->dma_crop_height = incrop->h;
+		input->dma_crop_offset_x = leader->input.canv.x + incrop_cfg.x;
+		input->dma_crop_offset_y = leader->input.canv.y + incrop_cfg.y;
+		input->dma_crop_width = incrop_cfg.w;
+		input->dma_crop_height = incrop_cfg.h;
 
 		format = queue->framecfg.format;
 		input->dma_format = format->hw_format;
@@ -244,6 +290,7 @@ static int fimc_is_ischain_mcs_tag(struct fimc_is_subdev *subdev,
 		*incrop = inparm;
 
 	if (!COMPARE_CROP(incrop, &inparm) ||
+		CHECK_STRIPE_CFG(&frame->stripe_info) ||
 		test_bit(FIMC_IS_SUBDEV_FORCE_SET, &leader->state)) {
 		ret = fimc_is_ischain_mcs_cfg(subdev,
 			device,

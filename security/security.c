@@ -22,13 +22,13 @@
 #include <linux/integrity.h>
 #include <linux/ima.h>
 #include <linux/evm.h>
-#include <linux/task_integrity.h>
 #include <linux/fsnotify.h>
 #include <linux/mman.h>
 #include <linux/mount.h>
 #include <linux/personality.h>
 #include <linux/backing-dev.h>
 #include <linux/string.h>
+#include <linux/task_integrity.h>
 #include <net/flow.h>
 
 #define MAX_LSM_EVM_XATTR	2
@@ -200,11 +200,17 @@ EXPORT_SYMBOL(unregister_lsm_notifier);
  *	This is a hook that returns a value.
  */
 
+/*
+ * security_integrity_current() is added,
+ * which has a dependency of CONFIG_KDP_CRED.
+ * security_integrity_current is added to check integrity of credential context.
+ * if CONFIG_KDP_CRED is disabled, it will always return 0.
+ */
 #define call_void_hook(FUNC, ...)				\
 	do {							\
 		struct security_hook_list *P;			\
 								\
-		if(security_integrity_current()) break;	\
+		if(security_integrity_current()) break;		\
 		list_for_each_entry(P, &security_hook_heads.FUNC, list)	\
 			P->hook.FUNC(__VA_ARGS__);		\
 	} while (0)
@@ -215,8 +221,8 @@ EXPORT_SYMBOL(unregister_lsm_notifier);
 		struct security_hook_list *P;			\
 								\
 		RC = security_integrity_current();		\
-		if (RC != 0)							\
-			break;								\
+		if (RC != 0)					\
+			break;					\
 		list_for_each_entry(P, &security_hook_heads.FUNC, list) { \
 			RC = P->hook.FUNC(__VA_ARGS__);		\
 			if (RC != 0)				\
@@ -1767,3 +1773,30 @@ void security_bpf_prog_free(struct bpf_prog_aux *aux)
 	call_void_hook(bpf_prog_free_security, aux);
 }
 #endif /* CONFIG_BPF_SYSCALL */
+
+#ifdef CONFIG_PERF_EVENTS
+int security_perf_event_open(struct perf_event_attr *attr, int type)
+{
+	return call_int_hook(perf_event_open, 0, attr, type);
+}
+
+int security_perf_event_alloc(struct perf_event *event)
+{
+	return call_int_hook(perf_event_alloc, 0, event);
+}
+
+void security_perf_event_free(struct perf_event *event)
+{
+	call_void_hook(perf_event_free, event);
+}
+
+int security_perf_event_read(struct perf_event *event)
+{
+	return call_int_hook(perf_event_read, 0, event);
+}
+
+int security_perf_event_write(struct perf_event *event)
+{
+	return call_int_hook(perf_event_write, 0, event);
+}
+#endif /* CONFIG_PERF_EVENTS */

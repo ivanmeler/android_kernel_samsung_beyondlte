@@ -56,12 +56,14 @@ static const char * const cs47l15_outdemux_texts[] = {
 	"EPOUT",
 };
 
-static SOC_ENUM_SINGLE_DECL(cs47l15_outdemux_enum, SND_SOC_NOPM, 0,
+static SOC_ENUM_SINGLE_DECL(cs47l15_outdemux_enum,
+			    MADERA_OUTPUT_ENABLES_1,
+			    MADERA_EP_SEL_SHIFT,
 			    cs47l15_outdemux_texts);
 
 static const struct snd_kcontrol_new cs47l15_outdemux =
 	SOC_DAPM_ENUM_EXT("HPOUT1 Demux", cs47l15_outdemux_enum,
-			  madera_out1_demux_get, madera_out1_demux_put);
+			  snd_soc_dapm_get_enum_double, madera_out1_demux_put);
 
 static int cs47l15_adsp_power_ev(struct snd_soc_dapm_widget *w,
 				    struct snd_kcontrol *kcontrol,
@@ -305,10 +307,6 @@ SOC_DOUBLE_R_TLV("SPKDAT1 Digital Volume", MADERA_DAC_DIGITAL_VOLUME_5L,
 SOC_DOUBLE("SPKDAT1 Switch", MADERA_PDM_SPK1_CTRL_1, MADERA_SPK1L_MUTE_SHIFT,
 	   MADERA_SPK1R_MUTE_SHIFT, 1, 1),
 
-SOC_DOUBLE_EXT("HPOUT1 DRE Switch", MADERA_DRE_ENABLE,
-	       MADERA_DRE1L_ENA_SHIFT, MADERA_DRE1R_ENA_SHIFT, 1, 0,
-	       snd_soc_get_volsw, madera_dre_put),
-
 SOC_DOUBLE("HPOUT1 EDRE Switch", MADERA_EDRE_ENABLE,
 	   MADERA_EDRE_OUT1L_THR1_ENA_SHIFT,
 	   MADERA_EDRE_OUT1R_THR1_ENA_SHIFT, 1, 0),
@@ -487,12 +485,20 @@ SND_SOC_DAPM_SUPPLY("FXCLK", SND_SOC_NOPM,
 		    MADERA_DOM_GRP_FX, 0,
 		    madera_domain_clk_ev,
 		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-SND_SOC_DAPM_SUPPLY("ISRC1CLK", SND_SOC_NOPM,
-		    MADERA_DOM_GRP_ISRC1, 0,
+SND_SOC_DAPM_SUPPLY("ISRC1DECCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC1_DEC, 0,
 		    madera_domain_clk_ev,
 		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
-SND_SOC_DAPM_SUPPLY("ISRC2CLK", SND_SOC_NOPM,
-		    MADERA_DOM_GRP_ISRC2, 0,
+SND_SOC_DAPM_SUPPLY("ISRC1INTCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC1_INT, 0,
+		    madera_domain_clk_ev,
+		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+SND_SOC_DAPM_SUPPLY("ISRC2DECCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC2_DEC, 0,
+		    madera_domain_clk_ev,
+		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
+SND_SOC_DAPM_SUPPLY("ISRC2INTCLK", SND_SOC_NOPM,
+		    MADERA_DOM_GRP_ISRC2_INT, 0,
 		    madera_domain_clk_ev,
 		    SND_SOC_DAPM_PRE_PMU | SND_SOC_DAPM_POST_PMD),
 SND_SOC_DAPM_SUPPLY("OUTCLK", SND_SOC_NOPM,
@@ -903,22 +909,22 @@ static const struct snd_soc_dapm_route cs47l15_dapm_routes[] = {
 	{ "SPD1TX1", NULL, "SPDCLK" },
 	{ "SPD1TX2", NULL, "SPDCLK" },
 	{ "DSP1", NULL, "DSP1CLK" },
-	{ "ISRC1DEC1", NULL, "ISRC1CLK" },
-	{ "ISRC1DEC2", NULL, "ISRC1CLK" },
-	{ "ISRC1DEC3", NULL, "ISRC1CLK" },
-	{ "ISRC1DEC4", NULL, "ISRC1CLK" },
-	{ "ISRC1INT1", NULL, "ISRC1CLK" },
-	{ "ISRC1INT2", NULL, "ISRC1CLK" },
-	{ "ISRC1INT3", NULL, "ISRC1CLK" },
-	{ "ISRC1INT4", NULL, "ISRC1CLK" },
-	{ "ISRC2DEC1", NULL, "ISRC2CLK" },
-	{ "ISRC2DEC2", NULL, "ISRC2CLK" },
-	{ "ISRC2DEC3", NULL, "ISRC2CLK" },
-	{ "ISRC2DEC4", NULL, "ISRC2CLK" },
-	{ "ISRC2INT1", NULL, "ISRC2CLK" },
-	{ "ISRC2INT2", NULL, "ISRC2CLK" },
-	{ "ISRC2INT3", NULL, "ISRC2CLK" },
-	{ "ISRC2INT4", NULL, "ISRC2CLK" },
+	{ "ISRC1DEC1", NULL, "ISRC1DECCLK" },
+	{ "ISRC1DEC2", NULL, "ISRC1DECCLK" },
+	{ "ISRC1DEC3", NULL, "ISRC1DECCLK" },
+	{ "ISRC1DEC4", NULL, "ISRC1DECCLK" },
+	{ "ISRC1INT1", NULL, "ISRC1INTCLK" },
+	{ "ISRC1INT2", NULL, "ISRC1INTCLK" },
+	{ "ISRC1INT3", NULL, "ISRC1INTCLK" },
+	{ "ISRC1INT4", NULL, "ISRC1INTCLK" },
+	{ "ISRC2DEC1", NULL, "ISRC2DECCLK" },
+	{ "ISRC2DEC2", NULL, "ISRC2DECCLK" },
+	{ "ISRC2DEC3", NULL, "ISRC2DECCLK" },
+	{ "ISRC2DEC4", NULL, "ISRC2DECCLK" },
+	{ "ISRC2INT1", NULL, "ISRC2INTCLK" },
+	{ "ISRC2INT2", NULL, "ISRC2INTCLK" },
+	{ "ISRC2INT3", NULL, "ISRC2INTCLK" },
+	{ "ISRC2INT4", NULL, "ISRC2INTCLK" },
 
 	{ "OUT1L", NULL, "CPVDD1" },
 	{ "OUT1R", NULL, "CPVDD1" },
@@ -1244,12 +1250,18 @@ static irqreturn_t cs47l15_adsp2_irq(int irq, void *data)
 	struct cs47l15 *cs47l15 = data;
 	struct madera_priv *priv = &cs47l15->core;
 	struct madera *madera = priv->madera;
+	struct madera_voice_trigger_info trig_info;
 	int ret;
 
 	ret = wm_adsp_compr_handle_irq(&priv->adsp[0]);
 	if (ret == -ENODEV) {
 		dev_err(madera->dev, "Spurious compressed data IRQ\n");
 		return IRQ_NONE;
+	} else if (ret == WM_ADSP_COMPR_VOICE_TRIGGER) {
+		trig_info.core_num = 1;
+		madera_call_notifiers(madera,
+				      MADERA_NOTIFY_VOICE_TRIGGER,
+				      &trig_info);
 	}
 
 	return IRQ_HANDLED;
@@ -1289,10 +1301,6 @@ static int cs47l15_codec_probe(struct snd_soc_codec *codec)
 		return ret;
 
 	ret = madera_init_outputs(codec, CS47L15_MONO_OUTPUTS);
-	if (ret)
-		return ret;
-
-	ret = madera_init_aif(codec);
 	if (ret)
 		return ret;
 
@@ -1337,7 +1345,7 @@ static struct regmap *cs47l15_get_regmap(struct device *dev)
 	return cs47l15->core.madera->regmap;
 }
 
-static const struct snd_soc_codec_driver soc_codec_dev_cs47l15 = {
+static struct snd_soc_codec_driver soc_codec_dev_cs47l15 = {
 	.probe = cs47l15_codec_probe,
 	.remove = cs47l15_codec_remove,
 	.get_regmap = cs47l15_get_regmap,
@@ -1357,7 +1365,7 @@ static const struct snd_soc_codec_driver soc_codec_dev_cs47l15 = {
 	},
 };
 
-static const struct snd_compr_ops cs47l15_compr_ops = {
+static struct snd_compr_ops cs47l15_compr_ops = {
 	.open = cs47l15_open,
 	.free = wm_adsp_compr_free,
 	.set_params = wm_adsp_compr_set_params,
@@ -1367,7 +1375,7 @@ static const struct snd_compr_ops cs47l15_compr_ops = {
 	.copy = wm_adsp_compr_copy,
 };
 
-static const struct snd_soc_platform_driver cs47l15_compr_platform = {
+static struct snd_soc_platform_driver cs47l15_compr_platform = {
 	.compr_ops = &cs47l15_compr_ops,
 };
 
@@ -1392,11 +1400,6 @@ static int cs47l15_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, cs47l15);
 
-	/* Set of_node to parent from the SPI device to allow DAPM to
-	 * locate regulator supplies
-	 */
-	pdev->dev.of_node = madera->dev->of_node;
-
 	cs47l15->core.madera = madera;
 	cs47l15->core.dev = &pdev->dev;
 	cs47l15->core.num_inputs = 4;
@@ -1416,10 +1419,6 @@ static int cs47l15_probe(struct platform_device *pdev)
 		dev_err(&pdev->dev, "Failed to request DSP IRQ: %d\n", ret);
 		goto error_overheat;
 	}
-
-	ret = madera_set_irq_wake(madera, MADERA_IRQ_DSP_IRQ1, 1);
-	if (ret)
-		dev_warn(&pdev->dev, "Failed to set DSP IRQ wake: %d\n", ret);
 
 	cs47l15->core.adsp[0].part = "cs47l15";
 	cs47l15->core.adsp[0].num = 1;
@@ -1483,7 +1482,6 @@ error_pm_runtime:
 error_adsp:
 	wm_adsp2_remove(&cs47l15->core.adsp[0]);
 error_dsp_irq:
-	madera_set_irq_wake(madera, MADERA_IRQ_DSP_IRQ1, 0);
 	madera_free_irq(madera, MADERA_IRQ_DSP_IRQ1, cs47l15);
 error_overheat:
 	madera_free_overheat(&cs47l15->core);
@@ -1505,7 +1503,6 @@ static int cs47l15_remove(struct platform_device *pdev)
 
 	wm_adsp2_remove(&cs47l15->core.adsp[0]);
 
-	madera_set_irq_wake(cs47l15->core.madera, MADERA_IRQ_DSP_IRQ1, 0);
 	madera_free_irq(cs47l15->core.madera, MADERA_IRQ_DSP_IRQ1, cs47l15);
 	madera_free_overheat(&cs47l15->core);
 	madera_core_destroy(&cs47l15->core);
@@ -1516,7 +1513,6 @@ static int cs47l15_remove(struct platform_device *pdev)
 static struct platform_driver cs47l15_codec_driver = {
 	.driver = {
 		.name = "cs47l15-codec",
-		.suppress_bind_attrs = true,
 	},
 	.probe = cs47l15_probe,
 	.remove = cs47l15_remove,

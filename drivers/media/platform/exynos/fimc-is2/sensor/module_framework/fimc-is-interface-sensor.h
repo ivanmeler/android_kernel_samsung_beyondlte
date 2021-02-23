@@ -83,6 +83,14 @@ struct ae_param {
 		u32 long_val;
 	};
 	u32 short_val;
+	u32 middle_val;
+};
+
+struct wb_gains {
+	u32 gr;
+	u32 r;
+	u32 b;
+	u32 gb;
 };
 
 typedef struct {
@@ -196,6 +204,7 @@ typedef struct {
 	enum camera2_wdr_mode pre_wdr_mode;
 	enum camera2_disparity_mode disparity_mode;
 	enum camera2_paf_mode paf_mode;
+	enum aa_scene_mode scene_mode;
 } is_shared_data;
 
 typedef struct {
@@ -327,36 +336,36 @@ typedef struct {
 struct v4l2_subdev;
 typedef int (*cis_func_type)(struct v4l2_subdev *subdev, cis_setting_info *info);
 struct fimc_is_cis_ops {
-        int (*cis_init)(struct v4l2_subdev *subdev);
-        int (*cis_deinit)(struct v4l2_subdev *subdev);
-        int (*cis_log_status)(struct v4l2_subdev *subdev);
-        int (*cis_group_param_hold)(struct v4l2_subdev *subdev, bool hold);
-        int (*cis_set_global_setting)(struct v4l2_subdev *subdev);
-        int (*cis_mode_change)(struct v4l2_subdev *subdev, u32 mode);
-        int (*cis_set_size)(struct v4l2_subdev *subdev, cis_shared_data *cis_data);
-        int (*cis_stream_on)(struct v4l2_subdev *subdev);
-        int (*cis_stream_off)(struct v4l2_subdev *subdev);
-        int (*cis_adjust_frame_duration)(struct v4l2_subdev *subdev,
-						u32 input_exposure_time,
-						u32 *target_duration);
+	int (*cis_init)(struct v4l2_subdev *subdev);
+	int (*cis_deinit)(struct v4l2_subdev *subdev);
+	int (*cis_log_status)(struct v4l2_subdev *subdev);
+	int (*cis_group_param_hold)(struct v4l2_subdev *subdev, bool hold);
+	int (*cis_set_global_setting)(struct v4l2_subdev *subdev);
+	int (*cis_mode_change)(struct v4l2_subdev *subdev, u32 mode);
+	int (*cis_set_size)(struct v4l2_subdev *subdev, cis_shared_data *cis_data);
+	int (*cis_stream_on)(struct v4l2_subdev *subdev);
+	int (*cis_stream_off)(struct v4l2_subdev *subdev);
+	int (*cis_adjust_frame_duration)(struct v4l2_subdev *subdev,
+					u32 input_exposure_time,
+					u32 *target_duration);
 	/* Set dynamic frame duration value */
-        int (*cis_set_frame_duration)(struct v4l2_subdev *subdev, u32 frame_duration);
+	int (*cis_set_frame_duration)(struct v4l2_subdev *subdev, u32 frame_duration);
 	/* Set min fps value */
-        int (*cis_set_frame_rate)(struct v4l2_subdev *subdev, u32 min_fps);
-        int (*cis_get_min_exposure_time)(struct v4l2_subdev *subdev, u32 *min_expo);
-        int (*cis_get_max_exposure_time)(struct v4l2_subdev *subdev, u32 *max_expo);
+	int (*cis_set_frame_rate)(struct v4l2_subdev *subdev, u32 min_fps);
+	int (*cis_get_min_exposure_time)(struct v4l2_subdev *subdev, u32 *min_expo);
+	int (*cis_get_max_exposure_time)(struct v4l2_subdev *subdev, u32 *max_expo);
 	cis_func_type cis_adjust_expoure_time; /* TBD */
-        int (*cis_set_exposure_time)(struct v4l2_subdev *subdev, struct ae_param *target_exposure);
-        int (*cis_get_min_analog_gain)(struct v4l2_subdev *subdev, u32 *min_again);
-        int (*cis_get_max_analog_gain)(struct v4l2_subdev *subdev, u32 *max_again);
-        int (*cis_adjust_analog_gain)(struct v4l2_subdev *subdev, u32 input_again, u32 *target_permile);
-        int (*cis_set_analog_gain)(struct v4l2_subdev *subdev, struct ae_param *again);
-        int (*cis_get_analog_gain)(struct v4l2_subdev *subdev, u32 *again);
-        int (*cis_get_min_digital_gain)(struct v4l2_subdev *subdev, u32 *min_dgain);
-        int (*cis_get_max_digital_gain)(struct v4l2_subdev *subdev, u32 *max_dgain);
+	int (*cis_set_exposure_time)(struct v4l2_subdev *subdev, struct ae_param *target_exposure);
+	int (*cis_get_min_analog_gain)(struct v4l2_subdev *subdev, u32 *min_again);
+	int (*cis_get_max_analog_gain)(struct v4l2_subdev *subdev, u32 *max_again);
+	int (*cis_adjust_analog_gain)(struct v4l2_subdev *subdev, u32 input_again, u32 *target_permile);
+	int (*cis_set_analog_gain)(struct v4l2_subdev *subdev, struct ae_param *again);
+	int (*cis_get_analog_gain)(struct v4l2_subdev *subdev, u32 *again);
+	int (*cis_get_min_digital_gain)(struct v4l2_subdev *subdev, u32 *min_dgain);
+	int (*cis_get_max_digital_gain)(struct v4l2_subdev *subdev, u32 *max_dgain);
 	cis_func_type cis_adjust_digital_gain; /* TBD */
-        int (*cis_set_digital_gain)(struct v4l2_subdev *subdev, struct ae_param *dgain);
-        int (*cis_get_digital_gain)(struct v4l2_subdev *subdev, u32 *dgain);
+	int (*cis_set_digital_gain)(struct v4l2_subdev *subdev, struct ae_param *dgain);
+	int (*cis_get_digital_gain)(struct v4l2_subdev *subdev, u32 *dgain);
 	int (*cis_compensate_gain_for_extremely_br)(struct v4l2_subdev *subdev, u32 expo, u32 *again, u32 *dgain);
 	cis_func_type cis_get_line_readout_time_ns; /* TBD */
 	cis_func_type cis_read_sysreg; /* TBD */
@@ -398,6 +407,8 @@ struct fimc_is_cis_ops {
 	int (*cis_set_laser_current)(struct v4l2_subdev *subdev, u32 value);
 	int (*cis_get_laser_photo_diode)(struct v4l2_subdev *subdev, u16 *value);
 	int (*cis_get_tof_tx_freq)(struct v4l2_subdev *subdev, u32 *value);
+	int (*cis_set_totalgain)(struct v4l2_subdev *subdev, struct ae_param *target_exposure, struct ae_param *again, struct ae_param *dgain);
+	int (*cis_set_wb_gains)(struct v4l2_subdev *subdev, struct wb_gains wb_gains);
 };
 
 struct fimc_is_sensor_ctl
@@ -445,6 +456,13 @@ struct fimc_is_sensor_ctl
 
 	// Frame number that indicating shot. Currntly, it is not used.
 	/* (14) */  bool shot_frame_number;
+
+	/* For WB(White Balance) gain update */
+	struct wb_gains wb_gains;
+	bool update_wb_gains;
+
+	/* force_update set when need to update w/o DDK or RTA */
+	bool force_update;
 };
 
 typedef enum fimc_is_sensor_adjust_direction_ {
@@ -840,11 +858,21 @@ struct fimc_is_cis_ext2_interface_ops {
 				u32 *max_dynamic_fps);
 	/* Get static memory address for DDK/RTA backup data */
 	int (*get_static_mem)(int ctrl_id, void **mem, int *size);
+	int (*request_wb_gain)(struct fimc_is_sensor_interface *itf,
+				u32 gr_gain, u32 r_gain, u32 b_gain, u32 gb_gain);	
 	int (*get_open_close_hint)(int* opening, int* closing);
 	int (*set_mainflash_duration)(struct fimc_is_sensor_interface *itf,
 				u32 mainflash_duration);
 	int(*set_previous_dm)(struct fimc_is_sensor_interface *itf);
-	void *reserved[14];
+	int (*request_direct_flash)(struct fimc_is_sensor_interface *itf,
+				u32 mode,
+				bool on,
+				u32 intensity,
+				u32 time);
+	int (*set_sensor_info_mfhdr_mode_change)(struct fimc_is_sensor_interface *itf,
+				u32 count, u32 *long_expo, u32 *long_again, u32 *long_dgain,
+				u32 *expo, u32 *again, u32 *dgain, u32 *sensitivity);
+	void *reserved[11];
 };
 
 struct fimc_is_cis_event_ops {

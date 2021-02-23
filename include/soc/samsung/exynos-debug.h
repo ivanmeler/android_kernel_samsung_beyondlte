@@ -24,11 +24,16 @@ extern int __s3c2410wdt_set_emergency_reset(unsigned int timeout_cnt, int index,
 extern int s3c2410wdt_set_emergency_reset(unsigned int timeout, int index);
 extern int s3c2410wdt_keepalive_emergency(bool reset, int index);
 extern void s3c2410wdt_reset_confirm(unsigned long mtime, int index);
+extern int s3c2410wdt_emergency_multistage_wdt_stop(void);
+extern int s3c2410wdt_emergency_multistage_wdt_start(void);
 #else
 #define s3c2410wdt_set_emergency_stop(a) 	(-1)
 #define s3c2410wdt_set_emergency_reset(a, b)	do { } while(0)
 #define s3c2410wdt_keepalive_emergency(a, b)	do { } while(0)
 #define s3c2410wdt_reset_confirm(a, b)		do { } while(0)
+#define s3c2410wdt_emergency_multistage_wdt_stop()		do { } while (0)
+#define s3c2410wdt_emergency_multistage_wdt_start()		do { } while (0)
+
 #endif
 
 #endif

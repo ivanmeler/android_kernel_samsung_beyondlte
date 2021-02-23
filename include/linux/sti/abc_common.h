@@ -20,10 +20,14 @@
 
 #ifndef SEC_ABC_H
 #define SEC_ABC_H
-
+#include <linux/kconfig.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#if IS_ENABLED(CONFIG_DRV_SAMSUNG)
 #include <linux/sec_class.h>
+#else
+extern struct class *sec_class;
+#endif
 #include <linux/device.h>
 #include <linux/platform_device.h>
 #include <linux/of.h>
@@ -36,14 +40,16 @@
 #include <linux/suspend.h>
 #include <linux/workqueue.h>
 #include <linux/rtc.h>
+#include <linux/version.h>
 #include <linux/sched/clock.h>
-
 #define ABC_UEVENT_MAX		20
 #define ABC_BUFFER_MAX		256
 #define ABC_LOG_STR_LEN		50
 #define ABC_LOG_MAX		80
 
 #define ABC_WAIT_ENABLE_TIMEOUT	10000
+
+#define ABC_PRINT(format, ...) pr_info("[sec_abc] " format, ##__VA_ARGS__)
 
 enum {
 	ABC_DISABLED,
@@ -82,13 +88,28 @@ struct abc_qdata {
 	struct abc_buffer buffer;
 };
 
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+struct abc_motto_data {
+	const char *desc;
+	u32 info_bootcheck_base;
+	u32 info_device_base;
+};
+#endif
+
 struct abc_platform_data {
 	struct abc_qdata *gpu_items;
+	struct abc_qdata *gpu_page_items;
 	struct abc_qdata *aicl_items;
+	struct abc_qdata *mipi_overflow_items;
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+	struct abc_motto_data *motto_data;
+#endif
 
 	unsigned int nItem;
 	unsigned int nGpu;
+	unsigned int nGpuPage;
 	unsigned int nAicl;
+	unsigned int nMipiOverflow;
 };
 
 struct abc_log_entry {
@@ -111,4 +132,17 @@ struct abc_info {
 extern void sec_abc_send_event(char *str);
 extern int sec_abc_get_enabled(void);
 extern int sec_abc_wait_enabled(void);
+
+#if IS_ENABLED(CONFIG_SEC_ABC_MOTTO)
+extern void motto_send_bootcheck_info(int boot_time);
+
+void init_motto_magic(void);
+void motto_send_device_info(char *event_type);
+void get_motto_info(struct device *dev,
+			   u32 *ret_info_boot, u32 *ret_info_device);
+int parse_motto_data(struct device *dev,
+			   struct abc_platform_data *pdata,
+			   struct device_node *np);
+#endif
+
 #endif

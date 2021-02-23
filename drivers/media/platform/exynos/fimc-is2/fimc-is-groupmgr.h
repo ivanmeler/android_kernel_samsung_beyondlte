@@ -102,6 +102,12 @@
 #define REPROCESSING_TICK_COUNT	(7) /* about 200ms */
 #endif
 
+#define CHK_REMOSAIC_SCN(captureIntent)	\
+	(((captureIntent == AA_CAPTURE_INTENT_STILL_CAPTURE_REMOSAIC_SINGLE) \
+	|| (captureIntent == AA_CAPTURE_INTENT_STILL_CAPTURE_REMOSAIC_SINGLE_FLASH) \
+	|| (captureIntent == AA_CAPTURE_INTENT_STILL_CAPTURE_REMOSAIC_MFHDR_DYNAMIC_SHOT)) ? 1 : 0)
+
+
 enum fimc_is_group_state {
 	FIMC_IS_GROUP_OPEN,
 	FIMC_IS_GROUP_INIT,

@@ -20,7 +20,6 @@ obj-$(CONFIG_MFD_CROS_EC_SPI)	+= cros_ec_spi.o
 obj-$(CONFIG_MFD_CS35L41)	+= cs35l41-core.o cs35l41-tables.o cs35l41-cal.o cs35l41-bd.o cs35l41-pwr.o cirrus-cal.o cirrus-bd.o cirrus-amp.o cirrus-pwr.o
 obj-$(CONFIG_MFD_CS35L41_SPI)	+= cs35l41-spi.o
 obj-$(CONFIG_MFD_CS35L41_I2C)	+= cs35l41-i2c.o
-
 obj-$(CONFIG_MFD_EXYNOS_LPASS)	+= exynos-lpass.o
 
 rtsx_pci-objs			:= rtsx_pcr.o rts5209.o rts5229.o rtl8411.o rts5227.o rts5249.o

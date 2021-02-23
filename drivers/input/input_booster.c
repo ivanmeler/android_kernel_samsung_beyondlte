@@ -8,9 +8,6 @@ spinlock_t write_qos_lock;
 spinlock_t ib_type_lock;
 struct mutex trigger_ib_lock;
 
-struct workqueue_struct *ev_unbound_wq;
-struct workqueue_struct *ib_unbound_highwq;
-
 int total_ib_cnt = 0;
 int ib_init_succeed = 0;
 
@@ -108,7 +105,7 @@ void trigger_input_booster(struct work_struct *work)
 			}
 		}
 
-		queue_work(ib_unbound_highwq, &(ib->ib_state_work[IB_HEAD]));
+		queue_work(system_unbound_wq, &(ib->ib_state_work[IB_HEAD]));
 
 	} else {
 		/*  Find ib instance in the list. if not, ignore this event.
@@ -131,7 +128,7 @@ void trigger_input_booster(struct work_struct *work)
 		// If head operation is already finished, tail timeout work will be triggered.
 		if (ib->isHeadFinished) {
 			if (!delayed_work_pending(&(ib->ib_timeout_work[IB_TAIL]))) {
-				queue_delayed_work(ib_unbound_highwq,
+				queue_delayed_work(system_unbound_wq,
 					&(ib->ib_timeout_work[IB_TAIL]),
 					msecs_to_jiffies(ib->ib_dt->tail_time));
 			} else {
@@ -260,11 +257,9 @@ void press_state_func(struct work_struct *work)
 	}
 
 	ib_set_booster(qos_values);
-	pr_booster("Press State Func :::: Press Delay Time(%lu)",
-		msecs_to_jiffies(target_ib->ib_dt->head_time));
+	pr_booster("Press State Func :::: Press Delay Time(%lu)", msecs_to_jiffies(target_ib->ib_dt->head_time));
 
-	queue_delayed_work(ib_unbound_highwq, &(target_ib->ib_timeout_work[IB_HEAD]),
-		msecs_to_jiffies(target_ib->ib_dt->head_time));
+	queue_delayed_work(system_unbound_wq, &(target_ib->ib_timeout_work[IB_HEAD]), msecs_to_jiffies(target_ib->ib_dt->head_time));
 }
 
 void press_timeout_func(struct work_struct *work)
@@ -282,7 +277,7 @@ void press_timeout_func(struct work_struct *work)
 	if (target_ib->ib_dt->tail_time != 0) {
 		mutex_lock(&target_ib->lock);
 		target_ib->isHeadFinished = 1;
-		queue_work(ib_unbound_highwq, &(target_ib->ib_state_work[IB_TAIL]));
+		queue_work(system_unbound_wq, &(target_ib->ib_state_work[IB_TAIL]));
 		mutex_unlock(&target_ib->lock);
 	}
 	else {
@@ -361,7 +356,7 @@ void release_state_func(struct work_struct *work)
 	// If release event already triggered, tail delay work will be triggered after relese state func.
 	if (target_ib->rel_flag == FLAG_ON) {
 		if (!delayed_work_pending(&(target_ib->ib_timeout_work[IB_TAIL]))) {
-			queue_delayed_work(ib_unbound_highwq,
+			queue_delayed_work(system_unbound_wq,
 				&(target_ib->ib_timeout_work[IB_TAIL]),
 				msecs_to_jiffies(target_ib->ib_dt->tail_time));
 		} else {
@@ -561,16 +556,6 @@ void input_booster_init(void)
 	spin_lock_init(&write_qos_lock);
 	spin_lock_init(&ib_type_lock);
 	mutex_init(&trigger_ib_lock);
-
-	ev_unbound_wq =
-		alloc_ordered_workqueue("ev_unbound_wq", WQ_HIGHPRI);
-
-	ib_unbound_highwq =
-		alloc_workqueue("ib_unbound_high_wq", WQ_UNBOUND | WQ_HIGHPRI,
-					 MAX_IB_COUNT);
-
-	if (ev_unbound_wq == NULL || ib_unbound_highwq == NULL)
-		goto out;
 
 	//Input Booster Trigger Strcut Init
 	ib_trigger = kcalloc(ABS_CNT, sizeof(struct t_ib_trigger) * MAX_IB_COUNT, GFP_KERNEL);

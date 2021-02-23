@@ -253,7 +253,7 @@ static void update_intermediate_timeout(unsigned int timeout) {
 
 /* This function is used to get the intermediate flow timeout value */
 unsigned int get_intermediate_timeout(void) {
-	return intermediate_flow_timeout; 
+	return intermediate_flow_timeout;
 }
 EXPORT_SYMBOL(get_intermediate_timeout);
 
@@ -281,8 +281,8 @@ static unsigned int hook_func_ipv4_out_conntrack(void *priv, struct sk_buff *skb
 					sprintf(srcaddr,"%pI4",(void *)&tuple->src.u3.ip);
 					sprintf(dstaddr,"%pI4",(void *)&tuple->dst.u3.ip);
 					if ( isIpv4AddressEqualsNull(srcaddr, dstaddr) ) {
-						return NF_ACCEPT;	
-					}	
+						return NF_ACCEPT;
+					}
 				} else {
 					return NF_ACCEPT;
 				}
@@ -397,8 +397,8 @@ static unsigned int hook_func_ipv6_out_conntrack(void *priv, struct sk_buff *skb
 					sprintf(srcaddr,"%pI6",(void *)&tuple->src.u3.ip6);
 					sprintf(dstaddr,"%pI6",(void *)&tuple->dst.u3.ip6);
 					if ( isIpv6AddressEqualsNull(srcaddr, dstaddr) ) {
-						return NF_ACCEPT;	
-					}	
+						return NF_ACCEPT;
+					}
 				} else {
 					return NF_ACCEPT;
 				}
@@ -499,7 +499,7 @@ static unsigned int hook_func_ipv4_in_conntrack(void *priv, struct sk_buff *skb,
 
 	if (skb){
 		ip_header = (struct iphdr *)skb_network_header(skb);
-		if ( (ip_header) && (ip_header->protocol == IPPROTO_TCP || ip_header->protocol == IPPROTO_UDP || ip_header->protocol == IPPROTO_SCTP || ip_header->protocol == IPPROTO_ICMP || ip_header->protocol == IPPROTO_ICMPV6) ) {		
+		if ( (ip_header) && (ip_header->protocol == IPPROTO_TCP || ip_header->protocol == IPPROTO_UDP || ip_header->protocol == IPPROTO_SCTP || ip_header->protocol == IPPROTO_ICMP || ip_header->protocol == IPPROTO_ICMPV6) ) {
 			ct = nf_ct_get(skb, &ctinfo);
 			if ( (ct) && (!nf_ct_is_dying(ct)) ) {
 				if (ip_header->protocol == IPPROTO_TCP) {

@@ -22,6 +22,76 @@
 #include "fimc-is-dvfs.h"
 #include "fimc-is-hw-dvfs.h"
 
+void fimc_is_ischain_3ap_stripe_cfg(struct fimc_is_subdev *subdev,
+		struct fimc_is_frame *ldr_frame,
+		struct fimc_is_crop *otcrop,
+		u32 bitwidth)
+{
+	struct fimc_is_framemgr *framemgr;
+	struct fimc_is_frame *frame;
+	unsigned long flags;
+	u32 stripe_x, stripe_w, dma_offset = 0;
+	u32 region_id = ldr_frame->stripe_info.region_id;
+
+	framemgr = GET_SUBDEV_FRAMEMGR(subdev);
+	if (!framemgr)
+		return;
+
+	framemgr_e_barrier_irqs(framemgr, FMGR_IDX_24, flags);
+
+	frame = peek_frame(framemgr, ldr_frame->state);
+	if (frame) {
+		/* Output crop & WDMA offset configuration */
+		if (!region_id) {
+			/* Left region */
+			stripe_x = otcrop->x;
+			stripe_w = ldr_frame->stripe_info.out.h_pix_num;
+
+			frame->stripe_info.out.h_pix_num = stripe_w;
+			frame->stripe_info.region_base_addr[0] = frame->dvaddr_buffer[0];
+		} else if (region_id < ldr_frame->stripe_info.region_num - 1) {
+			stripe_x = 0;
+			stripe_w = ldr_frame->stripe_info.out.h_pix_num - ldr_frame->stripe_info.out.prev_h_pix_num;
+			/**
+			 * 3AA writes the right region with stripe margin.
+			 * Add horizontal & vertical DMA offset.
+			 */
+			dma_offset = ldr_frame->stripe_info.out.prev_h_pix_num + (2 * region_id - 1) * STRIPE_MARGIN_WIDTH;
+			dma_offset = dma_offset * bitwidth / BITS_PER_BYTE;
+			dma_offset *= otcrop->h;
+
+			frame->stripe_info.out.h_pix_num += stripe_w;
+			stripe_w += STRIPE_MARGIN_WIDTH;
+		} else {
+			/* Right region */
+			stripe_x = 0;
+			stripe_w = ldr_frame->stripe_info.out.h_pix_num - ldr_frame->stripe_info.out.prev_h_pix_num;
+			/**
+			 * 3AA writes the right region with stripe margin.
+			 * Add horizontal & vertical DMA offset.
+			 */
+			dma_offset = ldr_frame->stripe_info.out.prev_h_pix_num + (2 * region_id - 1) * STRIPE_MARGIN_WIDTH;
+			dma_offset = dma_offset * bitwidth / BITS_PER_BYTE;
+			dma_offset *= otcrop->h;
+
+			frame->stripe_info.out.h_pix_num += stripe_w;
+		}
+		stripe_w += STRIPE_MARGIN_WIDTH;
+
+		otcrop->x = stripe_x;
+		otcrop->w = stripe_w;
+
+		frame->dvaddr_buffer[0] = frame->stripe_info.region_base_addr[0] + dma_offset;
+		frame->stream->stripe_h_pix_nums[region_id] = frame->stripe_info.out.h_pix_num;
+
+		mdbg_pframe("stripe_ot_crop[%d][%d, %d, %d, %d] offset %x\n", subdev, subdev, ldr_frame,
+				region_id,
+				otcrop->x, otcrop->y, otcrop->w, otcrop->h, dma_offset);
+	}
+
+	framemgr_x_barrier_irqr(framemgr, FMGR_IDX_24, flags);
+}
+
 static int fimc_is_ischain_3ap_cfg(struct fimc_is_subdev *subdev,
 	void *device_data,
 	struct fimc_is_frame *frame,
@@ -49,11 +119,13 @@ static int fimc_is_ischain_3ap_start(struct fimc_is_device_ischain *device,
 	struct param_dma_output *dma_output;
 	struct fimc_is_module_enum *module;
 	u32 hw_format, hw_bitwidth;
+	struct fimc_is_crop otcrop_cfg;
 
 	FIMC_BUG(!queue);
 	FIMC_BUG(!queue->framecfg.format);
 
 	group = &device->group_3aa;
+	otcrop_cfg = *otcrop;
 
 	hw_format = queue->framecfg.format->hw_format;
 	hw_bitwidth = queue->framecfg.format->hw_bitwidth; /* memory width per pixel */
@@ -64,21 +136,27 @@ static int fimc_is_ischain_3ap_start(struct fimc_is_device_ischain *device,
 		goto p_err;
 	}
 
-	if ((otcrop->w > taa_param->otf_input.bayer_crop_width) ||
-		(otcrop->h > taa_param->otf_input.bayer_crop_height)) {
+	if (IS_ENABLED(CHAIN_USE_STRIPE_PROCESSING) && frame && frame->stripe_info.region_num)
+		fimc_is_ischain_3ap_stripe_cfg(subdev,
+				frame,
+				&otcrop_cfg,
+				hw_bitwidth);
+
+	if ((otcrop_cfg.w > taa_param->otf_input.bayer_crop_width) ||
+		(otcrop_cfg.h > taa_param->otf_input.bayer_crop_height)) {
 		mrerr("bds output size is invalid((%d, %d) > (%d, %d))", device, frame,
-			otcrop->w,
-			otcrop->h,
+			otcrop_cfg.w,
+			otcrop_cfg.h,
 			taa_param->otf_input.bayer_crop_width,
 			taa_param->otf_input.bayer_crop_height);
 		ret = -EINVAL;
 		goto p_err;
 	}
 
-	if (otcrop->x || otcrop->y) {
-		mwarn("crop pos(%d, %d) is ignored", device, otcrop->x, otcrop->y);
-		otcrop->x = 0;
-		otcrop->y = 0;
+	if (otcrop_cfg.x || otcrop_cfg.y) {
+		mwarn("crop pos(%d, %d) is ignored", device, otcrop_cfg.x, otcrop_cfg.y);
+		otcrop_cfg.x = 0;
+		otcrop_cfg.y = 0;
 	}
 
 	/*
@@ -95,8 +173,8 @@ static int fimc_is_ischain_3ap_start(struct fimc_is_device_ischain *device,
 	dma_output->msb = MSB_OF_3AA_DMA_OUT;
 #ifdef USE_3AA_CROP_AFTER_BDS
 	if (test_bit(FIMC_IS_GROUP_OTF_INPUT, &group->state)) {
-		dma_output->width = otcrop->w;
-		dma_output->height = otcrop->h;
+		dma_output->width = otcrop_cfg.w;
+		dma_output->height = otcrop_cfg.h;
 		dma_output->crop_enable = 0;
 	} else {
 		dma_output->width = taa_param->otf_input.bayer_crop_width;
@@ -104,14 +182,17 @@ static int fimc_is_ischain_3ap_start(struct fimc_is_device_ischain *device,
 		dma_output->crop_enable = 1;
 	}
 #else
-	dma_output->width = otcrop->w;
-	dma_output->height = otcrop->h;
+	dma_output->width = otcrop_cfg.w;
+	dma_output->height = otcrop_cfg.h;
 	dma_output->crop_enable = 0;
 #endif
-	dma_output->dma_crop_offset_x = otcrop->x;
-	dma_output->dma_crop_offset_y = otcrop->y;
-	dma_output->dma_crop_width = otcrop->w;
-	dma_output->dma_crop_height = otcrop->h;
+	dma_output->dma_crop_offset_x = otcrop_cfg.x;
+	dma_output->dma_crop_offset_y = otcrop_cfg.y;
+	dma_output->dma_crop_width = otcrop_cfg.w;
+	dma_output->dma_crop_height = otcrop_cfg.h;
+
+	dma_output->stride_plane0 = otcrop->w;
+
 	*lindex |= LOWBIT_OF(subdev->param_dma_ot);
 	*hindex |= HIGHBIT_OF(subdev->param_dma_ot);
 	(*indexes)++;
@@ -247,6 +328,7 @@ static int fimc_is_ischain_3ap_tag(struct fimc_is_subdev *subdev,
 
 	if (node->request) {
 		if (!COMPARE_CROP(otcrop, &otparm) ||
+			CHECK_STRIPE_CFG(&ldr_frame->stripe_info) ||
 			!test_bit(FIMC_IS_SUBDEV_RUN, &subdev->state) ||
 			test_bit(FIMC_IS_SUBDEV_FORCE_SET, &leader->state)) {
 			ret = fimc_is_ischain_3ap_start(device,

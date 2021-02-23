@@ -12,6 +12,7 @@
 #define MADERA_CORE_H
 
 #include <linux/interrupt.h>
+#include <linux/mutex.h>
 #include <linux/notifier.h>
 #include <linux/regmap.h>
 #include <linux/gpio/consumer.h>
@@ -134,6 +135,8 @@ enum madera_type {
 #define MADERA_GP_FN_EVENTLOG7_FIFO_STS	0x156
 #define MADERA_GP_FN_EVENTLOG8_FIFO_STS	0x157
 
+#define MADERA_IGND_FLAG 0x80000000
+
 struct snd_soc_dapm_context;
 struct madera_extcon;
 
@@ -163,6 +166,9 @@ struct madera {
 
 	struct device *irq_dev;
 	int irq;
+
+	unsigned int ignd_cache[MADERA_MAX_OUTPUT];
+	struct mutex ignd_lock;
 
 	unsigned int out_clamp[MADERA_MAX_OUTPUT];
 	unsigned int out_shorted[MADERA_MAX_OUTPUT];

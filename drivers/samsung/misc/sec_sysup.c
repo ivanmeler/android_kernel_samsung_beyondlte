@@ -69,6 +69,7 @@ static ssize_t sec_edtbo_update_store(struct kobject *kobj,
 	struct inode *inode;
 	u64 len;
 	int update, error;
+	int ret = 0;
 
 	if (!edtbo_offset)
 		return -EFAULT;
@@ -122,7 +123,7 @@ static ssize_t sec_edtbo_update_store(struct kobject *kobj,
 		goto alloc_err;
 	}
 
-	sec_set_param_extra(edtbo_offset, pfiemap, SEC_PARAM_EXTRA_MAX);
+	ret = sec_set_param_extra(edtbo_offset, pfiemap, SEC_PARAM_EXTRA_MAX);
 
 	error = size;
 

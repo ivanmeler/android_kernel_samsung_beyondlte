@@ -125,5 +125,6 @@ void *ccic_core_get_drvdata(void);
 int ccic_misc_init(pccic_data_t pccic_data);
 void ccic_misc_exit(void);
 extern unsigned int pn_flag;
+struct device *get_ccic_device(void);
 #endif
 

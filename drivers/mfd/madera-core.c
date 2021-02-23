@@ -652,6 +652,7 @@ int madera_dev_init(struct madera *madera)
 	dev_set_drvdata(madera->dev, madera);
 
 	BLOCKING_INIT_NOTIFIER_HEAD(&madera->notifier);
+	mutex_init(&madera->ignd_lock);
 
 	if (dev_get_platdata(madera->dev)) {
 		memcpy(&madera->pdata, dev_get_platdata(madera->dev),

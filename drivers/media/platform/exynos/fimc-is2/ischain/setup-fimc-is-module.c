@@ -173,6 +173,7 @@ static int exynos_fimc_is_module_pin_control(struct fimc_is_module_enum *module,
 		break;
 	case PIN_I2C:
 		ret = fimc_is_i2c_pin_control(module, scenario, value);
+		usleep_range(delay, delay);
 		break;
 	case PIN_MCLK:
 		subdev_module = module->subdev;

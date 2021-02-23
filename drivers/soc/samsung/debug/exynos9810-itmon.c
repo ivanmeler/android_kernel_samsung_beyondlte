@@ -24,9 +24,6 @@
 #if defined(CONFIG_SEC_SIPC_MODEM_IF)
 #include <soc/samsung/exynos-modem-ctrl.h>
 #endif
-#ifdef CONFIG_SEC_DEBUG
-#include <linux/sec_debug.h>
-#endif
 #ifdef CONFIG_EXYNOS_ACPM_S2D
 #include <soc/samsung/acpm_ipc_ctrl.h>
 #endif
@@ -990,8 +987,7 @@ static void itmon_report_traceinfo(struct itmon_dev *itmon,
 	if (!traceinfo->dirty)
 		return;
 
-	pr_auto(ASL3,
-		"--------------------------------------------------------------------------\n"
+	pr_info("--------------------------------------------------------------------------\n"
 		"      Transaction Information\n\n"
 		"      > Master         : %s %s\n"
 		"      > Target         : %s\n"
@@ -1009,8 +1005,7 @@ static void itmon_report_traceinfo(struct itmon_dev *itmon,
 	if (node) {
 		struct itmon_tracedata *tracedata = &node->tracedata;
 
-		pr_auto(ASL3,
-			"      > Size           : %u bytes x %u burst => %u bytes\n"
+		pr_info("      > Size           : %u bytes x %u burst => %u bytes\n"
 			"      > Burst Type     : %u (0:FIXED, 1:INCR, 2:WRAP)\n"
 			"      > Level          : %s\n"
 			"      > Protection     : %s\n",
@@ -1021,13 +1016,12 @@ static void itmon_report_traceinfo(struct itmon_dev *itmon,
 			(BIT_AXPROT(tracedata->ext_info_2) & 0x2) ? "Non-secure access" : "Secure access");
 
 		group = node->group;
-		pr_auto(ASL3,
-			"      > Path Type      : %s\n"
+		pr_info("      > Path Type      : %s\n"
 			"--------------------------------------------------------------------------\n",
 			itmon_pathtype[traceinfo->path_type == -1 ? group->bus_type : traceinfo->path_type]);
 
 	} else {
-		pr_auto(ASL3, "--------------------------------------------------------------------------\n");
+		pr_info("--------------------------------------------------------------------------\n");
 	}
 }
 
@@ -1040,8 +1034,7 @@ static void itmon_report_pathinfo(struct itmon_dev *itmon,
 	struct itmon_traceinfo *traceinfo = &pdata->traceinfo[trans_type];
 
 	if (!traceinfo->path_dirty) {
-		pr_auto(ASL3,
-			"--------------------------------------------------------------------------\n"
+		pr_info("--------------------------------------------------------------------------\n"
 			"      ITMON Report (%s)\n"
 			"--------------------------------------------------------------------------\n"
 			"      PATH Information\n",
@@ -1050,19 +1043,19 @@ static void itmon_report_pathinfo(struct itmon_dev *itmon,
 	}
 	switch (node->type) {
 	case M_NODE:
-		pr_auto(ASL3, " > %14s, %8s(0x%08X)\n",
+		pr_info("      > %14s, %8s(0x%08X)\n",
 			node->name, "M_NODE", node->phy_regs + tracedata->offset);
 		break;
 	case T_S_NODE:
-		pr_auto(ASL3, " > %14s, %8s(0x%08X)\n",
+		pr_info("      > %14s, %8s(0x%08X)\n",
 			node->name, "T_S_NODE", node->phy_regs + tracedata->offset);
 		break;
 	case T_M_NODE:
-		pr_auto(ASL3, " > %14s, %8s(0x%08X)\n",
+		pr_info("      > %14s, %8s(0x%08X)\n",
 			node->name, "T_M_NODE", node->phy_regs + tracedata->offset);
 		break;
 	case S_NODE:
-		pr_auto(ASL3, " > %14s, %8s(0x%08X)\n",
+		pr_info("      > %14s, %8s(0x%08X)\n",
 			node->name, "S_NODE", node->phy_regs + tracedata->offset);
 		break;
 	}
@@ -1272,7 +1265,7 @@ static void itmon_route_tracedata(struct itmon_dev *itmon)
 
 	if (pdata->traceinfo[TRANS_TYPE_READ].dirty ||
 		pdata->traceinfo[TRANS_TYPE_WRITE].dirty)
-		pr_auto(ASL3, " Raw Register Information(ITMON Internal Information)\n\n");
+		pr_info("      Raw Register Information(ITMON Internal Information)\n\n");
 
 	for (trans_type = 0; trans_type < TRANS_TYPE_NUM; trans_type++) {
 		for (i = M_NODE; i < NODE_TYPE; i++) {
@@ -1289,7 +1282,7 @@ static void itmon_route_tracedata(struct itmon_dev *itmon)
 
 	if (pdata->traceinfo[TRANS_TYPE_READ].dirty ||
 		pdata->traceinfo[TRANS_TYPE_WRITE].dirty)
-		pr_auto(ASL3, "--------------------------------------------------------------------------\n");
+		pr_info("--------------------------------------------------------------------------\n");
 
 	for (trans_type = 0; trans_type < TRANS_TYPE_NUM; trans_type++) {
 		itmon_post_handler_to_notifier(itmon, trans_type);
@@ -1335,7 +1328,7 @@ static void itmon_trace_data(struct itmon_dev *itmon,
 		/* Only NOT S-Node is able to make log to registers */
 		break;
 	default:
-		pr_auto(ASL3, "Unknown Error - node:%s offset:%u\n", node->name, offset);
+		pr_info("Unknown Error - node:%s offset:%u\n", node->name, offset);
 		break;
 	}
 
@@ -1362,7 +1355,7 @@ static void itmon_trace_data(struct itmon_dev *itmon,
 
 		list_add(&new_node->list, &pdata->tracelist[read]);
 	} else {
-		pr_auto(ASL3, "failed to kmalloc for %s node %x offset\n",
+		pr_info("failed to kmalloc for %s node %x offset\n",
 			node->name, offset);
 	}
 }

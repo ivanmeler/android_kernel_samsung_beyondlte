@@ -21,8 +21,25 @@
 #define CS35L41_BD_TEMP_RADIX		14
 #define CS35L41_BD_EXC_RADIX		19
 
-void cirrus_bd_store_values_left(void);
-void cirrus_bd_store_values_right(void);
-int cirrus_bd_amp_add(struct regmap *regmap_new, bool right_channel_amp);
-int cirrus_bd_init(struct class *cirrus_amp_class);
+#define CIRRUS_BD_NUM_ATTRS_BASE	1
+#define CIRRUS_BD_NUM_ATTRS_AMP		7
+
+struct cirrus_bd_ext {
+	unsigned int *max_exc;
+	unsigned int *over_exc_count;
+	unsigned int *max_temp;
+	unsigned int *max_temp_keep;
+	unsigned int *over_temp_count;
+	unsigned int *abnm_mute;
+};
+
+extern struct cirrus_bd_ext cirrus_bd_data;
+
+int cirrus_bd_get_index_from_suffix(const char *suffix);
+void cirrus_bd_store_values(const char *mfd_suffix);
+int cirrus_bd_amp_add(struct regmap *regmap_new, const char *mfd_suffix,
+					const char *dsp_part_name);
+int cirrus_bd_init(struct class *cirrus_amp_class, int num_amps,
+					const char **mfd_suffixes,
+					const char **bd_suffixes);
 void cirrus_bd_exit(void);

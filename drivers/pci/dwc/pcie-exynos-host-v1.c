@@ -42,14 +42,12 @@
 #include <linux/random.h>
 #include <linux/shm_ipc.h>     /* for S5100 MSI target addr. set */
 #include <linux/soc/samsung/exynos-soc.h>
-#include <soc/samsung/exynos-modem-ctrl.h>
 
 #ifdef CONFIG_LINK_DEVICE_PCIE
 #define MODIFY_MSI_ADDR
 #endif	/* CONFIG_LINK_DEVICE_PCIE */
 
 /* #define CONFIG_DYNAMIC_PHY_OFF */
-/* #define CONFIG_SEC_PANIC_PCIE_ERR */
 
 #if 0 /* Todo : It shoud be changed after getting new guide from designer */
 /*CONFIG_SOC_EXYNOS9820*/
@@ -220,6 +218,7 @@ static int exynos_pcie_set_l1ss(int enable, struct pcie_port *pp, int id)
 			exynos_pcie_wr_own_conf(pp, exp_cap_off + PCI_EXP_DEVCTL2, 4,
 					PCI_EXP_DEVCTL2_LTR_EN);
 
+
 			/* 2-1. EP: set LTR_EN (reg_addr = 0x98) */
 			pci_read_config_dword(ep_pci_dev, exp_cap_off + PCI_EXP_DEVCTL2, &val);
 			val |= PCI_EXP_DEVCTL2_LTR_EN;
@@ -243,6 +242,7 @@ static int exynos_pcie_set_l1ss(int enable, struct pcie_port *pp, int id)
 			val |= PORT_LINK_L1SS_ENABLE;
 			/* DBG: dev_err(pci->dev, "EP L1SS_CONTORL = 0x%x\n", val); */
 			pci_write_config_dword(ep_pci_dev, PCIE_LINK_L1SS_CONTROL, val);
+
 
 			/* 3. RC ASPM Enable*/
 			exynos_pcie_rd_own_conf(pp, exp_cap_off + PCI_EXP_LNKCTL, 4, &val);
@@ -970,10 +970,6 @@ static int exynos_pcie_clock_enable(struct pcie_port *pp, int enable)
 	if (enable) {
 		for (i = 0; i < exynos_pcie->pcie_clk_num; i++)
 			ret = clk_prepare_enable(clks->pcie_clks[i]);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-			if (ret)
-				panic("[PCIe1 PANIC Case#2] clk fail!\n");
-#endif		
 	} else {
 		for (i = 0; i < exynos_pcie->pcie_clk_num; i++)
 			clk_disable_unprepare(clks->pcie_clks[i]);
@@ -993,10 +989,6 @@ static int exynos_pcie_phy_clock_enable(struct pcie_port *pp, int enable)
 	if (enable) {
 		for (i = 0; i < exynos_pcie->phy_clk_num; i++)
 			ret = clk_prepare_enable(clks->phy_clks[i]);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-			if (ret)
-				panic("[PCIe1 PANIC Case#3] PHY clk fail!\n");
-#endif		
 	} else {
 		for (i = 0; i < exynos_pcie->phy_clk_num; i++)
 			clk_disable_unprepare(clks->phy_clks[i]);
@@ -1216,15 +1208,12 @@ retry:
 					  PCIE_APP_LTSSM_ENABLE);
 			exynos_pcie_phy_clock_enable(pp, PCIE_DISABLE_CLOCK);
 
-			/* DBG: to add 5ms delay before make PERST high */
+			/* 5ms delay before making PERST 1 when link is not up */
 			usleep_range(4800, 5000);
 
 			goto retry;
 		} else {
 			exynos_pcie_host_v1_print_link_history(pp);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-			panic("[PCIe1 PANIC Case#1] PCIe Link up fail!\n");
-#endif	
 			if ((exynos_pcie->ip_ver >= 0x889000) &&
 				(exynos_pcie->ep_device_type == EP_BCM_WIFI)) {
 				return -EPIPE;
@@ -1239,7 +1228,6 @@ retry:
 		val = (val >> 16) & 0xf;
 		dev_info(dev, "Current Link Speed is GEN%d (MAX GEN%d)\n",
 				val, exynos_pcie->max_link_speed);
-
 		/* check link training result(speed) */
 		if (exynos_pcie->ip_ver == 0x982000 && val < 3) {
 			try_cnt++;
@@ -1313,11 +1301,6 @@ void exynos_pcie_host_v1_dislink_work(struct work_struct *work)
 	dev_info(dev, "link down and recovery cnt: %d\n",
 			exynos_pcie->linkdown_cnt);
 
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-	//panic("[PCIe1 Case#4 PANIC] PCIe Link down occurred!\n");
-	modem_force_crash_exit_ext();
-#endif
-			
 	exynos_pcie_notify_callback(pp, EXYNOS_PCIE_EVENT_LINKDOWN);
 }
 
@@ -2357,6 +2340,7 @@ int exynos_pcie_host_v1_poweron(int ch_num)
 	if (exynos_pcie->state == STATE_LINK_DOWN) {
 		ret = exynos_pcie_clock_enable(pp, PCIE_ENABLE_CLOCK);
 		dev_err(pci->dev, "pcie clk enable, ret value = %d\n", ret);
+
 		/* It's not able to use with current SW PMU */
 #ifdef ENTER_SICD_DURING_L1_2
 		/* Release wakeup maks */
@@ -2650,10 +2634,6 @@ retry_pme_turnoff:
 			goto retry_pme_turnoff;
 		}
 		dev_err(dev, "cannot receive L23_READY DLLP packet(0x%x)\n", val);
-#ifdef CONFIG_SEC_PANIC_PCIE_ERR
-		//panic("[PCIe1 PANIC Case#5] L2/3 READY fail!\n");
-		modem_force_crash_exit_ext();
-#endif
 	}
 }
 

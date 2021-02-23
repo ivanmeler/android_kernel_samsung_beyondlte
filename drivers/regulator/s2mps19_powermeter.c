@@ -654,15 +654,15 @@ void s2mps19_powermeter_init(struct s2mps19_dev *s2mps19)
 
 	pr_info("%s: s2mps19 power meter init start\n", __func__);
 
-	/* initial regulators : BUCK 1,2,3,4,5,6,11(LLDO3),12(MLDO) */
+	/* initial regulators : BUCK 1,2,3,4,5,6,7,8 */
 	adc_meter->adc_reg[0] = 0x1;
 	adc_meter->adc_reg[1] = 0x2;
 	adc_meter->adc_reg[2] = 0x3;
 	adc_meter->adc_reg[3] = 0x4;
 	adc_meter->adc_reg[4] = 0x5;
 	adc_meter->adc_reg[5] = 0x6;
-	adc_meter->adc_reg[6] = 0xB;
-	adc_meter->adc_reg[7] = 0xC;
+	adc_meter->adc_reg[6] = 0x7;
+	adc_meter->adc_reg[7] = 0x8;
 
 	adc_meter->adc_mode = s2mps19->adc_mode;
 	adc_meter->adc_sync_mode = s2mps19->adc_sync_mode;
@@ -772,16 +772,6 @@ void s2mps19_powermeter_init(struct s2mps19_dev *s2mps19)
 	ret = device_create_file(s2mps19_adc_dev, &dev_attr_adc_ctrl1);
 	if (ret)
 		goto remove_adc_reg_7;
-
-#ifdef CONFIG_SEC_PM
-	if (!IS_ERR_OR_NULL(ap_pmic_dev)) {
-		ret = sysfs_create_link(&ap_pmic_dev->kobj,
-				&s2mps19_adc_dev->kobj, "power_meter");
-		if (ret)
-			pr_err("%s: fail to create link for power_meter(%d)\n",
-					__func__, ret);
-	}
-#endif /* CONFIG_SEC_PM */
 
 	pr_info("%s: s2mps19 power meter init end\n", __func__);
 	return ;

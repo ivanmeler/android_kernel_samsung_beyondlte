@@ -194,7 +194,8 @@ phys_addr_t __init_memblock memblock_find_in_range_node(phys_addr_t size,
 	phys_addr_t kernel_end, ret;
 
 	/* pump up @end */
-	if (end == MEMBLOCK_ALLOC_ACCESSIBLE)
+	if (end == MEMBLOCK_ALLOC_ACCESSIBLE ||
+	    end == MEMBLOCK_ALLOC_KASAN)
 		end = memblock.current_limit;
 
 	/* avoid allocating the first page */
@@ -1444,13 +1445,15 @@ done:
 	ptr = phys_to_virt(alloc);
 	memset(ptr, 0, size);
 
-	/*
-	 * The min_count is set to 0 so that bootmem allocated blocks
-	 * are never reported as leaks. This is because many of these blocks
-	 * are only referred via the physical address which is not
-	 * looked up by kmemleak.
-	 */
-	kmemleak_alloc(ptr, size, 0, 0);
+	/* Skip kmemleak for kasan_init() due to high volume. */
+	if (max_addr != MEMBLOCK_ALLOC_KASAN)
+		/*
+		 * The min_count is set to 0 so that bootmem allocated
+		 * blocks are never reported as leaks. This is because many
+		 * of these blocks are only referred via the physical
+		 * address which is not looked up by kmemleak.
+		 */
+		kmemleak_alloc(ptr, size, 0, 0);
 
 	return ptr;
 }
@@ -1897,37 +1900,6 @@ static int __init early_memblock(char *p)
 }
 early_param("memblock", early_memblock);
 
-#if defined(CONFIG_DEBUG_FS) && !defined(CONFIG_ARCH_DISCARD_MEMBLOCK)
-
-static int memblock_debug_show(struct seq_file *m, void *private)
-{
-	struct memblock_type *type = m->private;
-	struct memblock_region *reg;
-	int i;
-	phys_addr_t end;
-
-	for (i = 0; i < type->cnt; i++) {
-		reg = &type->regions[i];
-		end = reg->base + reg->size - 1;
-
-		seq_printf(m, "%4d: ", i);
-		seq_printf(m, "%pa..%pa\n", &reg->base, &end);
-	}
-	return 0;
-}
-
-static int memblock_debug_open(struct inode *inode, struct file *file)
-{
-	return single_open(file, memblock_debug_show, inode->i_private);
-}
-
-static const struct file_operations memblock_debug_fops = {
-	.open = memblock_debug_open,
-	.read = seq_read,
-	.llseek = seq_lseek,
-	.release = single_release,
-};
-
 static int memsize_kernel_show(struct seq_file *m, void *private)
 {
 	int i;
@@ -2022,9 +1994,6 @@ static int memsize_reserved_show(struct seq_file *m, void *private)
 	unsigned long dt_reserved = 0, reusable = 0, kernel, total;
 	unsigned long system = totalram_pages << PAGE_SHIFT;
 
-#ifdef CONFIG_ION_RBIN_HEAP
-	system += totalrbin_pages << PAGE_SHIFT;
-#endif
 	sort(reserved_mem_reg, reserved_mem_reg_count,
 	     sizeof(reserved_mem_reg[0]), __rmem_reg_cmp, NULL);
 	seq_printf(m, "v1\n");
@@ -2090,6 +2059,49 @@ static const struct file_operations proc_memsize_reserved_fops = {
 	.llseek = seq_lseek,
 	.release = single_release,
 };
+
+static int __init memblock_memsize_init(void)
+{
+	if (proc_mkdir("memsize", NULL)) {
+		proc_create("memsize/kernel", 0, NULL, &proc_memsize_kernel_fops);
+		proc_create("memsize/reserved", 0, NULL, &proc_memsize_reserved_fops);
+	}
+
+	return 0;
+}
+__initcall(memblock_memsize_init);
+
+#if defined(CONFIG_DEBUG_FS) && !defined(CONFIG_ARCH_DISCARD_MEMBLOCK)
+
+static int memblock_debug_show(struct seq_file *m, void *private)
+{
+	struct memblock_type *type = m->private;
+	struct memblock_region *reg;
+	int i;
+	phys_addr_t end;
+
+	for (i = 0; i < type->cnt; i++) {
+		reg = &type->regions[i];
+		end = reg->base + reg->size - 1;
+
+		seq_printf(m, "%4d: ", i);
+		seq_printf(m, "%pa..%pa\n", &reg->base, &end);
+	}
+	return 0;
+}
+
+static int memblock_debug_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, memblock_debug_show, inode->i_private);
+}
+
+static const struct file_operations memblock_debug_fops = {
+	.open = memblock_debug_open,
+	.read = seq_read,
+	.llseek = seq_lseek,
+	.release = single_release,
+};
+
 static int __init memblock_init_debugfs(void)
 {
 	struct dentry *root = debugfs_create_dir("memblock", NULL);
@@ -2097,10 +2109,6 @@ static int __init memblock_init_debugfs(void)
 		return -ENXIO;
 	debugfs_create_file("memory", S_IRUGO, root, &memblock.memory, &memblock_debug_fops);
 	debugfs_create_file("reserved", S_IRUGO, root, &memblock.reserved, &memblock_debug_fops);
-	if (proc_mkdir("memsize", NULL)) {
-		proc_create("memsize/kernel", 0, NULL, &proc_memsize_kernel_fops);
-		proc_create("memsize/reserved", 0, NULL, &proc_memsize_reserved_fops);
-	}
 #ifdef CONFIG_HAVE_MEMBLOCK_PHYS_MAP
 	debugfs_create_file("physmem", S_IRUGO, root, &memblock.physmem, &memblock_debug_fops);
 #endif

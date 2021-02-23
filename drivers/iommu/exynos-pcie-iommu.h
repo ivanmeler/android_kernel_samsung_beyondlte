@@ -265,7 +265,7 @@ struct history_buff {
 	u32 save_addr[MAX_HISTROY_BUFF];
 	u32 orig_addr[MAX_HISTROY_BUFF];
 	u32 size[MAX_HISTROY_BUFF];
-	u32 orig_size[MAX_HISTROY_BUFF];	
+	u32 orig_size[MAX_HISTROY_BUFF];
 	s64 time_ns[MAX_HISTROY_BUFF];
 };
 #endif

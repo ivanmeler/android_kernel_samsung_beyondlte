@@ -47,7 +47,6 @@ struct xfrm_flo {
 
 static DEFINE_SPINLOCK(xfrm_if_cb_lock);
 static struct xfrm_if_cb const __rcu *xfrm_if_cb __read_mostly;
-
 static DEFINE_SPINLOCK(xfrm_policy_afinfo_lock);
 static struct xfrm_policy_afinfo const __rcu *xfrm_policy_afinfo[AF_INET6 + 1]
 						__read_mostly;
@@ -310,7 +309,9 @@ EXPORT_SYMBOL(xfrm_policy_destroy);
 
 static void xfrm_policy_kill(struct xfrm_policy *policy)
 {
+	write_lock_bh(&policy->lock);
 	policy->walk.dead = 1;
+	write_unlock_bh(&policy->lock);
 
 	atomic_inc(&policy->genid);
 
@@ -729,12 +730,7 @@ static void xfrm_policy_requeue(struct xfrm_policy *old,
 static bool xfrm_policy_mark_match(struct xfrm_policy *policy,
 				   struct xfrm_policy *pol)
 {
-	u32 mark = policy->mark.v & policy->mark.m;
-
-	if (policy->mark.v == pol->mark.v && policy->mark.m == pol->mark.m)
-		return true;
-
-	if ((mark & pol->mark.m) == pol->mark.v &&
+	if (policy->mark.v == pol->mark.v &&
 	    policy->priority == pol->priority)
 		return true;
 
@@ -2045,7 +2041,7 @@ static struct dst_entry *make_blackhole(struct net *net, u16 family,
  */
 struct dst_entry *xfrm_lookup_with_ifid(struct net *net,
 					struct dst_entry *dst_orig,
-			      const struct flowi *fl,
+					const struct flowi *fl,
 					const struct sock *sk,
 					int flags, u32 if_id)
 {
@@ -2959,8 +2955,7 @@ void __init xfrm_init(void)
 	synchronize_rcu();
 }
 
-// [ SEC_SELINUX_PORTING_COMMON - remove AUDIT_MAC_IPSEC_EVENT audit log, it conflict with security notification
-#if 0 //#ifdef CONFIG_AUDITSYSCALL
+#ifdef CONFIG_AUDITSYSCALL
 static void xfrm_audit_common_policyinfo(struct xfrm_policy *xp,
 					 struct audit_buffer *audit_buf)
 {
@@ -3024,7 +3019,6 @@ void xfrm_audit_policy_delete(struct xfrm_policy *xp, int result,
 }
 EXPORT_SYMBOL_GPL(xfrm_audit_policy_delete);
 #endif
-// ] SEC_SELINUX_PORTING_COMMON - remove AUDIT_MAC_IPSEC_EVENT audit log, it conflict with security notification
 
 #ifdef CONFIG_XFRM_MIGRATE
 static bool xfrm_migrate_selector_match(const struct xfrm_selector *sel_cmp,

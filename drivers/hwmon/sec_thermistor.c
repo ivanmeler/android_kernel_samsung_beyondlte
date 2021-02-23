@@ -22,7 +22,7 @@
 #include <linux/platform_data/sec_thermistor.h>
 #include <linux/sec_class.h>
 
-#define ADC_SAMPLING_CNT	5
+#define ADC_SAMPLING_CNT	1
 
 struct sec_therm_info {
 	int id;
@@ -34,6 +34,7 @@ struct sec_therm_info {
 	char name[PLATFORM_NAME_SIZE];
 	char hwmon_name[PLATFORM_NAME_SIZE];
 	struct device_node *np;
+	unsigned int sampling_cnt;
 };
 
 #ifdef CONFIG_OF
@@ -67,6 +68,12 @@ static int sec_therm_parse_dt(struct platform_device *pdev)
 	} else {
 		dev_err(info->dev, "failed to get thermistor name\n");
 		return -EINVAL;
+	}
+
+	if (of_property_read_u32(info->np, "sampling_cnt", &info->sampling_cnt)) {
+		dev_info(info->dev, "set sampling_cnt by default: %d\n",
+				ADC_SAMPLING_CNT);
+		info->sampling_cnt = ADC_SAMPLING_CNT;
 	}
 
 	pdata = devm_kzalloc(info->dev, sizeof(*pdata), GFP_KERNEL);
@@ -115,7 +122,19 @@ static int sec_therm_get_adc_data(struct sec_therm_info *info)
 	int adc_max = 0, adc_min = 0, adc_total = 0;
 	int i;
 
-	for (i = 0; i < ADC_SAMPLING_CNT; i++) {
+	if (info->sampling_cnt < 3) {
+		int ret = iio_read_channel_raw(info->chan, &adc_data);
+
+		if (ret < 0) {
+			dev_err(info->dev, "%s : err(%d) returned, skip read\n",
+				__func__, adc_data);
+			return ret;
+		}
+
+		return adc_data;
+	}
+
+	for (i = 0; i < info->sampling_cnt; i++) {
 		int ret = iio_read_channel_raw(info->chan, &adc_data);
 
 		if (ret < 0) {
@@ -136,7 +155,7 @@ static int sec_therm_get_adc_data(struct sec_therm_info *info)
 		adc_total += adc_data;
 	}
 
-	return (adc_total - adc_max - adc_min) / (ADC_SAMPLING_CNT - 2);
+	return (adc_total - adc_max - adc_min) / (info->sampling_cnt - 2);
 }
 
 static int convert_adc_to_temper(struct sec_therm_info *info, unsigned int adc)

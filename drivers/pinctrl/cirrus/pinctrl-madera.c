@@ -482,7 +482,8 @@ static int madera_get_group_pins(struct pinctrl_dev *pctldev,
 	return 0;
 }
 
-static void madera_pin_dbg_show_fn(struct madera_pin_private *priv,
+#ifdef CONFIG_DEBUG_FS
+static void __maybe_unused madera_pin_dbg_show_fn(struct madera_pin_private *priv,
 				   struct seq_file *s,
 				   unsigned int pin, unsigned int fn)
 {
@@ -511,8 +512,7 @@ static void madera_pin_dbg_show_fn(struct madera_pin_private *priv,
 		}
 	}
 }
-
-static void madera_pin_dbg_show(struct pinctrl_dev *pctldev,
+static void __maybe_unused madera_pin_dbg_show(struct pinctrl_dev *pctldev,
 				struct seq_file *s,
 				unsigned int pin)
 {
@@ -562,7 +562,7 @@ static void madera_pin_dbg_show(struct pinctrl_dev *pctldev,
 	if (conf[0] & MADERA_GP1_IP_CFG_MASK)
 		seq_puts(s, "SCHMITT");
 }
-
+#endif
 static const struct pinctrl_ops madera_pin_group_ops = {
 	.get_groups_count = madera_get_groups_count,
 	.get_group_name = madera_get_group_name,
@@ -1073,7 +1073,6 @@ static struct platform_driver madera_pin_driver = {
 	.probe = madera_pin_probe,
 	.driver = {
 		.name = "madera-pinctrl",
-		.suppress_bind_attrs = true,
 	},
 };
 

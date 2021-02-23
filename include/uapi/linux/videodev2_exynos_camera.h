@@ -318,6 +318,7 @@ enum v4l2_cis_factory_control_command {
 
 #define V4L2_CID_ACTUATOR_GET_STATUS                    (V4L2_CID_SENSOR_BASE + 200)
 #define V4L2_CID_ACTUATOR_SET_POSITION                  (V4L2_CID_SENSOR_BASE + 201)
+#define V4L2_CID_ACTUATOR_SOFT_LANDING                  (V4L2_CID_SENSOR_BASE + 202)
 
 #define V4L2_CID_FLASH_SET_MODE                         (V4L2_CID_SENSOR_BASE + 300)
 #define V4L2_CID_FLASH_SET_INTENSITY                    (V4L2_CID_SENSOR_BASE + 301)

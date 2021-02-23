@@ -116,6 +116,8 @@
  // this packet size related when AP send ssp packet to MCU.
 #define MAX_SSP_PACKET_SIZE	1000
 #define SSP_INSTRUCTION_PACKET  9
+//camera moving filter
+#define CAM_LUX_INITIAL -1
 
 #define SSP_DEBUG_TIME_FLAG_ON		"SSP:DEBUG_TIME=1"
 #define SSP_DEBUG_TIME_FLAG_OFF		"SSP:DEBUG_TIME=0"
@@ -222,7 +224,7 @@ enum {
 #define MSG2SSP_AP_GLASS_TYPE			 0xEC
 #endif
 
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
+#if defined(CONFIG_SEC_VIB_NOTIFIER)
 #define MSG2SSP_AP_MCU_SET_MOTOR_STATUS		0xC3
 #endif
 
@@ -499,42 +501,41 @@ struct sensor_value {
 			s32 quat_d;
 			u8 acc_rot;
 		};
+
 		struct {
-#ifdef CONFIG_SENSORS_SSP_LIGHT_REPORT_LUX
 			u32 lux;
 			s32 cct;
-#endif
-			u16 r;
-			u16 g;
-			u16 b;
-			u16 w;
-#ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_GAIN_2BYTE
-#ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_ATIME_2BYTE
+			u32 r;
+			u32 g;
+			u32 b;
+			u32 w;
 			u16 a_gain;
 			u16 a_time;
-#ifdef CONFIG_SENSORS_SSP_LIGHT_ADDING_LUMINANCE
 			u8 brightness;
-#endif
-#ifdef CONFIG_SENSORS_SSP_LIGHT_LUX_RAW
-			u32 lux_raw;
-#endif
-#else
+			u8 min_lux_flag;
+		} __attribute__((__packed__)) light_t;
+
+		struct {
+			u32 lux;
+			s32 cct;
+			u32 r;
+			u32 g;
+			u32 b;
+			u32 w;
 			u16 a_gain;
-			u8 a_time;
-#endif
-#else
-			u8 a_time;
-			u8 a_gain;
-#endif
-		} __attribute__((__packed__));
+			u16 a_time;
+			u8 brightness;
+			u32 lux_raw;
+			u16 roi;
+		} __attribute__((__packed__)) light_cct_t;
 
 #ifdef CONFIG_SENSORS_SSP_IRDATA_FOR_CAMERA
 		struct {
-			u16 irdata;
-			u16 ir_r;
-			u16 ir_g;
-			u16 ir_b;
-			u16 ir_w;
+			u32 irdata;
+			u32 ir_r;
+			u32 ir_g;
+			u32 ir_b;
+			u32 ir_w;
 #ifdef CONFIG_SENSORS_SSP_LIGHT_MAX_GAIN_2BYTE
 			u16 ir_a_gain;
 			u8 ir_a_time; // ir_brightness;
@@ -576,7 +577,7 @@ struct sensor_value {
 		u8 prox_raw[4];
 #else
 /* CONFIG_SENSORS_SSP_TMD4903, CONFIG_SENSORS_SSP_TMD3782, CONFIG_SENSORS_SSP_TMD4904 */
-		s16 prox_raw[4];
+		u16 prox_raw[4];
 #endif
 		 struct {
 			u8 prox_alert_detect;
@@ -602,10 +603,17 @@ struct sensor_value {
 			u8 pocket_reason;
 			u32 pocket_base_proxy;
 			u32 pocket_current_proxy;
+			u32 pocket_lux;
 			u32 pocket_release_diff;
 			u32 pocket_min_release;
-			u32 pocket_light_data;
-			u32 pocket_temp;
+			u32 pocket_min_recognition;
+			u32 pocket_open_data;
+			u32 pocket_close_data;
+			u32 pocket_high_prox_data;
+			u32 pocket_base_prox_time;
+			u32 pocket_current_prox_time;
+			u32 pocket_high_prox_time;
+			u32 pocket_temp[3];
 		} __attribute__((__packed__));
 		u8 led_cover_event;
 		u8 scontext_buf[SCONTEXT_DATA_SIZE];
@@ -733,7 +741,7 @@ struct ssp_data {
 	struct workqueue_struct *bbd_mcu_ready_wq;
 	struct work_struct work_bbd_mcu_ready;
 
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
+#if defined(CONFIG_SEC_VIB_NOTIFIER)
 	struct workqueue_struct *ssp_motor_wq;
 	struct work_struct work_ssp_motor;
 #endif
@@ -966,7 +974,7 @@ struct ssp_data {
 //	int change_axis;
 //#endif
 
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
+#if defined(CONFIG_SEC_VIB_NOTIFIER)
 	int motor_state;
 #endif
 #if defined(CONFIG_PANEL_NOTIFY)
@@ -1022,6 +1030,14 @@ struct ssp_data {
         bool IsNoRespCnt;
 /* hall ic */
 	bool hall_ic_status; // 0: open 1: close
+/* moving average filter buffer for sABC algorithm */
+#if defined(CONFIG_SENSORS_SABC)
+	int brightness;
+	int last_brightness_level;
+	bool camera_lux_en;
+	int camera_lux;
+	int pre_camera_lux;
+#endif
 };
 
 //#if defined (CONFIG_SENSORS_SSP_VLTE)
@@ -1042,7 +1058,7 @@ struct reg_index_table {
 };
 #endif
 
-int ssp_iio_configure_ring(struct iio_dev *indio_dev);
+int ssp_iio_configure_ring(struct iio_dev *indio_dev, int bytes);
 void ssp_iio_unconfigure_ring(struct iio_dev *indio_dev);
 void ssp_enable(struct ssp_data *data, bool enable);
 int ssp_spi_async(struct ssp_data *data, struct ssp_msg *msg);
@@ -1149,7 +1165,7 @@ void remove_hiddenhole_factorytest(struct ssp_data *data);
 void initialize_light_colorid_do_task(struct work_struct *work);
 #endif
 int get_msdelay(int64_t dDelayRate);
-#if defined(CONFIG_SSP_MOTOR_CALLBACK)
+#if defined(CONFIG_SEC_VIB_NOTIFIER)
 int send_motor_state(struct ssp_data *data);
 #endif
 u64 get_sensor_scanning_info(struct ssp_data *data);
@@ -1171,6 +1187,9 @@ void report_step_det_data(struct ssp_data *data, int sensor_type, struct sensor_
 void report_gesture_data(struct ssp_data *data, int sensor_type, struct sensor_value *gesdata);
 void report_pressure_data(struct ssp_data *data, int sensor_type, struct sensor_value *predata);
 void report_light_data(struct ssp_data *data, int sensor_type, struct sensor_value *lightdata);
+#if defined(CONFIG_SENSORS_SABC)
+void report_uncal_light_data(struct ssp_data *data, int sensor_type, struct sensor_value *lightdata);
+#endif
 #ifdef CONFIG_SENSORS_SSP_IRDATA_FOR_CAMERA
 void report_light_ir_data(struct ssp_data *data, int sensor_type, struct sensor_value *lightirdata);
 #endif
@@ -1244,9 +1263,8 @@ int bbd_do_transfer(struct ssp_data *data, struct ssp_msg *msg,
 #ifdef SSP_BBD_USE_SEND_WORK
 void bbd_send_packet_work_func(struct work_struct *work);
 #endif	/* SSP_BBD_USE_SEND_WORK  */
-#ifdef CONFIG_SSP_MOTOR_CALLBACK
+#ifdef CONFIG_SEC_VIB_NOTIFIER
 void ssp_motor_work_func(struct work_struct *work);
-int get_current_motor_state(void);
 #endif
 int set_time(struct ssp_data *data);
 int get_time(struct ssp_data *data);
@@ -1277,4 +1295,7 @@ void set_GyroCalibrationInfoData(char *pchRcvDataFrame, int *iDataIdx);
 int send_vdis_flag(struct ssp_data *data, bool bFlag);
 void initialize_super_vdis_setting(void);
 
+#if defined(CONFIG_SENSORS_SABC)
+void set_light_brightness(struct ssp_data *data);
+#endif
 #endif

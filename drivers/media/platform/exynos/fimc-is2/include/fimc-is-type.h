@@ -64,7 +64,7 @@ struct fimc_is_crop {
 #define COMPARE_CROP(c1, c2) (((c1)->x == (c2)->x) && ((c1)->y == (c2)->y) && ((c1->w) == (c2)->w) && ((c1)->h == (c2)->h))
 #define TRANS_CROP(d, s) ((d)[0] = (s)[0], (d)[1] = (s)[1], (d)[2] = (s)[2], (d)[3] = (s)[3])
 #define COMPARE_FORMAT(f1, f2) ((f1) == (f2))
-
+#define CHECK_STRIPE_CFG(stripe_info)	((stripe_info)->region_num > 0)
 #define TO_WORD_OFFSET(byte_offset) ((byte_offset) >> 2)
 
 #define CONVRES(src, src_max, tar_max) \

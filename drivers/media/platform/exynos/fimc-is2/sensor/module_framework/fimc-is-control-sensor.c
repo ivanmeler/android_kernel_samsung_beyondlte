@@ -385,14 +385,34 @@ p_err:
 	return ret;
 }
 
-int fimc_is_sensor_ctl_set_exposure(struct fimc_is_device_sensor *device,
+static int fimc_is_sensor_ctl_set_exposure(struct fimc_is_device_sensor *device,
+					u32 long_exposure_time, u32 short_exposure_time)
+{
+	int ret = 0;
+
+	FIMC_BUG(!device);
+
+	if (long_exposure_time == 0) {
+		dbg_sensor(1, "[%s] Skip set expo (%d)\n",
+				__func__, long_exposure_time);
+		return ret;
+	}
+
+	ret = fimc_is_sensor_peri_s_exposure_time(device, long_exposure_time, short_exposure_time);
+	if (ret < 0)
+		err("[%s] SET exposure time fail\n", __func__);
+
+	return ret;
+}
+
+static int fimc_is_sensor_ctl_update_exposure(struct fimc_is_device_sensor *device,
 					u32 *dm_index,
-					u32 long_exposure, u32 short_exposure)
+					u32 long_exposure_time, u32 short_exposure_time)
 {
 	int ret = 0;
 	struct fimc_is_module_enum *module = NULL;
 	struct fimc_is_device_sensor_peri *sensor_peri = NULL;
-	cis_shared_data *cis_data = NULL;
+	u32 loop_cnt, i;
 
 	FIMC_BUG(!device);
 	FIMC_BUG(!dm_index);
@@ -406,40 +426,56 @@ int fimc_is_sensor_ctl_set_exposure(struct fimc_is_device_sensor *device,
 	FIMC_BUG(!module);
 	sensor_peri = (struct fimc_is_device_sensor_peri *)module->private_data;
 
-	cis_data = sensor_peri->cis.cis_data;
-	FIMC_BUG(!cis_data);
+	loop_cnt = sensor_peri->cis.cis_data->num_of_frame * SENSOR_DM_UPDATE_MARGIN;
 
-	if (long_exposure != 0 && short_exposure != 0) {
-		ret = fimc_is_sensor_peri_s_exposure_time(device, long_exposure, short_exposure);
-		if (ret < 0) {
-			err("[%s] SET exposure time fail\n", __func__);
+	if (long_exposure_time != 0 && short_exposure_time != 0) {
+		sensor_peri->cis.cur_sensor_uctrl.exposureTime = fimc_is_sensor_convert_us_to_ns(short_exposure_time);
+		sensor_peri->cis.cur_sensor_uctrl.longExposureTime = fimc_is_sensor_convert_us_to_ns(long_exposure_time);
+		sensor_peri->cis.cur_sensor_uctrl.shortExposureTime = fimc_is_sensor_convert_us_to_ns(short_exposure_time);
+		for (i = 0; i < loop_cnt; i++) {
+			sensor_peri->cis.expecting_sensor_dm[(dm_index[0]+i) % EXPECT_DM_NUM].exposureTime =
+				sensor_peri->cis.cur_sensor_uctrl.exposureTime;
+			sensor_peri->cis.expecting_sensor_udm[(dm_index[0]+i) % EXPECT_DM_NUM].longExposureTime =
+				sensor_peri->cis.cur_sensor_uctrl.longExposureTime;
+			sensor_peri->cis.expecting_sensor_udm[(dm_index[0]+i) % EXPECT_DM_NUM].shortExposureTime =
+				sensor_peri->cis.cur_sensor_uctrl.shortExposureTime;
 		}
-
-		if (fimc_is_vender_wdr_mode_on(cis_data)) {
-			sensor_peri->cis.cur_sensor_uctrl.exposureTime = 0;
-			sensor_peri->cis.cur_sensor_uctrl.longExposureTime = fimc_is_sensor_convert_us_to_ns(long_exposure);
-			sensor_peri->cis.cur_sensor_uctrl.shortExposureTime = fimc_is_sensor_convert_us_to_ns(short_exposure);
-		} else {
-			sensor_peri->cis.cur_sensor_uctrl.exposureTime = fimc_is_sensor_convert_us_to_ns(short_exposure);
-			sensor_peri->cis.cur_sensor_uctrl.longExposureTime = 0;
-			sensor_peri->cis.cur_sensor_uctrl.shortExposureTime = 0;
-		}
-		sensor_peri->cis.expecting_sensor_dm[dm_index[0]].exposureTime = fimc_is_sensor_convert_us_to_ns(short_exposure);
-
-		sensor_peri->cis.expecting_sensor_udm[dm_index[0]].longExposureTime =
-			fimc_is_sensor_convert_us_to_ns(long_exposure);
-		sensor_peri->cis.expecting_sensor_udm[dm_index[0]].shortExposureTime =
-			fimc_is_sensor_convert_us_to_ns(short_exposure);
 	} else {
-		sensor_peri->cis.expecting_sensor_dm[dm_index[0]].exposureTime = sensor_peri->cis.expecting_sensor_dm[dm_index[1]].exposureTime;
+		for (i = 0; i < loop_cnt; i++) {
+			sensor_peri->cis.expecting_sensor_dm[(dm_index[0]+i) % EXPECT_DM_NUM].exposureTime = sensor_peri->cis.expecting_sensor_dm[dm_index[1]].exposureTime;
 
-		sensor_peri->cis.expecting_sensor_udm[dm_index[0]].longExposureTime =
-			sensor_peri->cis.expecting_sensor_udm[dm_index[1]].longExposureTime;
-		sensor_peri->cis.expecting_sensor_udm[dm_index[0]].shortExposureTime =
-			sensor_peri->cis.expecting_sensor_udm[dm_index[1]].shortExposureTime;
+			sensor_peri->cis.expecting_sensor_udm[(dm_index[0]+i) % EXPECT_DM_NUM].longExposureTime =
+				sensor_peri->cis.expecting_sensor_udm[dm_index[1]].longExposureTime;
+			sensor_peri->cis.expecting_sensor_udm[(dm_index[0]+i) % EXPECT_DM_NUM].shortExposureTime =
+				sensor_peri->cis.expecting_sensor_udm[dm_index[1]].shortExposureTime;
+		}
 	}
 
 p_err:
+	return ret;
+}
+
+static int fimc_is_sensor_ctl_set_totalgain(struct fimc_is_device_sensor *device,
+					u32 long_exposure_time, u32 short_exposure_time,
+					u32 long_analog_gain, u32 short_analog_gain,
+					u32 long_digital_gain, u32 short_digital_gain)
+{
+	int ret = 0;
+
+	FIMC_BUG(!device);
+	
+	if (long_exposure_time == 0 ||long_analog_gain == 0 || long_digital_gain == 0) {
+		dbg_sensor(1, "[%s] Skip set Total gain (%d)\n",
+				__func__, long_exposure_time, long_analog_gain, long_digital_gain);
+		return ret;
+	}
+
+	/* Set Totalgain */
+	ret = fimc_is_sensor_peri_s_totalgain(device, long_exposure_time, short_exposure_time,
+				long_analog_gain, short_analog_gain, long_digital_gain, short_digital_gain);
+	if (ret < 0)
+		err("[%s] SET Totalgain fail\n", __func__);
+
 	return ret;
 }
 
@@ -458,6 +494,7 @@ void fimc_is_sensor_ctl_frame_evt(struct fimc_is_device_sensor *device)
 	struct fimc_is_module_enum *module = NULL;
 	struct fimc_is_device_sensor_peri *sensor_peri = NULL;
 	struct fimc_is_sensor_ctl *module_ctl = NULL;
+	struct fimc_is_cis_ops *cis_ops = NULL;
 	cis_shared_data *cis_data = NULL;
 
 	camera2_sensor_ctl_t *sensor_ctrl = NULL;
@@ -503,6 +540,7 @@ void fimc_is_sensor_ctl_frame_evt(struct fimc_is_device_sensor *device)
 	}
 
 	if ((module_ctl->valid_sensor_ctrl == true) ||
+		(module_ctl->force_update) ||
 		(module_ctl->sensor_frame_number == applied_frame_number && module_ctl->alg_reset_flag == true)) {
 		sensor_ctrl = &module_ctl->cur_cam20_sensor_ctrl;
 		sensor_uctrl = &module_ctl->cur_cam20_sensor_udctrl;
@@ -561,35 +599,72 @@ void fimc_is_sensor_ctl_frame_evt(struct fimc_is_device_sensor *device)
 			err("[%s] frame number(%d) set frame duration fail\n", __func__, applied_frame_number);
 		}
 
-		ret =  fimc_is_sensor_ctl_set_exposure(device, dm_index, long_exposure, short_exposure);
-		if (ret < 0) {
-			err("[%s] frame number(%d) set exposure fail\n", __func__, applied_frame_number);
-		}
+		cis_ops = (struct fimc_is_cis_ops *)sensor_peri->cis.cis_ops;
+		if(cis_ops->cis_set_exposure_time
+			&& cis_ops->cis_set_analog_gain
+			&& cis_ops->cis_set_digital_gain) {
+			ret =  fimc_is_sensor_ctl_set_exposure(device, long_exposure, short_exposure);
+			if (ret < 0) {
+				err("[%s] frame number(%d) set exposure fail\n", __func__, applied_frame_number);
+			}
 
-		ret = fimc_is_sensor_ctl_adjust_gains(device, module_ctl, &applied_ae_setting, &adj_gain_setting);
-		if (ret < 0) {
-			err("[%s] frame number(%d) adjust gains fail\n", __func__, applied_frame_number);
-			goto p_err;
-		}
+			ret = fimc_is_sensor_ctl_update_exposure(device, dm_index, long_exposure, short_exposure);
+			if (ret < 0)
+				err("[%s] frame number(%d) update exposure fail\n", __func__, applied_frame_number);
 
-		fimc_is_sensor_ctl_compensate_expo_gain(device, &adj_gain_setting, &applied_ae_setting, cis_data);
+			ret = fimc_is_sensor_ctl_adjust_gains(device, module_ctl, &applied_ae_setting, &adj_gain_setting);
+			if (ret < 0) {
+				err("[%s] frame number(%d) adjust gains fail\n", __func__, applied_frame_number);
+				goto p_err;
+			}
 
-		/* Set analog and digital gains */
-		if (adj_gain_setting.long_again != 0 && adj_gain_setting.long_dgain != 0) {
-			ret = fimc_is_sensor_ctl_set_gains(device, &adj_gain_setting);
+			fimc_is_sensor_ctl_compensate_expo_gain(device, &adj_gain_setting, &applied_ae_setting, cis_data);
+
+			/* Set analog and digital gains */
+			if (adj_gain_setting.long_again != 0 && adj_gain_setting.long_dgain != 0) {
+				ret = fimc_is_sensor_ctl_set_gains(device, &adj_gain_setting);
+			} else {
+				dbg_sensor(1, "[%s] Skip to set gain (%d,%d)\n",
+							__func__, adj_gain_setting.long_again, adj_gain_setting.long_dgain);
+			}
+
+			if (ret < 0) {
+				err("[%s] frame number(%d) set gains fail\n", __func__, applied_frame_number);
+			}
+
+			ret = fimc_is_sensor_ctl_update_gains(device, dm_index, &adj_gain_setting);
+			if (ret < 0) {
+				err("[%s] frame number(%d) update gains fail\n", __func__, applied_frame_number);
+			}
 		} else {
-			dbg_sensor(1, "[%s] Skip to set gain (%d,%d)\n",
-						__func__, adj_gain_setting.long_again, adj_gain_setting.long_dgain);
-		}
+			/* Set Total Gain : ExposureTime, Analog & Digital gain */
+			ret = fimc_is_sensor_ctl_adjust_gains(device, module_ctl, &applied_ae_setting, &adj_gain_setting);
+			if (ret < 0) {
+				err("[%s] frame number(%d) adjust gains fail\n", __func__, applied_frame_number);
+				goto p_err;
+			}
+			ret =  fimc_is_sensor_ctl_set_totalgain(device, long_exposure, short_exposure,
+				adj_gain_setting.long_again, adj_gain_setting.short_again,
+				adj_gain_setting.long_dgain, adj_gain_setting.short_dgain);
+			if (ret < 0)
+				err("[%s] frame number(%d) set Total gain fail\n", __func__, applied_frame_number);
 
-		if (ret < 0) {
-			err("[%s] frame number(%d) set gains fail\n", __func__, applied_frame_number);
-		}
+			ret = fimc_is_sensor_ctl_update_exposure(device, dm_index, long_exposure, short_exposure);
+			if (ret < 0)
+				err("[%s] frame number(%d) update exposure fail\n", __func__, applied_frame_number);
 
-		ret = fimc_is_sensor_ctl_update_gains(device, dm_index, &adj_gain_setting);
-		if (ret < 0) {
-			err("[%s] frame number(%d) update gains fail\n", __func__, applied_frame_number);
+			ret = fimc_is_sensor_ctl_update_gains(device, dm_index, &adj_gain_setting);
+			if (ret < 0)
+				err("[%s] frame number(%d) update gains fail\n", __func__, applied_frame_number);			
 		}
+		if (module_ctl->update_wb_gains) {
+			ret = fimc_is_sensor_peri_s_wb_gains(device, module_ctl->wb_gains);
+			if (ret < 0)
+				err("[%s] frame number(%d) set exposure fail\n", __func__, applied_frame_number);
+
+			module_ctl->update_wb_gains = false;
+		}
+		module_ctl->force_update = false;
 	} else {
 		if (module_ctl->alg_reset_flag == false) {
 			dbg_sensor(1, "[%s] frame number(%d)  alg_reset_flag (%d)\n", __func__,

@@ -35,7 +35,7 @@ struct abox_qos {
 	enum abox_qos_class qos_class;
 	unsigned int val;
 	const char *name;
-	struct abox_qos_req req_array[64];
+	struct abox_qos_req req_array[32];
 };
 
 /**
@@ -195,8 +195,8 @@ extern void abox_qos_print(struct device *dev, enum abox_qos_class qos_class);
 extern void abox_qos_init(struct device *adev);
 
 #ifdef CONFIG_SND_SOC_SAMSUNG_AUDIO
-extern ssize_t abox_qos_read_file(struct file *file, char __user *user_buf,
+ssize_t abox_qos_read_file(struct file *file, char __user *user_buf,
 				    size_t count, loff_t *ppos);
-#endif
+#endif /* CONFIG_SND_SOC_SAMSUNG_AUDIO */
 
 #endif /* __SND_SOC_ABOX_QOS_H */

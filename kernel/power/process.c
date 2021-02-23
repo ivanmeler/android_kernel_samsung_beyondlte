@@ -22,9 +22,6 @@
 #include <linux/kmod.h>
 #include <trace/events/power.h>
 #include <linux/cpuset.h>
-#include <linux/wakeup_reason.h>
-#include <linux/sec_debug.h>
-#include <linux/debug-snapshot.h>
 
 /*
  * Timeout for stopping processes
@@ -41,17 +38,6 @@ static int try_to_freeze_tasks(bool user_only)
 	unsigned int elapsed_msecs;
 	bool wakeup = false;
 	int sleep_usecs = USEC_PER_MSEC;
-#ifdef CONFIG_PM_SLEEP
-	char suspend_abort[MAX_SUSPEND_ABORT_LEN];
-#endif
-	char *sys_state[SYSTEM_END] = {
-		"BOOTING",
-		"SCHEDULING",
-		"RUNNING",
-		"HALT",
-		"POWER_OFF",
-		"RESTART",
-	};
 
 	start = ktime_get_boottime();
 
@@ -60,9 +46,6 @@ static int try_to_freeze_tasks(bool user_only)
 	if (!user_only)
 		freeze_workqueues_begin();
 
-	sec_debug_set_unfrozen_task((uint64_t)NULL);
-	sec_debug_set_unfrozen_task_count((uint64_t)0);
-
 	while (true) {
 		todo = 0;
 		read_lock(&tasklist_lock);
@@ -70,13 +53,9 @@ static int try_to_freeze_tasks(bool user_only)
 			if (p == current || !freeze_task(p))
 				continue;
 
-			if (!freezer_should_skip(p)) {
+			if (!freezer_should_skip(p))
 				todo++;
-				sec_debug_set_unfrozen_task((uint64_t)p);
-			}
 		}
-		sec_debug_set_unfrozen_task_count((uint64_t)todo);
-		
 		read_unlock(&tasklist_lock);
 
 		if (!user_only) {
@@ -88,11 +67,6 @@ static int try_to_freeze_tasks(bool user_only)
 			break;
 
 		if (pm_wakeup_pending()) {
-#ifdef CONFIG_PM_SLEEP
-			pm_get_active_wakeup_sources(suspend_abort,
-				MAX_SUSPEND_ABORT_LEN);
-			log_suspend_abort_reason(suspend_abort);
-#endif
 			wakeup = true;
 			break;
 		}
@@ -128,25 +102,14 @@ static int try_to_freeze_tasks(bool user_only)
 		read_lock(&tasklist_lock);
 		for_each_process_thread(g, p) {
 			if (p != current && !freezer_should_skip(p)
-			    && freezing(p) && !frozen(p)) {
+			    && freezing(p) && !frozen(p))
 				sched_show_task(p);
-				sec_debug_set_extra_info_backtrace_task(p);
-				sec_debug_set_extra_info_unfz(p->comm);
-			}
 		}
 		read_unlock(&tasklist_lock);
-
-		sec_debug_set_extra_info_unfz(sys_state[system_state]);
-#if !defined(CONFIG_SAMSUNG_PRODUCT_SHIP)
-		panic("fail to freeze tasks");
-#endif
 	} else {
 		pr_cont("(elapsed %d.%03d seconds) ", elapsed_msecs / 1000,
 			elapsed_msecs % 1000);
 	}
-
-	sec_debug_set_unfrozen_task((uint64_t)NULL);
-	sec_debug_set_unfrozen_task_count((uint64_t)0);
 
 	return todo ? -EBUSY : 0;
 }

@@ -321,6 +321,13 @@ static irqreturn_t max77705_irq_thread(int irq, void *data)
 					4, &irq_reg[USBC_INT]);
 			ret = max77705_read_reg(max77705->muic, MAX77705_USBC_REG_VDM_INT_M,
 					&irq_vdm_mask);
+
+			if (max77705->enable_nested_irq) {
+				irq_reg[USBC_INT] |= max77705->usbc_irq;
+				max77705->enable_nested_irq = 0x0;
+				max77705->usbc_irq = 0x0;
+			}
+
 			if (irq_reg[USBC_INT] & BIT_VBUSDetI) {
 				ret = max77705_read_reg(max77705->muic, REG_BC_STATUS, &bc_status0);
 				ret = max77705_read_reg(max77705->muic, REG_CC_STATUS0, &cc_status0);
@@ -352,14 +359,6 @@ static irqreturn_t max77705_irq_thread(int irq, void *data)
 		if (!ic_alt_mode && max77705->set_altmode)
 			irq_reg[VIR_INT] |= (1 << 0);
 		pr_info("%s ic_alt_mode=%d\n", __func__, ic_alt_mode);
-
-		if (irq_reg[PD_INT] & BIT_PDMsg) {
-			if (dump_reg[6] == Sink_PD_PSRdy_received
-					|| dump_reg[6] == SRC_CAP_RECEIVED) {
-				if (max77705->check_pdmsg)
-					max77705->check_pdmsg(max77705->usbc_data, dump_reg[6]);
-			}
-		}
 	}
 
 	/* Apply masking */

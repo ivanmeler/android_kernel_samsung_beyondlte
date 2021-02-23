@@ -343,7 +343,7 @@ static int gpu_dvfs_update_config_data_from_dt(struct kbase_device *kbdev)
 
 	gpu_update_config_data_string(np, "g3d_genpd_name", &of_string);
 	if (of_string)
-		strncpy(platform->g3d_genpd_name, of_string, sizeof(platform->g3d_genpd_name));
+		strncpy(platform->g3d_genpd_name, of_string, sizeof(platform->g3d_genpd_name) - 1);	/* Clear Prevent Issue @ Buffer not null terminated */
 
 	platform->gpu_dss_freq_id = 0;
 	gpu_update_config_data_int(np, "gpu_ess_id_type", &platform->gpu_dss_freq_id);

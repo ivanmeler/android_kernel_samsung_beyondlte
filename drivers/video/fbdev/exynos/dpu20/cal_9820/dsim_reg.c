@@ -551,8 +551,8 @@ static void dsim_reg_set_pll_con(u32 id, u32 *blk_ctl)
 {
 	u32 i;
 
-	for (i = 0; i < (int)(sizeof(DSIM_PHY_PLL_CON_VAL)/
-			sizeof(*DSIM_PHY_PLL_CON_VAL)); i++)
+	for (i = 0; i < (int)sizeof(DSIM_PHY_PLL_CON_VAL)/
+			sizeof(*DSIM_PHY_PLL_CON_VAL); i++)
 		dsim_phy_write(id, DSIM_PHY_PLL_CON(i), blk_ctl[i]);
 }
 
@@ -2404,6 +2404,7 @@ u32 dsim_reg_rx_fifo_is_empty(u32 id)
 #ifdef CONFIG_SEC_FACTORY
 int dsim_reg_rx_err_cnt = 0;
 #endif
+
 int dsim_reg_rx_err_handler(u32 id, u32 rx_fifo)
 {
 	int ret = 0;
@@ -2445,7 +2446,7 @@ int dsim_reg_rx_err_handler(u32 id, u32 rx_fifo)
 
 	dsim_err("dsim%d, (rx_fifo=0x%x) Check DPHY values about HS clk.\n",
 			id, rx_fifo);
-	
+
 #ifdef CONFIG_SEC_FACTORY
 	dsim_reg_rx_err_cnt += 1;
 	if (dsim_reg_rx_err_cnt >= 5) {

@@ -16,7 +16,6 @@
 #include <linux/syscalls.h>
 #include <linux/syscore_ops.h>
 #include <linux/uaccess.h>
-#include <linux/sec_debug.h>
 
 /*
  * this indicates whether you can reboot with ctrl-alt-del: the default is yes
@@ -44,6 +43,7 @@ int reboot_default = 1;
 int reboot_cpu;
 enum reboot_type reboot_type = BOOT_ACPI;
 int reboot_force;
+/* @fs.sec -- d1fbf05204832e38d0dd3c9d4c98160a -- */
 // To prevent kernel panic by EIO during shutdown
 int ignore_fs_panic;
 
@@ -72,11 +72,6 @@ void kernel_restart_prepare(char *cmd)
 {
 	blocking_notifier_call_chain(&reboot_notifier_list, SYS_RESTART, cmd);
 	system_state = SYSTEM_RESTART;
-
-	/* user process should be freezed before device shutdown */
-	events_check_enabled = false;
-	freeze_processes();
-
 	usermodehelper_disable();
 	ignore_fs_panic = 1;
 	device_shutdown();
@@ -222,8 +217,6 @@ void migrate_to_reboot_cpu(void)
  */
 void kernel_restart(char *cmd)
 {
-	sec_debug_set_task_in_sys_reboot((uint64_t)current);
-
 	kernel_restart_prepare(cmd);
 	migrate_to_reboot_cpu();
 	syscore_shutdown();
@@ -241,11 +234,6 @@ static void kernel_shutdown_prepare(enum system_states state)
 	blocking_notifier_call_chain(&reboot_notifier_list,
 		(state == SYSTEM_HALT) ? SYS_HALT : SYS_POWER_OFF, NULL);
 	system_state = state;
-
-	/* user process should be freezed before device shutdown */
-	events_check_enabled = false;
-	freeze_processes();
-
 	usermodehelper_disable();
 	ignore_fs_panic = 1;
 	device_shutdown();
@@ -271,10 +259,8 @@ EXPORT_SYMBOL_GPL(kernel_halt);
  *
  *	Shutdown everything and perform a clean system power_off.
  */
-
 void kernel_power_off(void)
 {
-	sec_debug_set_task_in_sys_shutdown((uint64_t)current);
 	kernel_shutdown_prepare(SYSTEM_POWER_OFF);
 	if (pm_power_off_prepare)
 		pm_power_off_prepare();

@@ -74,8 +74,10 @@ static __attribute__((unused)) int CLKGate23_SOC_HWACG_read(struct npu_system *s
 	return 0;
 }
 
-static void CLKGate23_SOC_HWACG_qch_disable(struct npu_system *system)
+static int CLKGate23_SOC_HWACG_qch_disable(struct npu_system *system)
 {
+	int ret = 0;
+
 	void __iomem *reg_addr;
 	volatile u32 v;
 	struct npu_iomem_area *base;
@@ -105,10 +107,14 @@ static void CLKGate23_SOC_HWACG_qch_disable(struct npu_system *system)
 		writel(v, (void *)(reg_addr));
 		npu_dbg("written on, (0x%08x) at (%pK)\n", v, reg_addr);
 	}
+
+	return ret;
 }
 
-static void CLKGate23_SOC_HWACG_qch_enable(struct npu_system *system)
+static int CLKGate23_SOC_HWACG_qch_enable(struct npu_system *system)
 {
+	int ret = 0;
+
 	void __iomem *reg_addr;
 	volatile u32 v;
 	struct npu_iomem_area *base;
@@ -138,6 +144,8 @@ static void CLKGate23_SOC_HWACG_qch_enable(struct npu_system *system)
 		writel(v, (void *)(reg_addr));
 		npu_dbg("written off (0x%08x) at (%pK)\n", v, reg_addr);
 	}
+
+	return ret;
 }
 #endif
 
@@ -444,6 +452,7 @@ int npu_system_soc_probe(struct npu_system *system, struct platform_device *pdev
 
 	npu_dbg("system probe: Set BAAW for SRAM area\n");
 	ret = init_baaw_p_npu(system);
+	ret = 0;
 	if (ret) {
 		probe_err("fail(%d)in init_baaw_p_npu\n", ret);
 		goto p_err;
@@ -573,7 +582,7 @@ int npu_system_soc_suspend(struct npu_system *system)
 		npu_warn("Missing clean-up steps [%lu] found.\n", system->resume_soc_steps);
 
 	/* Function itself never be failed, even thought there was some error */
-	return ret;
+	return 0;
 }
 
 #ifdef REINIT_NPU_BAAW
@@ -628,7 +637,7 @@ static int init_baaw_p_npu(struct npu_system *system)
 	return 0;
 
 err_exit:
-	npu_err("error(%d) in BAAW initialization\n", ret);
+	npu_info("error(%d) in BAAW initialization\n", ret);
 	return ret;
 }
 #else
@@ -660,7 +669,7 @@ static __attribute__((unused)) int npu_awwl_checker_en(struct npu_system *system
 	return 0;
 
 err_exit:
-	npu_err("error(%d) in npu_awwl_checker_en\n", ret);
+	npu_info("error(%d) in npu_awwl_checker_en\n", ret);
 	return ret;
 }
 
@@ -701,7 +710,7 @@ static __attribute__((unused)) int npu_clk_init(struct npu_system *system)
 	return 0;
 
 err_exit:
-	npu_err("error(%d) in npu_clk_init\n", ret);
+	npu_info("error(%d) in npu_clk_init\n", ret);
 	return ret;
 }
 
@@ -736,7 +745,7 @@ static int npu_cpu_on(struct npu_system *system)
 	npu_info("complete in npu_cpu_on\n");
 	return 0;
 err_exit:
-	npu_err("error(%d) in npu_cpu_on\n", ret);
+	npu_info("error(%d) in npu_cpu_on\n", ret);
 	return ret;
 }
 
@@ -767,7 +776,7 @@ static int npu_cpu_off(struct npu_system *system)
 	npu_info("complete in npu_cpu_off\n");
 	return 0;
 err_exit:
-	npu_err("error(%d) in npu_cpu_off\n", ret);
+	npu_info("error(%d) in npu_cpu_off\n", ret);
 	return ret;
 }
 
@@ -827,7 +836,7 @@ static __attribute__((unused)) int npu_pwr_on(struct npu_system *system)
 	return 0;
 
 err_exit:
-	npu_err("error(%d) in npu_pwr_on\n", ret);
+	npu_info("error(%d) in npu_pwr_on\n", ret);
 	return ret;
 
 }

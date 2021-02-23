@@ -37,66 +37,75 @@ struct dd_policy {
 	char version; // dualdar feature version
 	char userid; // Android userid
 	short flags; // policy flags
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 
-static inline int dd_policy_enabled(char flags) {
+static inline int dd_policy_enabled(char flags)
+{
 	return (flags & DD_POLICY_ENABLED) ? 1:0;
 }
 
-static inline int dd_policy_user_space_crypto(char flags) {
+static inline int dd_policy_user_space_crypto(char flags)
+{
 	return (flags & DD_POLICY_USER_SPACE_CRYPTO) ? 1:0;
 }
 
-static inline int dd_policy_kernel_crypto(char flags) {
+static inline int dd_policy_kernel_crypto(char flags)
+{
 	return (flags & DD_POLICY_KERNEL_CRYPTO) ? 1:0;
 }
 
-static inline int dd_policy_encrypted(char flags) {
+static inline int dd_policy_encrypted(char flags)
+{
 	if (dd_policy_user_space_crypto(flags) || dd_policy_kernel_crypto(flags))
 		return 1;
 
 	return 0;
 }
 
-static inline int dd_policy_gid_restriction(char flags) {
+static inline int dd_policy_gid_restriction(char flags)
+{
 	return (flags & DD_POLICY_GID_RESTRICTION) ? 1:0;
 }
 
-static inline int dd_policy_secure_erase(char flags) {
+static inline int dd_policy_secure_erase(char flags)
+{
 	return (flags & DD_POLICY_SECURE_ERASE) ? 1:0;
 }
 
-static inline int dd_policy_skip_decryption_inner_and_outer(char flags) {
+static inline int dd_policy_skip_decryption_inner_and_outer(char flags)
+{
 	return ((flags & DD_POLICY_SKIP_DECRYPTION_INNER) ? 1:0)
 			&& ((flags & DD_POLICY_SKIP_DECRYPTION_OUTER) ? 1:0);
 }
 
-static inline int dd_policy_skip_decryption_inner(char flags) {
+static inline int dd_policy_skip_decryption_inner(char flags)
+{
 	return (flags & DD_POLICY_SKIP_DECRYPTION_INNER) ? 1:0;
 }
 
-static inline int dd_policy_trace_file(char flags) {
+static inline int dd_policy_trace_file(char flags)
+{
 	return (flags & DD_POLICY_TRACE_FILE) ? 1:0;
 }
 
 typedef enum {
 	DD_ENCRYPT = 0,
 	DD_DECRYPT,
-}dd_crypto_direction_t;
+} dd_crypto_direction_t;
 
 typedef enum {
-    DD_REQ_INVALID = 0,
+	DD_REQ_INVALID = 0,
 	DD_REQ_PREPARE = 1,
 	DD_REQ_CRYPTO_BIO = 2,
-    DD_REQ_CRYPTO_PAGE = 3
-}dd_request_code_t;
+	DD_REQ_CRYPTO_PAGE = 3
+} dd_request_code_t;
 
 typedef enum {
-    DD_RES_INVALID = 0,
-    DD_RES_SUCCESS,
-    DD_RES_FAILED,
-}dd_response_code_t;
+	DD_RES_INVALID = 0,
+	DD_RES_SUCCESS,
+	DD_RES_FAILED,
+} dd_response_code_t;
 
 // BUG_ON(sizeof(struct metadata_hdr) != METADATA_HEADER_LEN)
 #define METADATA_HEADER_LEN		64
@@ -105,7 +114,7 @@ struct metadata_hdr {
 	unsigned char userid;
 	unsigned char initialized;
 	unsigned char reserved[54];
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 struct dd_user_req {
     unsigned unique;
@@ -121,25 +130,25 @@ struct dd_user_req {
 			unsigned long index;
 			unsigned long plain_addr;
 			unsigned long cipher_addr;
-		}bio;
+		} bio;
 		struct {
 			unsigned long md_addr;
-		}prepare;
+		} prepare;
 	} u;
 };
 
 #define MAX_NUM_INO_PER_USER_REQUEST 64
-#define MAX_NUM_CONTROL_PAGE 8
+#define MAX_NUM_CONTROL_PAGE 16
 #define MAX_NUM_REQUEST_PER_CONTROL 64
 struct dd_mmap_control {
-    unsigned num_requests;
-    struct dd_user_req requests[MAX_NUM_REQUEST_PER_CONTROL];
-}__attribute__((__packed__));
+	unsigned num_requests;
+	struct dd_user_req requests[MAX_NUM_REQUEST_PER_CONTROL];
+} __attribute__((__packed__));
 
 struct dd_mmap_area {
 	unsigned long start;
 	unsigned long size;
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 struct dd_mmap_layout {
 	unsigned page_size;
@@ -148,7 +157,7 @@ struct dd_mmap_layout {
 	struct dd_mmap_area metadata_area;
 	struct dd_mmap_area plaintext_page_area;
 	struct dd_mmap_area ciphertext_page_area;
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 #define DD_METADATA_NAME "dd_metadata"
 /**
@@ -187,11 +196,14 @@ struct dd_user_resp {
 	int err;
 };
 
-static inline int get_user_resp_err(struct dd_user_resp *err, int num_err, unsigned long ino) {
+static inline int get_user_resp_err(struct dd_user_resp *err, int num_err, unsigned long ino)
+{
 	int i;
-	for(i=0 ; i<num_err ; i++)
-		if (err[i].ino == ino)
-			return err[i].err;
+	if (num_err <= MAX_NUM_REQUEST_PER_CONTROL) {
+		for (i = 0; i < num_err; i++)
+			if (err[i].ino == ino)
+				return err[i].err;
+	}
 
 	return -ENOENT;
 }
@@ -202,42 +214,42 @@ struct dd_ioc {
 		struct {
 			int num_control_page;
 			int num_metadata_page;
-		}crypto_request;
+		} crypto_request;
 		struct {
 			int num_err;
 			struct dd_user_resp err[MAX_NUM_INO_PER_USER_REQUEST];
-		}crypto_response;
+		} crypto_response;
 		struct {
 			unsigned long ino;
 			char name[MAX_XATTR_NAME_LEN];
 			char value[MAX_XATTR_LEN];
 			unsigned int size;
-		}xattr;
+		} xattr;
 		struct {
 			int state;
-		}lock;
+		} lock;
 		struct {
 			unsigned short userid;
 			unsigned char key[128];
 			unsigned short len;
-		}add_key;
+		} add_key;
 		struct {
 			unsigned short userid;
-		}evict_key;
+		} evict_key;
 		struct {
 			unsigned short userid;
 			int fileDescriptor;
-		}dump_key;
+		} dump_key;
 		struct {
 			unsigned short userid;
 			unsigned short mask;
 			unsigned char buf[DD_LOGBUF_MAX];
-		}log_msg;
+		} log_msg;
 		struct dd_mmap_layout layout;
 		unsigned int debug_mask;
 		int user_error;
 	} u;
-}__attribute__((__packed__));
+} __attribute__((__packed__));
 
 enum {
 	DD_DEBUG_ERROR		= 1U << 0,

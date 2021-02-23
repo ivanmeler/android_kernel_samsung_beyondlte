@@ -692,7 +692,7 @@ static struct snd_soc_platform_driver samsung_display_adma = {
 struct switch_dev dp_ado_switch;
 void dp_ado_switch_set_state(int state)
 {
-	switch_set_state(&dp_ado_switch, state);
+	switch_set_state(&dp_ado_switch, (state  < 0) ? 0 : 1);
 }
 #endif
 
@@ -717,7 +717,7 @@ static int samsung_display_adma_probe(struct platform_device *pdev)
 
 	spin_lock_init(&data->lock);
 #if defined(CONFIG_SOC_EXYNOS9810) || defined(CONFIG_SOC_EXYNOS9820)
-	dp_ado_switch.name = "ch_hdmi_audio";
+	dp_ado_switch.name = "hdmi_audio";
 	ret = switch_dev_register(&dp_ado_switch);
 	if (ret) {
 		dev_err(dev, "Failed to register dp audio switch\n");

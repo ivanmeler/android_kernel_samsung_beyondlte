@@ -178,13 +178,7 @@ DTC_INCLUDE    := $(srctree)/scripts/dtc/include-prefixes
 
 dtc_cpp_flags  = -Wp,-MD,$(depfile).pre.tmp -nostdinc                    \
 		 $(addprefix -I,$(DTC_INCLUDE))                          \
-		 -undef -D__DTS__                                        \
-		 -DANDROID_VERSION=$(ANDROID_VERSION)                    \
-		 -DANDROID_MAJOR_VERSION=$(ANDROID_MAJOR_VERSION)
-
-ifeq ($(CONFIG_SEC_FACTORY),y)
-dtc_cpp_flags += -DCONFIG_SEC_FACTORY
-endif
+		 -undef -D__DTS__
 
 # Finds the multi-part object the current object will be linked into
 modname-multi = $(sort $(foreach m,$(multi-used),\
@@ -308,7 +302,7 @@ cmd_dtc = mkdir -p $(dir ${dtc-tmp}) ; \
 	$(DTC) -O dtb -o $@ -b 0 -a 4\
 		$(addprefix -i,$(dir $<) $(DTC_INCLUDE)) $(DTC_FLAGS) \
 		-d $(depfile).dtc.tmp $(dtc-tmp) ; \
-        $(DTC) -O dts -I dtb -o $@.reverse.dts $@ ; \
+       $(DTC) -O dts -I dtb -o $@.reverse.dts $@ ; \
        cat $(depfile).pre.tmp $(depfile).dtc.tmp > $(depfile)
 
 $(obj)/%.dtb: $(src)/%.dts FORCE
@@ -365,7 +359,8 @@ cmd_lzo = (cat $(filter-out FORCE,$^) | \
 
 quiet_cmd_lz4 = LZ4     $@
 cmd_lz4 = (cat $(filter-out FORCE,$^) | \
-	lz4c -l -c1 stdin stdout && $(call size_append, $(filter-out FORCE,$^))) > $@ || \
+	lz4 -l -12 --favor-decSpeed stdin stdout && \
+	$(call size_append, $(filter-out FORCE,$^))) > $@ || \
 	(rm -f $@ ; false)
 
 # U-Boot mkimage

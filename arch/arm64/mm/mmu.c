@@ -46,11 +46,8 @@
 #include <asm/mmu_context.h>
 #include <asm/ptdump.h>
 
-#ifdef CONFIG_UH
-#include <linux/uh.h>
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 #include <linux/rkp.h>
-#endif
 #endif
 
 #define NO_BLOCK_MAPPINGS	BIT(0)
@@ -107,16 +104,6 @@ static phys_addr_t __init early_pgtable_alloc(void)
 
 	return phys;
 }
-
-#ifdef CONFIG_UH_RKP
-
-static phys_addr_t rkp_ro_alloc_phys(void)
-{
-	phys_addr_t ret = 0;
-	ret = uh_call(UH_APP_RKP, RKP_RKP_ROBUFFER_ALLOC, 0, 0, 0, 0);
-	return ret;
-}
-#endif
 
 static bool pgattr_change_is_safe(u64 old, u64 new)
 {
@@ -248,7 +235,7 @@ static void alloc_init_cont_pmd(pud_t *pud, unsigned long addr,
 	if (pud_none(*pud)) {
 		phys_addr_t pmd_phys;
 		BUG_ON(!pgtable_alloc);
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 		pmd_phys = rkp_ro_alloc_phys();
 		if (!pmd_phys)
 #endif
@@ -281,7 +268,8 @@ static inline bool use_1G_block(unsigned long addr, unsigned long next,
 
 	if (((addr | next | phys) & ~PUD_MASK) != 0)
 		return false;
-#ifdef CONFIG_UH_RKP
+
+#ifdef CONFIG_RKP
 	return false;
 #else
 	return true;
@@ -367,7 +355,7 @@ static void __create_pgd_mapping(pgd_t *pgdir, phys_addr_t phys,
 
 static phys_addr_t pgd_pgtable_alloc(void)
 {
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	void *ptr = rkp_ro_alloc();
 #else
 	void *ptr = (void *)__get_free_page(PGALLOC_GFP);
@@ -551,8 +539,8 @@ static void __init map_kernel_segment(pgd_t *pgd, void *va_start, void *va_end,
 	vm_area_add_early(vma);
 }
 
-#ifdef CONFIG_UH_RKP
-static void __init map_kernel_text_segment(pgd_t *pgd, void *va_start, void *va_end,
+#ifdef CONFIG_RKP
+static void __init map_kernel_text_segment(pgd_t *pgdp, void *va_start, void *va_end,
 				      pgprot_t prot, struct vm_struct *vma,
 				      int flags, unsigned long vm_flags)
 {
@@ -562,7 +550,7 @@ static void __init map_kernel_text_segment(pgd_t *pgd, void *va_start, void *va_
 	BUG_ON(!PAGE_ALIGNED(pa_start));
 	BUG_ON(!PAGE_ALIGNED(size));
 
-	__create_pgd_mapping(pgd, pa_start, (unsigned long)va_start, size, prot,
+	__create_pgd_mapping(pgdp, pa_start, (unsigned long)va_start, size, prot,
 			     rkp_ro_alloc_phys, flags);
 
 	if (!(vm_flags & VM_NO_GUARD))
@@ -634,7 +622,7 @@ static void __init map_kernel(pgd_t *pgd)
 	 * Only rodata will be remapped with different permissions later on,
 	 * all other segments are allowed to use contiguous mappings.
 	 */
-#ifdef CONFIG_UH_RKP
+#ifdef CONFIG_RKP
 	map_kernel_text_segment(pgd, _text, _etext, text_prot, &vmlinux_text, 0,
 			   VM_NO_GUARD);
 #else
@@ -665,8 +653,8 @@ static void __init map_kernel(pgd_t *pgd)
 		 * entry instead.
 		 */
 		BUG_ON(!IS_ENABLED(CONFIG_ARM64_16K_PAGES));
-		set_pud(pud_set_fixmap_offset(pgd, FIXADDR_START),
-			__pud(__pa_symbol(bm_pmd) | PUD_TYPE_TABLE));
+		pud_populate(&init_mm, pud_set_fixmap_offset(pgd, FIXADDR_START),
+			     lm_alias(bm_pmd));
 		pud_clear_fixmap();
 	} else {
 		BUG();
@@ -710,7 +698,7 @@ void __init paging_init(void)
 	 * We only reuse the PGD from the swapper_pg_dir, not the pud + pmd
 	 * allocated with it.
 	 */
-#ifndef CONFIG_UH_RKP
+#ifndef CONFIG_RKP
 	memblock_free(__pa_symbol(swapper_pg_dir) + PAGE_SIZE,
 		      SWAPPER_DIR_SIZE - PAGE_SIZE);
 #endif
@@ -788,7 +776,7 @@ int __meminit vmemmap_populate(unsigned long start, unsigned long end, int node)
 			if (!p)
 				return -ENOMEM;
 
-			set_pmd(pmd, __pmd(__pa(p) | PROT_SECT_NORMAL));
+			pmd_set_huge(pmd, __pa(p), __pgprot(PROT_SECT_NORMAL));
 		} else
 			vmemmap_verify((pte_t *)pmd, node, addr, next);
 	} while (addr = next, addr != end);
@@ -966,34 +954,49 @@ void *__init fixmap_remap_fdt(phys_addr_t dt_phys)
 
 int __init arch_ioremap_pud_supported(void)
 {
-	/* only 4k granule supports level 1 block mappings */
-	return IS_ENABLED(CONFIG_ARM64_4K_PAGES);
+	/*
+	 * Only 4k granule supports level 1 block mappings.
+	 * SW table walks can't handle removal of intermediate entries.
+	 */
+	return IS_ENABLED(CONFIG_ARM64_4K_PAGES) &&
+	       !IS_ENABLED(CONFIG_ARM64_PTDUMP_DEBUGFS);
 }
 
 int __init arch_ioremap_pmd_supported(void)
 {
-	return 1;
+	/* See arch_ioremap_pud_supported() */
+	return !IS_ENABLED(CONFIG_ARM64_PTDUMP_DEBUGFS);
 }
 
-int pud_set_huge(pud_t *pud, phys_addr_t phys, pgprot_t prot)
+int pud_set_huge(pud_t *pudp, phys_addr_t phys, pgprot_t prot)
 {
-	/* ioremap_page_range doesn't honour BBM */
-	if (pud_present(READ_ONCE(*pud)))
+	pgprot_t sect_prot = __pgprot(PUD_TYPE_SECT |
+					pgprot_val(mk_sect_prot(prot)));
+	pud_t new_pud = pfn_pud(__phys_to_pfn(phys), sect_prot);
+
+	/* Only allow permission changes for now */
+	if (!pgattr_change_is_safe(READ_ONCE(pud_val(*pudp)),
+				   pud_val(new_pud)))
 		return 0;
 
 	BUG_ON(phys & ~PUD_MASK);
-	set_pud(pud, __pud(phys | PUD_TYPE_SECT | pgprot_val(mk_sect_prot(prot))));
+	set_pud(pudp, new_pud);
 	return 1;
 }
 
-int pmd_set_huge(pmd_t *pmd, phys_addr_t phys, pgprot_t prot)
+int pmd_set_huge(pmd_t *pmdp, phys_addr_t phys, pgprot_t prot)
 {
-	/* ioremap_page_range doesn't honour BBM */
-	if (pmd_present(READ_ONCE(*pmd)))
+	pgprot_t sect_prot = __pgprot(PMD_TYPE_SECT |
+					pgprot_val(mk_sect_prot(prot)));
+	pmd_t new_pmd = pfn_pmd(__phys_to_pfn(phys), sect_prot);
+
+	/* Only allow permission changes for now */
+	if (!pgattr_change_is_safe(READ_ONCE(pmd_val(*pmdp)),
+				   pmd_val(new_pmd)))
 		return 0;
 
 	BUG_ON(phys & ~PMD_MASK);
-	set_pmd(pmd, __pmd(phys | PMD_TYPE_SECT | pgprot_val(mk_sect_prot(prot))));
+	set_pmd(pmdp, new_pmd);
 	return 1;
 }
 

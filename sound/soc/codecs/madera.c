@@ -1167,6 +1167,67 @@ out:
 }
 EXPORT_SYMBOL_GPL(madera_rate_put);
 
+#define MADERA_INTERNAL_GND 0x5
+
+int madera_internal_gnd_get(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct madera *madera = dev_get_drvdata(codec->dev->parent);
+	struct soc_mixer_control *mc =
+		(struct soc_mixer_control *)kcontrol->private_value;
+	bool ignd;
+
+	mutex_lock(&madera->ignd_lock);
+	ignd = madera->ignd_cache[mc->shift] & MADERA_IGND_FLAG;
+	ucontrol->value.enumerated.item[0] = ignd;
+	mutex_unlock(&madera->ignd_lock);
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(madera_internal_gnd_get);
+
+int madera_internal_gnd_put(struct snd_kcontrol *kcontrol,
+			    struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_codec *codec = snd_soc_kcontrol_codec(kcontrol);
+	struct madera *madera = dev_get_drvdata(codec->dev->parent);
+	struct soc_mixer_control *mc =
+		(struct soc_mixer_control *)kcontrol->private_value;
+	bool ignd = !!ucontrol->value.integer.value[0];
+	int ret = 0;
+
+	mutex_lock(&madera->ignd_lock);
+
+	if (ignd == !!(madera->ignd_cache[mc->shift] & MADERA_IGND_FLAG))
+		goto done;
+
+	if (ignd) {
+		ret = regmap_read(madera->regmap, mc->reg,
+				  &madera->ignd_cache[mc->shift]);
+		if (ret)
+			goto done;
+
+		madera->ignd_cache[mc->shift] |= MADERA_IGND_FLAG;
+
+		ret = regmap_update_bits(madera->regmap, mc->reg,
+					 MADERA_HP1_GND_SEL_MASK,
+					 MADERA_INTERNAL_GND);
+	} else {
+		ret = regmap_update_bits(madera->regmap, mc->reg,
+					 MADERA_HP1_GND_SEL_MASK,
+					 madera->ignd_cache[mc->shift]);
+
+		madera->ignd_cache[mc->shift] = 0;
+	}
+
+done:
+	mutex_unlock(&madera->ignd_lock);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(madera_internal_gnd_put);
+
 static void madera_configure_input_mode(struct madera *madera)
 {
 	unsigned int dig_mode, dig_mask, ana_mode_l, ana_mode_r;

@@ -563,16 +563,6 @@ void s2mps20_powermeter_init(struct s2mps20_dev *s2mps20)
 	if (ret)
 		goto remove_adc_reg_2;
 
-#ifdef CONFIG_SEC_PM
-	if (!IS_ERR_OR_NULL(ap_sub_pmic_dev)) {
-		ret = sysfs_create_link(&ap_sub_pmic_dev->kobj,
-				&s2mps20_adc_dev->kobj, "power_meter");
-		if (ret)
-			pr_err("%s: fail to create link for power_meter(%d)\n",
-					__func__, ret);
-	}
-#endif /* CONFIG_SEC_PM */
-
 	pr_info("%s: s2mps20 power meter init end\n", __func__);
 	return ;
 

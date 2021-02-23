@@ -36,8 +36,8 @@ int dplink_emul_handler(int cmd)
 #endif
 
 extern uint32_t func_test_mode;
-static DEFINE_MUTEX(hdcp_auth_mutex);
 
+static DEFINE_MUTEX(hdcp_auth_mutex);
 /* current link data */
 static struct hdcp_link_data *lk_data;
 
@@ -229,7 +229,6 @@ int hdcp_dplink_authenticate(void)
 	static int retry_cnt;
 
 	mutex_lock(&hdcp_auth_mutex);
-	hdcp_info("Start HDCP authenticate.\n");
 	auth_proc_state = HDCP_AUTH_PROCESS_IDLE;
 	for (; retry_cnt < HDCP_AUTH_RETRY_COUNT; retry_cnt++) {
 		if (!rp_ready) {
@@ -256,7 +255,6 @@ int hdcp_dplink_authenticate(void)
 		ret = do_dplink_auth(&lk_info);
 		if (ret == HDCP_SUCCESS) {
 			hdcp_info("Success HDCP authenticate done.\n");
-			dp_logger_print("soc HDCP2 authenticate done.\n");
 			retry_cnt = 0;
 			mutex_unlock(&hdcp_auth_mutex);
 			return 0;
@@ -264,14 +262,12 @@ int hdcp_dplink_authenticate(void)
 			/* auth_proc_state flag check */
 			if (auth_proc_state == HDCP_AUTH_PROCESS_STOP) {
 				hdcp_info("Stop authenticate.\n");
-				dp_logger_print("soc HDCP2 Stop authenticate.\n");
 				auth_proc_state = HDCP_AUTH_PROCESS_IDLE;
 				break;
 			}
 			/* retry */
 			dplink_clear_irqflag_all();
 			hdcp_err("HDCP auth failed. retry(%d)\n", retry_cnt);
-			dp_logger_print("soc HDCP2 auth failed:%d, retry(%d)\n", ret, retry_cnt);
 		}
 	}
 

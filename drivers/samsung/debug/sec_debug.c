@@ -179,11 +179,11 @@ static int __init sec_debug_user_fault_init(void)
 device_initcall(sec_debug_user_fault_init);
 
 /* layout of SDRAM : First 4KB of DRAM
-*         0x0: magic            (4B)
-*   0x4~0x3FF: panic string     (1020B)
-* 0x400~0x7FF: panic Extra Info (1KB)
-* 0x800~0xFFB: panic dumper log (2KB - 4B)
-*       0xFFC: copy of magic    (4B)
+ *         0x0: magic            (4B)
+ *   0x4~0x3FF: panic string     (1020B)
+ * 0x400~0x7FF: panic Extra Info (1KB)
+ * 0x800~0xFFB: panic dumper log (2KB - 4B)
+ *       0xFFC: copy of magic    (4B)
 */
 
 enum sec_debug_upload_magic_t {
@@ -203,20 +203,25 @@ enum sec_debug_upload_cause_t {
 	UPLOAD_CAUSE_HARD_RESET	= 0x00000066,
 };
 
-static unsigned long sec_debug_rmem_virt;
-static unsigned long sec_debug_rmem_phys;
-static unsigned long sec_debug_rmem_size;
-
-static void sec_debug_set_upload_magic(unsigned magic, char *str)
+static void sec_debug_set_upload_magic(unsigned int magic, char *str)
 {
-	*(unsigned int *)sec_debug_rmem_virt = magic;
+	preempt_disable();
+
+	*(unsigned int *)SEC_DEBUG_MAGIC_VA = magic;
+	*(unsigned int *)(SEC_DEBUG_MAGIC_VA + SZ_4K - 4) = magic;
 
 	if (str) {
+		strncpy((char *)SEC_DEBUG_MAGIC_VA + 4, str, SZ_1K - 4);
+
 #ifdef CONFIG_SEC_DEBUG_EXTRA_INFO
 		sec_debug_set_extra_info_panic(str);
 		sec_debug_finish_extra_info();
 #endif
 	}
+
+	flush_cache_all();
+
+	preempt_enable();
 
 	pr_emerg("sec_debug: set magic code (0x%x)\n", magic);
 }
@@ -228,14 +233,19 @@ static void sec_debug_set_upload_cause(enum sec_debug_upload_cause_t type)
 	pr_emerg("sec_debug: set upload cause (0x%x)\n", type);
 }
 
+static void sec_debug_kmsg_dump(struct kmsg_dumper *dumper, enum kmsg_dump_reason reason)
+{
+	kmsg_dump_get_buffer(dumper, true, (char *)SEC_DEBUG_DUMPER_LOG_VA, SZ_2K - 4, NULL);
+}
+
+static struct kmsg_dumper sec_dumper = {
+	.dump = sec_debug_kmsg_dump,
+};
+
 static int __init sec_debug_magic_setup(struct reserved_mem *rmem)
 {
 	pr_info("%s: Reserved Mem(0x%llx, 0x%llx) - Success\n",
 		__func__, rmem->base, rmem->size);
-
-	sec_debug_rmem_phys = rmem->base;
-	sec_debug_rmem_size = rmem->size;
-
 	sec_debug_reserve_ok = 1;
 
 	return 0;
@@ -352,6 +362,22 @@ static int __init sec_debug_recovery_cause_init(void)
 	return 0;
 }
 late_initcall(sec_debug_recovery_cause_init);
+
+static int __init sec_debug_init(void)
+{
+	if (!sec_debug_reserve_ok)
+		pr_crit("fatal: %s: memory has not been reserved\n", __func__);
+
+	/* clear traps info */
+	memset((void *)SEC_DEBUG_MAGIC_VA + 4, 0, SZ_1K - 4);
+
+	sec_debug_set_upload_magic(UPLOAD_MAGIC_PANIC, NULL);
+
+	kmsg_dump_register(&sec_dumper);
+
+	return 0;
+}
+early_initcall(sec_debug_init);
 
 #ifndef arch_irq_stat_cpu
 #define arch_irq_stat_cpu(cpu) 0
@@ -693,9 +719,8 @@ void *sec_debug_get_debug_base(int type)
 
 unsigned long sec_debug_get_buf_base(int type)
 {
-	if (sdn) {
+	if (sdn)
 		return sdn->map.buf[type].base;
-	}
 
 	pr_crit("%s: return 0\n", __func__);
 
@@ -704,39 +729,12 @@ unsigned long sec_debug_get_buf_base(int type)
 
 unsigned long sec_debug_get_buf_size(int type)
 {
-	if (sdn) {
+	if (sdn)
 		return sdn->map.buf[type].size;
-	}
 
 	pr_crit("%s: return 0\n", __func__);
 
 	return 0;
-}
-
-void secdbg_write_buf(struct outbuf *obuf, int len, const char *fmt, ...)
-{
-	va_list list;
-	char *base;
-	int rem, ret;
-
-	base = obuf->buf;
-	base += obuf->index;
-
-	rem = sizeof(obuf->buf);
-	rem -= obuf->index;
-
-	if (rem <= 0)
-		return;
-
-	if ((len > 0) && (len < rem))
-		rem = len;
-
-	va_start(list, fmt);
-	ret = vsnprintf(base, rem, fmt, list);
-	if (ret)
-		obuf->index += ret;
-
-	va_end(list);
 }
 
 void sec_debug_set_task_in_sys_shutdown(uint64_t task)
@@ -762,8 +760,8 @@ void sec_debug_set_sysrq_crash(struct task_struct *task)
 				sdn->kernd.sysrq_ptr = sec_debug_get_curr_init_ptr();
 			else
 				sdn->kernd.sysrq_ptr = dbg_snapshot_get_curr_ptr_for_sysrq();
-#endif
 		}
+#endif
 	}
 }
 
@@ -818,7 +816,7 @@ void sec_debug_set_task_in_sync_irq(uint64_t task, unsigned int irq, const char 
 				sdn->kernd.sync_irq_thread = (uint64_t)(desc->action->thread);
 			else
 				sdn->kernd.sync_irq_thread = 0;
-		}		
+		}
 	}
 }
 
@@ -885,7 +883,6 @@ static void sec_debug_set_essinfo(void)
 	init_ess_info(index++, "kevnt-idle");
 	init_ess_info(index++, "kevnt-thrm");
 	init_ess_info(index++, "kevnt-acpm");
-	init_ess_info(index++, "kevnt-mfrq");
 
 	for (; index < SD_NR_ESSINFO_ITEMS;)
 		init_ess_info(index++, "empty");
@@ -941,12 +938,14 @@ static void sec_debug_set_taskinfo(void)
 	SET_MEMBER_TYPE_INFO(&sdn->task.ts.sched_info__last_queued,
 					struct task_struct,
 					sched_info.last_queued);
+#ifdef CONFIG_SEC_DEBUG_DTASK
 	SET_MEMBER_TYPE_INFO(&sdn->task.ts.ssdbg_wait__type,
 					struct task_struct,
 					ssdbg_wait.type);
 	SET_MEMBER_TYPE_INFO(&sdn->task.ts.ssdbg_wait__data,
 					struct task_struct,
 					ssdbg_wait.data);
+#endif	/* CONFIG_SEC_DEBUG_DTASK */
 
 	sdn->task.init_task = (uint64_t)&init_task;
 }
@@ -967,9 +966,8 @@ static unsigned long kconfig_size;
 
 void sec_debug_set_kconfig(unsigned long base, unsigned long size)
 {
-	if (!sdn) {
+	if (!sdn)
 		pr_info("%s: call before sdn init\n", __func__);
-	}
 
 	kconfig_base = base;
 	kconfig_size = size;
@@ -1063,56 +1061,9 @@ static int __init sec_debug_next_init(void)
 	sec_debug_set_task_in_sync_irq((uint64_t)NULL, 0, NULL, NULL);
 	sec_debug_clr_device_shutdown_timeinfo();
 
-	pr_crit("%s: TEST: %d\n", __func__, sec_debug_get_debug_level());
-
 	return 0;
 }
 late_initcall(sec_debug_next_init);
-
-static int __init sec_debug_nocache_remap(void)
-{
-	pgprot_t prot = __pgprot(PROT_NORMAL_NC);
-	int page_size, i;
-	struct page *page;
-	struct page **pages;
-	void *addr;
-
-	if (!sec_debug_rmem_size || !sec_debug_rmem_phys) {
-		pr_err("%s: failed to set nocache pages\n", __func__);
-
-		return -1;
-	}
-
-	page_size = (sec_debug_rmem_size + PAGE_SIZE - 1) / PAGE_SIZE; 
-	pages = kzalloc(sizeof(struct page *) * page_size, GFP_KERNEL);
-	if (!pages) {
-		pr_err("%s: failed to allocate pages\n", __func__);
-
-		return -1;
-	}
-	page = phys_to_page(sec_debug_rmem_phys);
-	for (i = 0; i < page_size; i++)
-		pages[i] = page++;
-
-	addr = vm_map_ram(pages, page_size, -1, prot);
-	if (!addr) {
-		pr_err("%s: failed to mapping between virt and phys\n", __func__);
-		kfree(pages);
-
-		return -1;
-	}
-
-	pr_info("%s: virt: 0x%p\n", __func__, addr);
-	sec_debug_rmem_virt = (unsigned long)addr;
-
-	kfree(pages);
-
-	memset((void *)sec_debug_rmem_virt, 0, sec_debug_rmem_size);
-	sec_debug_set_upload_magic(UPLOAD_MAGIC_PANIC, NULL);
-
-	return 0;
-}
-early_initcall(sec_debug_nocache_remap);
 
 static int __init sec_debug_next_setup(char *str)
 {
@@ -1128,7 +1079,7 @@ static int __init sec_debug_next_setup(char *str)
 #ifdef CONFIG_NO_BOOTMEM
 	if (memblock_is_region_reserved(base, size) || memblock_reserve(base, size)) {
 #else
-	if reserve_bootmem(base, size, BOOTMEM_EXCLUSIVE) {
+	if (reserve_bootmem(base, size, BOOTMEM_EXCLUSIVE)) {
 #endif
 		/* size is not match with -size and size + sizeof(...) */
 		pr_err("%s: failed to reserve size:0x%lx at base 0x%lx\n",

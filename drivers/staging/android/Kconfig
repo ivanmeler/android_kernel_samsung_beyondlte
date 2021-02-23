@@ -33,21 +33,8 @@ config ANDROID_LOW_MEMORY_KILLER
 	  scripts (/init.rc), and it defines priority values with minimum free memory size
 	  for each priority.
 
-config SAMSUNG_FREECESS
-	bool "thraw frozen process when recv sig"
-	default n
-	help
-	  thraw frozen process when recv sig.
-
-config SAMSUNG_LMKD_DEBUG
-	bool "record lmkd kill history"
-	default y
-	help
-	  record lmkd kill history
-
 source "drivers/staging/android/ion/Kconfig"
 source "drivers/staging/android/switch/Kconfig"
-
 
 endif # if ANDROID
 

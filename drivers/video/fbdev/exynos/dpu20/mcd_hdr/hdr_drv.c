@@ -26,9 +26,8 @@
 #include "../decon.h"
 
 
-
 /*log level for hdr default : 6*/
-int hdr_log_level = 7;
+int hdr_log_level = 6;
 
 static unsigned int __eq_to_gammut(unsigned int eq_mode)
 {
@@ -263,7 +262,10 @@ static int mcd_config_wcg(struct mcd_hdr_device *hdr, struct wcg_config *config)
 
 	params.dst_gamma = __colorspace_to_gamma_wcg(config->color_mode);
 	params.dst_gamut = __colorspace_to_gamut(config->color_mode);
-    
+
+	hdr_dbg("%s: src gamma: %d, src gamut: %d, color mode: %d (gamma:%d, gamut:%d)\n",
+		__func__, params.src_gamma, params.src_gamut, config->color_mode, params.dst_gamma, params.dst_gamut);
+
 	mcd_cm_reg_set_params(hdr, &params);
 
 	return ret;
@@ -286,6 +288,9 @@ static int mcd_config_hdr(struct mcd_hdr_device *hdr, struct hdr10_config *confi
 
 	params.src_max_luminance = config->src_max_luminance;
 	params.dst_max_luminance = config->dst_max_luminance;
+
+	hdr_dbg("%s: src gamma: %d, src gamut: %d, color mode: %d (gamma:%d, gamut:%d)\n",
+		__func__, params.src_gamma, params.src_gamut, config->color_mode, params.dst_gamma, params.dst_gamut);
 
 	if (config->lut != NULL)
 		params.hdr10p_lut = config->lut;

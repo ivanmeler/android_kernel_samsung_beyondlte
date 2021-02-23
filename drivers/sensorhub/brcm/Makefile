@@ -53,6 +53,5 @@ obj-$(CONFIG_SENSORS_SX9360)		+= sx9360.o
 
 obj-$(CONFIG_SENSORS_SSP_BBD)           += ssp_bbd.o factory/mcu_bcm4774.o
 obj-$(CONFIG_SENSORS_SSP_BBD)           += bbdpl/
-obj-$(CONFIG_SSP_MOTOR_CALLBACK)        += ssp_motorcallback.o
 obj-$(CONFIG_SENSORS_SSP_THERMISTOR)        += factory/thermistor.o
 

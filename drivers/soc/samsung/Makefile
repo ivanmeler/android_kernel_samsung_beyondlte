@@ -1,6 +1,4 @@
-
 ccflags-y := $(KBUILD_FP_SENSOR_CFLAGS)
-
 obj-$(CONFIG_EXYNOS_PMU)	+= exynos-pmu.o
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-el3_mon.o
 obj-$(CONFIG_ARCH_EXYNOS)	+= exynos-smc.o

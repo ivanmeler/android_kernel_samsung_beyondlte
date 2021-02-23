@@ -119,11 +119,11 @@ static inline void touch_all_softlockup_watchdogs(void) { }
 #endif
 
 #if defined(CONFIG_SEC_DEBUG) && defined(CONFIG_SOFTLOCKUP_DETECTOR)
-extern void sl_softirq_entry(const char *, void *);
+extern void sl_softirq_entry(const char *softirq_type, void *fn);
 extern void sl_softirq_exit(void);
 unsigned long long get_dss_softlockup_thresh(void);
 #else
-static inline void void sl_softirq_entry(const char *, void *) { }
+static inline void sl_softirq_entry(const char *softirq_type, void *fn) { }
 static inline void sl_softirq_exit(void) { }
 #endif
 
@@ -205,6 +205,7 @@ extern void touch_nmi_watchdog(void);
 extern void update_hardlockup_type(unsigned int cpu);
 unsigned long long get_hardlockup_thresh(void);
 #endif
+
 #else
 static inline void touch_nmi_watchdog(void)
 {
@@ -212,7 +213,6 @@ static inline void touch_nmi_watchdog(void)
 	touch_softlockup_watchdog();
 }
 #endif
-
 /*
  * Create trigger_all_cpu_backtrace() out of the arch-provided
  * base function. Return whether such support was available,

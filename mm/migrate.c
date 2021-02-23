@@ -671,6 +671,8 @@ void migrate_page_states(struct page *newpage, struct page *page)
 		SetPageActive(newpage);
 	} else if (TestClearPageUnevictable(page))
 		SetPageUnevictable(newpage);
+	if (PageWorkingset(page))
+		SetPageWorkingset(newpage);
 	if (PageChecked(page))
 		SetPageChecked(newpage);
 	if (PageMappedToDisk(page))
@@ -1660,7 +1662,7 @@ static int do_pages_move(struct mm_struct *mm, nodemask_t task_nodes,
 			err = -EFAULT;
 			if (get_user(p, pages + j + chunk_start))
 				goto out_pm;
-			pm[j].addr = (unsigned long) p;
+			pm[j].addr = (unsigned long)untagged_addr(p);
 
 			if (get_user(node, nodes + j + chunk_start))
 				goto out_pm;

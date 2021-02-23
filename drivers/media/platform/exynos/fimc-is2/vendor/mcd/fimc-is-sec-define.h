@@ -104,12 +104,14 @@
 /*#define FIMC_IS_FW_SDCARD			"/data/media/0/fimc_is_fw.bin" */
 /* Rear setfile */
 #define FIMC_IS_2L4_SETF			"setfile_2l4.bin"
+#define FIMC_IS_IMX682_SETF			"setfile_imx682.bin"
 #define FIMC_IS_3M3_SETF			"setfile_3m3.bin"
 #define FIMC_IS_3M5_SETF			"setfile_3m5.bin"
 
 /* Front setfile */
 #define FIMC_IS_3J1_SETF			"setfile_3j1.bin"
 #define FIMC_IS_4HA_SETF			"setfile_4ha.bin"
+#define FIMC_IS_IMX616_SETF			"setfile_imx616.bin"
 
 #define FIMC_IS_CAL_SDCARD_FRONT		"/data/cal_data_front.bin"
 #define FIMC_IS_FW_FROM_SDCARD		"/data/media/0/CamFW_Main.bin"
@@ -250,9 +252,12 @@ struct fimc_is_rom_info {
 	int32_t		rom_header_mtf_data_addr;
 	int32_t		rom_header_f2_mtf_data_addr;
 	int32_t		rom_header_f3_mtf_data_addr;
+
 	int32_t		rom_awb_master_addr;
 	int32_t		rom_awb_module_addr;
+
 	int32_t		rom_af_cal_macro_addr;
+	int32_t		rom_af_cal_d30_addr;
 	int32_t		rom_af_cal_d50_addr;
 	int32_t		rom_af_cal_pan_addr;
 
@@ -370,7 +375,7 @@ int fimc_is_sec_check_bin_files(struct fimc_is_core *core);
 int fimc_is_sec_fw_revision(char *fw_ver);
 int fimc_is_sec_fw_revision(char *fw_ver);
 bool fimc_is_sec_fw_module_compare(char *fw_ver1, char *fw_ver2);
-int fimc_is_sec_compare_ver(int rom_id);
+int fimc_is_sec_compare_ver(int rom_id, int rom_type);
 bool fimc_is_sec_check_rom_ver(struct fimc_is_core *core, int rom_id);
 
 bool fimc_is_sec_check_fw_crc32(char *buf, u32 checksum_seed, unsigned long size);

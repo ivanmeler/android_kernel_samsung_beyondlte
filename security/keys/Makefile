@@ -29,5 +29,3 @@ obj-$(CONFIG_KEY_DH_OPERATIONS) += dh.o
 obj-$(CONFIG_BIG_KEYS) += big_key.o
 obj-$(CONFIG_TRUSTED_KEYS) += trusted.o
 obj-$(CONFIG_ENCRYPTED_KEYS) += encrypted-keys/
-
-ccflags-y := -Wformat

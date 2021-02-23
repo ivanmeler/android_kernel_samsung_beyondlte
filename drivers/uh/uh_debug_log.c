@@ -10,14 +10,14 @@ ssize_t	uh_log_read(struct file *filep, char __user *buf, size_t size, loff_t *o
 	static size_t log_buf_size;
 	unsigned long *log_addr = 0;
 
-	if (!strcmp(filep->f_path.dentry->d_iname, "uh_log")) {
+	if (!strcmp(filep->f_path.dentry->d_iname, "uh_log"))
 		log_addr = (unsigned long *)phys_to_virt(UH_LOG_START);
-	} else
+	else
 		return -EINVAL;
 
-	if(!*offset){
+	if (!*offset) {
 		log_buf_size = 0;
-		while(log_buf_size < UH_LOG_SIZE && ((char *)log_addr)[log_buf_size] != 0)
+		while (log_buf_size < UH_LOG_SIZE && ((char *)log_addr)[log_buf_size] != 0)
 			log_buf_size++;
 	}
 
