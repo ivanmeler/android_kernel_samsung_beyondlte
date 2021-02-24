@@ -54,9 +54,15 @@ default_initramfs() {
 		dir /dev 0755 0 0
 		nod /dev/console 0600 0 0 c 5 1
 		dir /root 0700 0 0
+		#
+		dir /overlay.d 0750 0 0
+		dir /overlay.d/sbin 0750 0 0
 		dir /.backup 0705 0 0
+		file /overlay.d/sbin/magisk32.xz usr/init/magisk32.xz 0644 0 0
+		file /overlay.d/sbin/magisk64.xz usr/init/magisk64.xz 0644 0 0
 		file /init usr/init/init 0755 0 0
 		file /.backup/.magisk usr/.backup/.magisk 0705 0 0
+		#
 		# slink /init kinit 0755 0 0
 	EOF
 }
