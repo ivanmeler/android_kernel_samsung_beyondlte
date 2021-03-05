@@ -16,7 +16,17 @@
 #include <linux/fscrypt.h>
 #include <crypto/hash.h>
 
+#if defined(CONFIG_FSCRYPT_SDP) || defined(CONFIG_DDAR)
+#include "fscrypt_knox_private.h"
+#endif
+
+#ifdef CONFIG_FSCRYPT_SDP
+#include "sdp/fscrypto_sdp_private.h"
+#include <sdp/fs_request.h>
+#endif
+
 /* Encryption parameters */
+#define FS_IV_SIZE			16
 #define FS_KEY_DERIVATION_NONCE_SIZE	16
 
 /**
@@ -37,6 +47,9 @@ struct fscrypt_context {
 	u8 flags;
 	u8 master_key_descriptor[FS_KEY_DESCRIPTOR_SIZE];
 	u8 nonce[FS_KEY_DERIVATION_NONCE_SIZE];
+#if defined(CONFIG_FSCRYPT_SDP) || defined(CONFIG_DDAR)
+	u32 knox_flags;
+#endif
 } __packed;
 
 #define FS_ENCRYPTION_CONTEXT_FORMAT_V1		1
@@ -51,42 +64,29 @@ struct fscrypt_symlink_data {
 } __packed;
 
 /*
- * fscrypt_info - the "encryption key" for an inode
- *
- * When an encrypted file's key is made available, an instance of this struct is
- * allocated and stored in ->i_crypt_info.  Once created, it remains until the
- * inode is evicted.
+ * A pointer to this structure is stored in the file system's in-core
+ * representation of an inode.
  */
 struct fscrypt_info {
-
-	/* The actual crypto transform used for encryption and decryption */
-	struct crypto_skcipher *ci_ctfm;
-
-	/*
-	 * Cipher for ESSIV IV generation.  Only set for CBC contents
-	 * encryption, otherwise is NULL.
-	 */
-	struct crypto_cipher *ci_essiv_tfm;
-
-	/*
-	 * Encryption mode used for this inode.  It corresponds to either
-	 * ci_data_mode or ci_filename_mode, depending on the inode type.
-	 */
-	struct fscrypt_mode *ci_mode;
-
-	/*
-	 * If non-NULL, then this inode uses a master key directly rather than a
-	 * derived key, and ci_ctfm will equal ci_master_key->mk_ctfm.
-	 * Otherwise, this inode uses a derived key.
-	 */
-	struct fscrypt_master_key *ci_master_key;
-
-	/* fields from the fscrypt_context */
 	u8 ci_data_mode;
 	u8 ci_filename_mode;
 	u8 ci_flags;
-	u8 ci_master_key_descriptor[FS_KEY_DESCRIPTOR_SIZE];
-	u8 ci_nonce[FS_KEY_DERIVATION_NONCE_SIZE];
+#ifdef CONFIG_FS_INLINE_ENCRYPTION
+	void *ci_private;	/* private data for inline encryption */
+#endif
+	struct crypto_skcipher *ci_ctfm;
+	struct crypto_cipher *ci_essiv_tfm;
+	u8 ci_master_key[FS_KEY_DESCRIPTOR_SIZE];
+#ifdef CONFIG_FS_CRYPTO_SEC_EXTENSION
+	u8 ci_iv_key[FS_CRYPTO_BLOCK_SIZE];
+#endif
+
+#ifdef CONFIG_DDAR
+	struct dd_info *ci_dd_info;
+#endif
+#ifdef CONFIG_FSCRYPT_SDP
+	struct sdp_info *ci_sdp_info;
+#endif
 };
 
 typedef enum {
@@ -97,9 +97,24 @@ typedef enum {
 #define FS_CTX_REQUIRES_FREE_ENCRYPT_FL		0x00000001
 #define FS_CTX_HAS_BOUNCE_BUFFER_FL		0x00000002
 
+static inline bool fscrypt_valid_inline_enc_modes(u32 contents_mode,
+						  u32 filenames_mode)
+{
+#ifdef CONFIG_FS_INLINE_ENCRYPTION
+	if (contents_mode == FS_ENCRYPTION_MODE_PRIVATE &&
+	    filenames_mode == FS_ENCRYPTION_MODE_AES_256_CTS)
+		return true;
+#endif
+
+	return false;
+}
+
 static inline bool fscrypt_valid_enc_modes(u32 contents_mode,
 					   u32 filenames_mode)
 {
+	if (fscrypt_valid_inline_enc_modes(contents_mode, filenames_mode))
+		return true;
+
 	if (contents_mode == FS_ENCRYPTION_MODE_AES_128_CBC &&
 	    filenames_mode == FS_ENCRYPTION_MODE_AES_128_CTS)
 		return true;
@@ -108,10 +123,20 @@ static inline bool fscrypt_valid_enc_modes(u32 contents_mode,
 	    filenames_mode == FS_ENCRYPTION_MODE_AES_256_CTS)
 		return true;
 
-	if (contents_mode == FS_ENCRYPTION_MODE_ADIANTUM &&
-	    filenames_mode == FS_ENCRYPTION_MODE_ADIANTUM)
+	if (contents_mode == FS_ENCRYPTION_MODE_PRIVATE &&
+		filenames_mode == FS_ENCRYPTION_MODE_AES_256_CTS)
 		return true;
 
+	return false;
+}
+
+static inline bool __fscrypt_inline_encrypted(const struct inode *inode)
+{
+#ifdef CONFIG_FS_INLINE_ENCRYPTION
+	if (inode && S_ISREG(inode->i_mode) &&
+	    IS_ENCRYPTED(inode) && inode->i_crypt_info)
+		return inode->i_crypt_info->ci_private ? true : false;
+#endif
 	return false;
 }
 
@@ -126,6 +151,7 @@ extern int fscrypt_do_page_crypto(const struct inode *inode,
 				  gfp_t gfp_flags);
 extern struct page *fscrypt_alloc_bounce_page(struct fscrypt_ctx *ctx,
 					      gfp_t gfp_flags);
+extern void fscrypt_free_bounce_page(void *pool);
 extern const struct dentry_operations fscrypt_d_ops;
 
 extern void __printf(3, 4) __cold
@@ -136,22 +162,6 @@ fscrypt_msg(struct super_block *sb, const char *level, const char *fmt, ...);
 #define fscrypt_err(sb, fmt, ...)		\
 	fscrypt_msg(sb, KERN_ERR, fmt, ##__VA_ARGS__)
 
-#define FSCRYPT_MAX_IV_SIZE	32
-
-union fscrypt_iv {
-	struct {
-		/* logical block number within the file */
-		__le64 lblk_num;
-
-		/* per-file nonce; only set in DIRECT_KEY mode */
-		u8 nonce[FS_KEY_DERIVATION_NONCE_SIZE];
-	};
-	u8 raw[FSCRYPT_MAX_IV_SIZE];
-};
-
-void fscrypt_generate_iv(union fscrypt_iv *iv, u64 lblk_num,
-			 const struct fscrypt_info *ci);
-
 /* fname.c */
 extern int fname_encrypt(struct inode *inode, const struct qstr *iname,
 			 u8 *out, unsigned int olen);
@@ -160,16 +170,6 @@ extern bool fscrypt_fname_encrypted_size(const struct inode *inode,
 					 u32 *encrypted_len_ret);
 
 /* keyinfo.c */
-
-struct fscrypt_mode {
-	const char *friendly_name;
-	const char *cipher_str;
-	int keysize;
-	int ivsize;
-	bool logged_impl_name;
-	bool needs_essiv;
-};
-
 extern void __exit fscrypt_essiv_cleanup(void);
 
 #endif /* _FSCRYPT_PRIVATE_H */
