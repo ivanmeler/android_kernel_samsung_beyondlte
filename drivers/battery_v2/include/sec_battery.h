@@ -199,7 +199,7 @@ struct sec_bat_pdic_info {
 };
 
 struct sec_bat_pdic_list {
-	struct sec_bat_pdic_info pd_info[8]; /* 5V ~ 12V */
+	struct sec_bat_pdic_info pd_info[MAX_PDO_NUM]; /* 5V ~ 12V */
 	unsigned int now_pd_index;
 	unsigned int max_pd_count;
 #if defined(CONFIG_PDIC_PD30)
@@ -510,6 +510,7 @@ struct sec_battery_info {
 	int wpc_vout_level;
 	int wpc_max_vout_level;
 	unsigned int current_event;
+	bool refresh_current;
 
 	/* wireless charging enable */
 	struct mutex wclock;
@@ -625,9 +626,11 @@ struct sec_battery_info {
 	unsigned int tx_ocp_cnt;
 	struct delayed_work ext_event_work;
 	struct delayed_work misc_event_work;
+	struct delayed_work wpc_tx_en_work;
 	struct wake_lock ext_event_wake_lock;
 	struct wake_lock misc_event_wake_lock;
 	struct wake_lock tx_event_wake_lock;
+	struct wake_lock wpc_tx_en_wake_lock;
 	struct mutex batt_handlelock;
 	struct mutex current_eventlock;
 	struct mutex typec_notylock;
@@ -701,6 +704,7 @@ extern void sec_bat_set_temp_control_test(struct sec_battery_info *battery, bool
 extern void sec_bat_get_battery_info(struct sec_battery_info *battery);
 extern int sec_bat_set_charge(struct sec_battery_info *battery, int chg_mode);
 extern int sec_bat_set_charging_current(struct sec_battery_info *battery);
+extern void sec_bat_refresh_charging_current(struct sec_battery_info *battery);
 extern void sec_bat_aging_check(struct sec_battery_info *battery);
 extern void sec_wireless_set_tx_enable(struct sec_battery_info *battery, bool wc_tx_enable);
 
