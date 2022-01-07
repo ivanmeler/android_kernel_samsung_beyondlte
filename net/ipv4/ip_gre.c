@@ -446,6 +446,9 @@ static void __gre_xmit(struct sk_buff *skb, struct net_device *dev,
 
 static int gre_handle_offloads(struct sk_buff *skb, bool csum)
 {
+	if (csum && skb_checksum_start(skb) < skb->data)
+	return -EINVAL;
+
 	return iptunnel_handle_offloads(skb, csum ? SKB_GSO_GRE_CSUM : SKB_GSO_GRE);
 }
 
@@ -689,7 +692,7 @@ static void erspan_build_header(struct sk_buff *skb,
 				__be32 id, u32 index, bool truncate)
 {
 	struct iphdr *iphdr = ip_hdr(skb);
-	struct ethhdr *eth = eth_hdr(skb);
+	struct ethhdr *eth = (struct ethhdr *)skb->data;
 	enum erspan_encap_type enc_type;
 	struct erspanhdr *ershdr;
 	struct qtag_prefix {
