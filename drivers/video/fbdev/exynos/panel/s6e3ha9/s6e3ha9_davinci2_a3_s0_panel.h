@@ -122,7 +122,11 @@ static u8 davinci2_a3_s0_mps_table[][1] = { { 0xCC }, { 0xDC } };
 static u8 davinci2_a3_s0_elvss_table[][S6E3HA9_DAVINCI_TOTAL_NR_LUMINANCE][1] = {
 	{
 		/* OVER_ZERO */
+#ifdef CONFIG_PANEL_SMART_DIMMING
+                { 0x18 }, { 0x18 }, { 0x18 }, { 0x18 }, { 0x18 }, { 0x18 }, { 0x18 }, { 0x19 }, { 0x1A }, { 0x1C },
+#else
 		{ 0x14 }, { 0x14 }, { 0x15 }, { 0x15 }, { 0x16 }, { 0x17 }, { 0x18 }, { 0x19 }, { 0x1A }, { 0x1C },
+#endif
 		{ 0x1E }, { 0x20 }, { 0x22 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 },
 		{ 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 },
 		{ 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 },
@@ -136,7 +140,11 @@ static u8 davinci2_a3_s0_elvss_table[][S6E3HA9_DAVINCI_TOTAL_NR_LUMINANCE][1] = 
 	},
 	{
 		/* UNDER_ZERO */
+#ifdef CONFIG_PANEL_SMART_DIMMING
+                { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 }, { 0x20 },
+#else
 		{ 0x1C }, { 0x1C }, { 0x1C }, { 0x1C }, { 0x1C }, { 0x1C }, { 0x1C }, { 0x20 }, { 0x20 }, { 0x20 },
+#endif
 		{ 0x20 }, { 0x20 }, { 0x20 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 },
 		{ 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 },
 		{ 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 }, { 0x24 },
@@ -1203,7 +1211,11 @@ static DEFINE_STATIC_PACKET(davinci2_a3_s0_dynamic_hlpm_disable, DSI_PKT_TYPE_WR
 
 static DEFINE_PKTUI(davinci2_a3_s0_gamma, &davinci2_a3_s0_maptbl[GAMMA_MAPTBL], 1);
 static DEFINE_VARIABLE_PACKET(davinci2_a3_s0_gamma, DSI_PKT_TYPE_WR, DAVINCI2_A3_S0_GAMMA, 0);
+#ifndef CONFIG_PANEL_SMART_DIMMING
+static DEFINE_PKTUI(davinci2_a3_s0_aor);
+#else
 static DEFINE_PKTUI(davinci2_a3_s0_aor, &davinci2_a3_s0_maptbl[AOR_MAPTBL], 1);
+#endif
 static DEFINE_VARIABLE_PACKET(davinci2_a3_s0_aor, DSI_PKT_TYPE_WR, DAVINCI2_A3_S0_AOR, 0);
 
 static DEFINE_STATIC_PACKET(davinci2_a3_s0_poc_comp1, DSI_PKT_TYPE_WR, DAVINCI2_A3_S0_POC_COMP1, 0x06);

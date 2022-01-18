@@ -22,6 +22,7 @@
  * LDI : S6E3HA9
  * PANEL : DAVINCI2_A3_S0
  */
+#ifndef CONFIG_PANEL_SMART_DIMMING
 /* gray scale offset values */
 static s32 davinci2_a3_s0_rtbl2nit[S6E3HA9_NR_TP] = { 0, 0, 0, 33, 33, 30, 28, 24, 17, 10, 5, 0 };
 static s32 davinci2_a3_s0_rtbl3nit[S6E3HA9_NR_TP] = { 0, 0, 0, 28, 27, 24, 22, 19, 13, 8, 5, 0 };
@@ -252,6 +253,87 @@ static struct dimming_lut davinci2_a3_s0_dimming_lut[] = {
 	DIM_LUT_V0_INIT(412, 409, GAMMA_2_15, davinci2_a3_s0_rtbl412nit, davinci2_a3_s0_ctbl412nit),
 	DIM_LUT_V0_INIT(420, 420, GAMMA_2_20, davinci2_a3_s0_rtbl420nit, davinci2_a3_s0_ctbl420nit),
 };
+#else
+static s32 rtbl420nit[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+static s32 ctbl420nit[33] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+static struct dimming_lut dream2_a2_sa_dimming_lut[] = {
+	DIM_LUT_V0_INIT(2, 6, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(3, 6, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(4, 7, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(5, 7, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(6, 8, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(7, 8, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(8, 9, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(9, 9, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(10, 10, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(11, 11, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(12, 12, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(13, 13, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(14, 14, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(15, 15, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(16, 16, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(17, 17, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(19, 19, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(20, 20, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(21, 21, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(22, 22, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(24, 24, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(25, 25, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(27, 27, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(29, 29, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(30, 30, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(32, 32, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(34, 34, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(37, 37, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(39, 39, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(41, 41, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(44, 44, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(47, 47, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(50, 50, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(53, 53, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(56, 56, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(60, 60, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(64, 64, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(68, 68, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(72, 72, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(77, 77, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(82, 82, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(87, 87, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(93, 93, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(98, 98, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(105, 105, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(111, 111, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(119, 119, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(126, 126, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(134, 134, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(143, 143, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(152, 152, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(162, 162, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(172, 172, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(183, 183, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(195, 195, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(207, 207, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(220, 220, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(234, 234, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(249, 249, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(265, 265, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(282, 282, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(300, 300, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(316, 316, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(333, 333, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(350, 350, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(357, 357, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(365, 365, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(372, 372, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(380, 380, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(387, 387, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(395, 395, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(403, 403, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(412, 412, GAMMA_2_15, rtbl420nit, ctbl420nit),
+	DIM_LUT_V0_INIT(420, 420, GAMMA_2_20, rtbl420nit, ctbl420nit),
+};
+#endif
 
 static u8 davinci2_a3_s0_dimming_gamma_table[S6E3HA9_DAVINCI_TOTAL_NR_LUMINANCE][S6E3HA9_GAMMA_CMD_CNT - 1];
 

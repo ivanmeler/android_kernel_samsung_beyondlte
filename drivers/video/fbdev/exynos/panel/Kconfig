@@ -53,6 +53,11 @@ config PANEL_AID_DIMMING_DEBUG
 	tristate "Support AID Dimming Debug"
 	default y
 
+config PANEL_SMART_DIMMING
+	depends on PANEL_AID_DIMMING
+	tristate "Support SMART Dimming"
+	default n
+
 config SUPPORT_DSU
 	tristate "Support DSU(Multi Resolution)"
 	depends on EXYNOS_DECON_LCD
