@@ -257,7 +257,7 @@ static struct dimming_lut davinci2_a3_s0_dimming_lut[] = {
 static s32 rtbl420nit[11] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 static s32 ctbl420nit[33] = { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-static struct dimming_lut dream2_a2_sa_dimming_lut[] = {
+static struct dimming_lut davinci2_a3_s0_dimming_lut[] = {
 	DIM_LUT_V0_INIT(2, 6, GAMMA_2_15, rtbl420nit, ctbl420nit),
 	DIM_LUT_V0_INIT(3, 6, GAMMA_2_15, rtbl420nit, ctbl420nit),
 	DIM_LUT_V0_INIT(4, 7, GAMMA_2_15, rtbl420nit, ctbl420nit),
