@@ -4,7 +4,7 @@
 export MODEL=$1
 export VARIANT=eur
 export ARCH=arm64
-export BUILD_CROSS_COMPILE=/home/ivanmeler/android/system/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9/bin/aarch64-linux-android-
+export BUILD_CROSS_COMPILE=$(pwd)/toolchains/aarch64-linux-android-4.9/bin/aarch64-linux-androidkernel-
 export BUILD_JOB_NUMBER=12
 
 RDIR=$(pwd)
@@ -119,8 +119,9 @@ FUNC_BUILD_KERNEL()
         echo "build common config="$KERNEL_DEFCONFIG ""
         echo "build model config="$MODEL ""
 
-
-	export ANDROID_MAJOR_VERSION=q
+	# No this is not a typo, samsung left it this way on 12
+	export PLATFORM_VERSION=11
+	export ANDROID_MAJOR_VERSION=r
 
 
 	make -j$BUILD_JOB_NUMBER ARCH=$ARCH \
