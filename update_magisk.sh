@@ -10,23 +10,24 @@ case $BRANCH in
 stable)
 	is_remote_download=1
         should_proceed=1
-	revision=stable
 	;;
 beta)
 	is_remote_download=1
         should_proceed=1
-	revision=beta
         ;;
 canary)
 	is_remote_download=1
         should_proceed=1
-	revision=canary
 	;;
 local)
         is_remote_download=0
         magisk_ver="local fork"
 	if test -f "Magisk.zip"; then
         	should_proceed=1
+	else
+	echo -e "$color_green"
+        echo -e "Place Magisk.zip inside of rootdir before proceeding with local magisk update"
+        echo -e "$color_reset"
 	fi
         ;;
 *)
@@ -46,8 +47,8 @@ esac
 if [ $should_proceed -eq "1" ]; then
 
 if [ $is_remote_download -eq "1" ]; then
-    wget `curl -s https://raw.githubusercontent.com/topjohnwu/magisk-files/master/$revision.json | jq -r '.magisk.link'` -O Magisk.zip
-    magisk_ver=`curl -s https://raw.githubusercontent.com/topjohnwu/magisk-files/master/$revision.json | jq -r '.magisk.version'`
+    wget `curl -s https://raw.githubusercontent.com/topjohnwu/magisk-files/master/$BRANCH.json | jq -r '.magisk.link'` -O Magisk.zip
+    magisk_ver=`curl -s https://raw.githubusercontent.com/topjohnwu/magisk-files/master/$BRANCH.json | jq -r '.magisk.version'`
 fi
 
 # Delete old Magisk version
@@ -75,5 +76,5 @@ rm -rf libmagisk64.so
 rm -rf magiskboot
 
 git add -A
-git commit --author="ivanmeler <i_ivan@windowslive.com>" -m "Update magisk to $magisk_ver"
+git commit --author="ivanmeler <i_ivan@windowslive.com>" -m "Update magisk to $magisk_ver ($BRANCH)"
 fi
