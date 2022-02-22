@@ -259,12 +259,12 @@ FUNC_BUILD_RAMDISK()
 FUNC_BUILD_ZIP()
 {
 	cd $RDIR/build
-	rm -rf $MODEL-boot-magisk.img
+	rm -rf $MODEL-boot-ramdisk.img
 	case $MODEL in
 	beyond2lte)
 		case $VARIANT in
 		can|duos|eur|xx)
-			mv -f $RDIR/ramdisk/G975/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+			mv -f $RDIR/ramdisk/G975/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
 			;;
 		*)
 			echo "Unknown variant: $VARIANT"
@@ -275,7 +275,7 @@ FUNC_BUILD_ZIP()
 	beyond1lte)
 		case $VARIANT in
 		can|duos|eur|xx)
-			mv -f $RDIR/ramdisk/G973/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+			mv -f $RDIR/ramdisk/G973/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
 			;;
 		*)
 			echo "Unknown variant: $VARIANT"
@@ -286,7 +286,7 @@ FUNC_BUILD_ZIP()
 	beyond0lte)
 		case $VARIANT in
 		can|duos|eur|xx)
-			mv -f $RDIR/ramdisk/G970/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+			mv -f $RDIR/ramdisk/G970/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
 			;;
 		*)
 			echo "Unknown variant: $VARIANT"
@@ -297,7 +297,7 @@ FUNC_BUILD_ZIP()
         beyondx)
                 case $VARIANT in
                 can|duos|eur|xx)
-                        mv -f $RDIR/ramdisk/G977/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+                        mv -f $RDIR/ramdisk/G977/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
                         ;;
                 *)
                         echo "Unknown variant: $VARIANT"
@@ -308,7 +308,7 @@ FUNC_BUILD_ZIP()
         d1)
                 case $VARIANT in
                 can|duos|eur|xx)
-                        mv -f $RDIR/ramdisk/N970/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+                        mv -f $RDIR/ramdisk/N970/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
                         ;;
                 *)
                         echo "Unknown variant: $VARIANT"
@@ -319,7 +319,7 @@ FUNC_BUILD_ZIP()
         d2s)
                 case $VARIANT in
                 can|duos|eur|xx)
-                        mv -f $RDIR/ramdisk/N975/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+                        mv -f $RDIR/ramdisk/N975/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
                         ;;
                 *)
                         echo "Unknown variant: $VARIANT"
@@ -330,7 +330,7 @@ FUNC_BUILD_ZIP()
         d2x)
                 case $VARIANT in
                 can|duos|eur|xx)
-                        mv -f $RDIR/ramdisk/N976/image-new.img $RDIR/build/$MODEL-boot-magisk.img
+                        mv -f $RDIR/ramdisk/N976/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
                         ;;
                 *)
                         echo "Unknown variant: $VARIANT"
