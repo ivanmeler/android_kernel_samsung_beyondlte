@@ -74,6 +74,13 @@ FUNC_BUILD_KERNEL()
     echo " Finished kernel build"
 }
 
+FUNC_BUILD_DTBO()
+{
+    $RDIR/toolchains/mkdtimg cfg_create build/dtbo_$MODEL.img \
+        $RDIR/toolchains/configs/$MODEL.cfg \
+        -d $RDIR/arch/arm64/boot/dts/samsung
+}
+
 FUNC_BUILD_RAMDISK()
 {
     rm -f $RDIR/ramdisk/split_img/boot.img-kernel
@@ -107,6 +114,7 @@ rm -rf ./build.log
 	START_TIME=`date +%s`
 
 	FUNC_BUILD_KERNEL
+	FUNC_BUILD_DTBO
 	FUNC_BUILD_RAMDISK
 	FUNC_BUILD_ZIP
 
