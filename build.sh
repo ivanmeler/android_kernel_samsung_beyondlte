@@ -106,6 +106,20 @@ FUNC_BUILD_ZIP()
     cd $RDIR/build
     rm -rf $MODEL-boot-ramdisk.img
     mv $RDIR/ramdisk/image-new.img $RDIR/build/$MODEL-boot-ramdisk.img
+
+    # Make recovery flashable package
+    rm -rf $RDIR/build/zip
+    mkdir -p $RDIR/build/zip
+    cp $RDIR/build/$MODEL-boot-ramdisk.img $RDIR/build/zip/boot.img
+    cp $RDIR/build/dtb_$SOC.img $RDIR/build/zip/dtb.img
+    cp $RDIR/build/dtbo_$MODEL.img $RDIR/build/zip/dtbo.img
+    mkdir -p $RDIR/build/zip/META-INF/com/google/android/
+    cp $RDIR/toolchains/updater-script $RDIR/build/zip/META-INF/com/google/android/
+    cp $RDIR/toolchains/update-binary $RDIR/build/zip/META-INF/com/google/android/
+    cd $RDIR/build/zip
+    zip -r ../kernel_$MODEL.zip .
+    rm -rf $RDIR/build/zip
+    cd $RDIR/build
 }
 
 # MAIN FUNCTION
