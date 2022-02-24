@@ -1,0 +1,15 @@
+show_progress(0.070000, 0);
+set_progress(0.600000);
+ui_print("Flashing boot, dtb and dtbo images");
+
+package_extract_file("boot.img", "/dev/block/platform/13d60000.ufs/by-name/boot");
+set_progress(0.700000);
+package_extract_file("dtb.img", "/dev/block/platform/13d60000.ufs/by-name/dtb");
+set_progress(0.800000);
+package_extract_file("dtbo.img", "/dev/block/platform/13d60000.ufs/by-name/dtbo");
+set_progress(0.900000);
+
+ui_print(" ");
+ui_print("Done flashing packages");
+ui_print(" ");
+set_progress(1.000000);
