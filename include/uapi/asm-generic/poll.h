@@ -29,7 +29,7 @@
 #define POLLRDHUP       0x2000
 #endif
 
-#define POLLFREE	0x4000	/* currently only for epoll */
+#define POLLFREE	0x4000
 
 #define POLL_BUSY_LOOP	0x8000
 

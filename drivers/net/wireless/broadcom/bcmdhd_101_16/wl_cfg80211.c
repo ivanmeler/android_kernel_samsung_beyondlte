@@ -11732,13 +11732,18 @@ wl_handle_link_down(struct bcm_cfg80211 *cfg, wl_assoc_status_t *as)
 	/* clear profile before reporting link down */
 	wl_init_prof(cfg, ndev);
 
+	if (wl_get_drv_status(cfg, DISCONNECTING, ndev)) {
+		/* If DISCONNECTING bit is set, mark locally generated */
+		loc_gen = 1;
+	}
+
 	CFG80211_DISCONNECTED(ndev, reason, ie_ptr, ie_len,
 		loc_gen, GFP_KERNEL);
 	WL_INFORM_MEM(("[%s] Disconnect event sent to upper layer"
-		"event:%d e->reason=%d reason=%d ie_len=%d "
+		"event:%d e->reason=%d reason=%d ie_len=%d loc_gen=%d"
 		"from " MACDBG "\n",
 		ndev->name,	event, ntoh32(as->reason), reason, ie_len,
-		MAC2STRDBG((const u8*)(&as->addr))));
+		loc_gen, MAC2STRDBG((const u8*)(&as->addr))));
 
 	/* clear connected state */
 	wl_clr_drv_status(cfg, CONNECTED, ndev);
