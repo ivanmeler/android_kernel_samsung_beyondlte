@@ -913,9 +913,7 @@ static int read_from_bdev_async(struct zram *zram, struct bio_vec *bvec,
 }
 
 #ifdef CONFIG_ZRAM_LRU_WRITEBACK
-static int zram_balance_threshold = 25;	/* min swap-used threshold */
 static int zram_balance_ratio = 25;	/* nand writeback ratio */
-module_param(zram_balance_threshold, int, 0644);
 module_param(zram_balance_ratio, int, 0644);
 
 static bool is_bdev_avail(struct zram *zram)
@@ -955,6 +953,16 @@ static bool is_bdev_avail(struct zram *zram)
 	return true;
 }
 
+static inline bool zram_throttle_writeback_size(struct zram *zram)
+{
+	long objcnt = atomic64_read(&zram->stats.bd_objcnt);
+
+	if ((unsigned long)objcnt >= zram->nr_pages * 4)
+		return true;
+	else
+		return false;
+}
+
 static bool zram_wb_available(struct zram *zram)
 {
 	if (!zram->wb_table)
@@ -966,6 +974,8 @@ static bool zram_wb_available(struct zram *zram)
 	}
 	spin_unlock(&zram->wb_limit_lock);
 
+	if (zram_throttle_writeback_size(zram))
+		return false;
 	return true;
 }
 
@@ -1039,12 +1049,11 @@ bool zram_is_app_launch(void)
 static bool zram_should_writeback(struct zram *zram,
 				unsigned long pages, bool trigger)
 {
-	unsigned long total = zram->disksize >> PAGE_SHIFT;
 	unsigned long stored = atomic64_read(&zram->stats.pages_stored);
 	unsigned long writtenback = atomic64_read(&zram->stats.bd_objcnt) -
 				    atomic64_read(&zram->stats.bd_ppr_objcnt) -
 				    atomic64_read(&zram->stats.bd_expire);
-	unsigned long min_stored = total * zram_balance_threshold / 100;
+	unsigned long min_stored_byte;
 	int writtenback_ratio = stored ? (writtenback * 100) / stored : 0;
 	int min_writtenback_ratio = zram_balance_ratio;
 	int margin = max_t(int, 1, zram_balance_ratio / 10);
@@ -1068,8 +1077,14 @@ static bool zram_should_writeback(struct zram *zram,
 		min_writtenback_ratio -= margin;
 	else
 		min_writtenback_ratio += margin;
+	if (min_writtenback_ratio < writtenback_ratio)
+		ret = false;
 
-	if (min_stored > stored || min_writtenback_ratio < writtenback_ratio)
+	if (zram->disksize < SZ_4G)
+		min_stored_byte = SZ_512M;
+	else
+		min_stored_byte = SZ_1G;
+	if ((stored << PAGE_SHIFT) < min_stored_byte)
 		ret = false;
 
 	if (trigger && ret == true)
