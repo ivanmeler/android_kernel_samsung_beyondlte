@@ -464,8 +464,8 @@ void kbase_remove_va_region(struct kbase_device *kbdev,
 		rb_replace_node(&(reg->rblink), &(free_reg->rblink), reg_rbtree);
 	}
 
- out:
-	return err;
+out:
+	return;
 }
 
 KBASE_EXPORT_TEST_API(kbase_remove_va_region);
@@ -1997,8 +1997,8 @@ int kbase_mem_free_region(struct kbase_context *kctx, struct kbase_va_region *re
 	/* This will also free the physical pages */
 	kbase_free_alloced_region(reg);
 
-out:
-	return;
+ out:
+	return err;
 }
 
 KBASE_EXPORT_TEST_API(kbase_mem_free_region);
