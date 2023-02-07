@@ -12,8 +12,8 @@
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x15850000 0x1000>;
 		interrupts = <0x0 0x5 0x0 0x0 0x6 0x0 0x0 0x7 0x0 0x0 0x8 0x0 0x0 0x9 0x0 0x0 0xa 0x0 0x0 0xb 0x0 0x0 0xc 0x0 0x0 0xd 0x0 0x0 0xe 0x0 0x0 0xf 0x0 0x0 0x10 0x0 0x0 0x11 0x0 0x0 0x12 0x0 0x0 0x13 0x0 0x0 0x14 0x0 0x0 0x15 0x0 0x0 0x16 0x0 0x0 0x17 0x0 0x0 0x18 0x0 0x0 0x19 0x0 0x0 0x1a 0x0 0x0 0x1b 0x0 0x0 0x1c 0x0 0x0 0x1d 0x0 0x0 0x1e 0x0 0x0 0x1f 0x0 0x0 0x20 0x0 0x0 0x21 0x0 0x0 0x22 0x0 0x0 0x23 0x0 0x0 0x24 0x0 0x0 0x25 0x0 0x0 0x26 0x0>;
-		linux,phandle = <0x134>;
-		phandle = <0x134>;
+		linux,phandle = <0x133>;
+		phandle = <0x133>;
 
 		gpa0 {
 			gpio-controller;
@@ -22,8 +22,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x5 0x0 0x0 0x6 0x0 0x0 0x7 0x0 0x0 0x8 0x0 0x0 0x9 0x0 0x0 0xa 0x0 0x0 0xb 0x0 0x0 0xc 0x0>;
-			linux,phandle = <0x135>;
-			phandle = <0x135>;
+			linux,phandle = <0x134>;
+			phandle = <0x134>;
 		};
 
 		gpa1 {
@@ -33,8 +33,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0xd 0x0 0x0 0xe 0x0 0x0 0xf 0x0 0x0 0x10 0x0 0x0 0x11 0x0 0x0 0x12 0x0 0x0 0x13 0x0 0x0 0x14 0x0>;
-			linux,phandle = <0x136>;
-			phandle = <0x136>;
+			linux,phandle = <0x135>;
+			phandle = <0x135>;
 		};
 
 		gpa2 {
@@ -44,8 +44,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x15 0x0 0x0 0x16 0x0 0x0 0x17 0x0 0x0 0x18 0x0 0x0 0x19 0x0 0x0 0x1a 0x0 0x0 0x1b 0x0 0x0 0x1c 0x0>;
-			linux,phandle = <0x137>;
-			phandle = <0x137>;
+			linux,phandle = <0x136>;
+			phandle = <0x136>;
 		};
 
 		gpa3 {
@@ -55,8 +55,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x1d 0x0 0x0 0x1e 0x0 0x0 0x1f 0x0 0x0 0x20 0x0 0x0 0x21 0x0 0x0 0x22 0x0 0x0 0x23 0x0 0x0 0x24 0x0>;
-			linux,phandle = <0x138>;
-			phandle = <0x138>;
+			linux,phandle = <0x137>;
+			phandle = <0x137>;
 		};
 
 		gpa4 {
@@ -66,26 +66,24 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x25 0x0 0x0 0x26 0x0>;
-			linux,phandle = <0x139>;
-			phandle = <0x139>;
+			linux,phandle = <0x138>;
+			phandle = <0x138>;
 		};
 
 		pcie_wake {
 			samsung,pins = "gpa3-2";
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x13a>;
-			phandle = <0x13a>;
+			linux,phandle = <0x139>;
+			phandle = <0x139>;
 		};
 
 		wlan_host_wake {
 			samsung,pins = "gpa0-7";
 			samsung,pin-function = <0xf>;
 			samsung,pin-pud = <0x1>;
-			samsung,pin-con-pdn = <0x3>;
-			samsung,pin-pud-pdn = <0x1>;
-			linux,phandle = <0x13b>;
-			phandle = <0x13b>;
+			linux,phandle = <0x13a>;
+			phandle = <0x13a>;
 		};
 
 		gpq0 {
@@ -93,8 +91,8 @@
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0x13c>;
-			phandle = <0x13c>;
+			linux,phandle = <0x13b>;
+			phandle = <0x13b>;
 		};
 
 		speedy-bus {
@@ -102,8 +100,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xf1>;
-			phandle = <0xf1>;
+			linux,phandle = <0xf0>;
+			phandle = <0xf0>;
 		};
 
 		speedy1-bus {
@@ -111,8 +109,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xf2>;
-			phandle = <0xf2>;
+			linux,phandle = <0xf1>;
+			phandle = <0xf1>;
 		};
 
 		uart1-bus {
@@ -120,8 +118,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-drv = <0x0>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xcc>;
-			phandle = <0xcc>;
+			linux,phandle = <0xcb>;
+			phandle = <0xcb>;
 		};
 
 		uart1-bus-rts {
@@ -129,15 +127,15 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-val = <0x1>;
-			linux,phandle = <0xce>;
-			phandle = <0xce>;
+			linux,phandle = <0xcd>;
+			phandle = <0xcd>;
 		};
 
 		uart1-bus-rxd {
 			samsung,pins = "gpq0-0";
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xcd>;
-			phandle = <0xcd>;
+			linux,phandle = <0xcc>;
+			phandle = <0xcc>;
 		};
 
 		uart1-bus-tx-input {
@@ -145,22 +143,22 @@
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x3>;
 			samsung,pin-val = <0x0>;
-			linux,phandle = <0x13d>;
-			phandle = <0x13d>;
+			linux,phandle = <0x13c>;
+			phandle = <0x13c>;
 		};
 
 		uart1-bus-tx-dat {
 			samsung,pins = "gpq0-1";
 			samsung,pin-val = <0x1>;
-			linux,phandle = <0xd0>;
-			phandle = <0xd0>;
+			linux,phandle = <0xcf>;
+			phandle = <0xcf>;
 		};
 
 		uart1-bus-tx-con {
 			samsung,pins = "gpq0-1";
 			samsung,pin-function = <0x1>;
-			linux,phandle = <0xcf>;
-			phandle = <0xcf>;
+			linux,phandle = <0xce>;
+			phandle = <0xce>;
 		};
 
 		wakeup-interrupt-controller {
@@ -171,10 +169,19 @@
 	pinctrl@18C60000 {
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x18c60000 0x1000>;
-		linux,phandle = <0x13e>;
-		phandle = <0x13e>;
+		linux,phandle = <0x13d>;
+		phandle = <0x13d>;
 
 		gpb0 {
+			gpio-controller;
+			#gpio-cells = <0x2>;
+			interrupt-controller;
+			#interrupt-cells = <0x2>;
+			linux,phandle = <0x13e>;
+			phandle = <0x13e>;
+		};
+
+		gpb1 {
 			gpio-controller;
 			#gpio-cells = <0x2>;
 			interrupt-controller;
@@ -183,7 +190,7 @@
 			phandle = <0x13f>;
 		};
 
-		gpb1 {
+		gpb2 {
 			gpio-controller;
 			#gpio-cells = <0x2>;
 			interrupt-controller;
@@ -192,29 +199,20 @@
 			phandle = <0x140>;
 		};
 
-		gpb2 {
-			gpio-controller;
-			#gpio-cells = <0x2>;
-			interrupt-controller;
-			#interrupt-cells = <0x2>;
-			linux,phandle = <0x141>;
-			phandle = <0x141>;
-		};
-
 		aud-codec-mclk {
 			samsung,pins = "gpb0-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x1>;
-			linux,phandle = <0x142>;
-			phandle = <0x142>;
+			linux,phandle = <0x141>;
+			phandle = <0x141>;
 		};
 
 		aud-codec-mclk-idle {
 			samsung,pins = "gpb0-0";
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x1>;
-			linux,phandle = <0x143>;
-			phandle = <0x143>;
+			linux,phandle = <0x142>;
+			phandle = <0x142>;
 		};
 
 		aud-i2s0-bus {
@@ -269,16 +267,16 @@
 			samsung,pins = "gpb1-4", "gpb1-5", "gpb1-6";
 			samsung,pin-function = <0x3>;
 			samsung,pin-pud = <0x1>;
-			linux,phandle = <0x144>;
-			phandle = <0x144>;
+			linux,phandle = <0x143>;
+			phandle = <0x143>;
 		};
 
 		aud-dsd-idle {
 			samsung,pins = "gpb1-4", "gpb1-5", "gpb1-6";
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x1>;
-			linux,phandle = <0x145>;
-			phandle = <0x145>;
+			linux,phandle = <0x144>;
+			phandle = <0x144>;
 		};
 
 		aud-i2s3_bus {
@@ -302,8 +300,8 @@
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x15c30000 0x1000>;
 		interrupts = <0x0 0x55 0x0 0x0 0x56 0x0 0x0 0x57 0x0 0x0 0x58 0x0 0x0 0x59 0x0 0x0 0x5a 0x0 0x0 0x5b 0x0 0x0 0x5c 0x0 0x0 0x5f 0x0 0x0 0x60 0x0 0x0 0x61 0x0 0x0 0x62 0x0 0x0 0x63 0x0 0x0 0x64 0x0 0x0 0x65 0x0 0x0 0x66 0x0 0x0 0x67 0x0 0x0 0x68 0x0 0x0 0x69 0x0 0x0 0x6a 0x0 0x0 0x6b 0x0 0x0 0x6c 0x0 0x0 0x6d 0x0 0x0 0x6e 0x0 0x0 0x6f 0x0 0x0 0x70 0x0 0x0 0x71 0x0 0x0 0x72 0x0 0x0 0x73 0x0 0x0 0x74 0x0>;
-		linux,phandle = <0x146>;
-		phandle = <0x146>;
+		linux,phandle = <0x145>;
+		phandle = <0x145>;
 
 		gpm0 {
 			gpio-controller;
@@ -488,8 +486,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x65 0x0>;
-			linux,phandle = <0x147>;
-			phandle = <0x147>;
+			linux,phandle = <0x146>;
+			phandle = <0x146>;
 		};
 
 		gpm17 {
@@ -499,8 +497,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x66 0x0>;
-			linux,phandle = <0x148>;
-			phandle = <0x148>;
+			linux,phandle = <0x147>;
+			phandle = <0x147>;
 		};
 
 		gpm18 {
@@ -510,8 +508,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x67 0x0>;
-			linux,phandle = <0x149>;
-			phandle = <0x149>;
+			linux,phandle = <0x148>;
+			phandle = <0x148>;
 		};
 
 		gpm19 {
@@ -521,8 +519,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x68 0x0>;
-			linux,phandle = <0x14a>;
-			phandle = <0x14a>;
+			linux,phandle = <0x149>;
+			phandle = <0x149>;
 		};
 
 		gpm20 {
@@ -532,8 +530,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x69 0x0>;
-			linux,phandle = <0x14b>;
-			phandle = <0x14b>;
+			linux,phandle = <0x14a>;
+			phandle = <0x14a>;
 		};
 
 		gpm21 {
@@ -543,8 +541,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x6a 0x0>;
-			linux,phandle = <0x14c>;
-			phandle = <0x14c>;
+			linux,phandle = <0x14b>;
+			phandle = <0x14b>;
 		};
 
 		gpm22 {
@@ -554,8 +552,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x6b 0x0>;
-			linux,phandle = <0x14d>;
-			phandle = <0x14d>;
+			linux,phandle = <0x14c>;
+			phandle = <0x14c>;
 		};
 
 		gpm23 {
@@ -565,8 +563,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x6c 0x0>;
-			linux,phandle = <0x14e>;
-			phandle = <0x14e>;
+			linux,phandle = <0x14d>;
+			phandle = <0x14d>;
 		};
 
 		gpm24 {
@@ -576,8 +574,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x6d 0x0>;
-			linux,phandle = <0x14f>;
-			phandle = <0x14f>;
+			linux,phandle = <0x14e>;
+			phandle = <0x14e>;
 		};
 
 		gpm25 {
@@ -587,8 +585,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x6e 0x0>;
-			linux,phandle = <0x150>;
-			phandle = <0x150>;
+			linux,phandle = <0x14f>;
+			phandle = <0x14f>;
 		};
 
 		gpm26 {
@@ -598,8 +596,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x6f 0x0>;
-			linux,phandle = <0x151>;
-			phandle = <0x151>;
+			linux,phandle = <0x150>;
+			phandle = <0x150>;
 		};
 
 		gpm27 {
@@ -609,8 +607,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x70 0x0>;
-			linux,phandle = <0x152>;
-			phandle = <0x152>;
+			linux,phandle = <0x151>;
+			phandle = <0x151>;
 		};
 
 		gpm28 {
@@ -620,8 +618,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x71 0x0>;
-			linux,phandle = <0x153>;
-			phandle = <0x153>;
+			linux,phandle = <0x152>;
+			phandle = <0x152>;
 		};
 
 		gpm29 {
@@ -631,8 +629,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x72 0x0>;
-			linux,phandle = <0x154>;
-			phandle = <0x154>;
+			linux,phandle = <0x153>;
+			phandle = <0x153>;
 		};
 
 		gpm30 {
@@ -642,8 +640,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x73 0x0>;
-			linux,phandle = <0x155>;
-			phandle = <0x155>;
+			linux,phandle = <0x154>;
+			phandle = <0x154>;
 		};
 
 		gpm31 {
@@ -653,8 +651,8 @@
 			#interrupt-cells = <0x3>;
 			interrupt-parent = <0x1>;
 			interrupts = <0x0 0x74 0x0>;
-			linux,phandle = <0x156>;
-			phandle = <0x156>;
+			linux,phandle = <0x155>;
+			phandle = <0x155>;
 		};
 
 		hsi2c39-bus {
@@ -734,8 +732,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc7>;
-			phandle = <0xc7>;
+			linux,phandle = <0xc6>;
+			phandle = <0xc6>;
 		};
 
 		spi19-cs {
@@ -743,8 +741,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x157>;
-			phandle = <0x157>;
+			linux,phandle = <0x156>;
+			phandle = <0x156>;
 		};
 
 		spi19-cs-func {
@@ -752,8 +750,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x158>;
-			phandle = <0x158>;
+			linux,phandle = <0x157>;
+			phandle = <0x157>;
 		};
 
 		spi20-bus {
@@ -761,8 +759,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc8>;
-			phandle = <0xc8>;
+			linux,phandle = <0xc7>;
+			phandle = <0xc7>;
 		};
 
 		spi20-cs {
@@ -770,8 +768,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x159>;
-			phandle = <0x159>;
+			linux,phandle = <0x158>;
+			phandle = <0x158>;
 		};
 
 		spi20-cs-func {
@@ -779,8 +777,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x15a>;
-			phandle = <0x15a>;
+			linux,phandle = <0x159>;
+			phandle = <0x159>;
 		};
 
 		spi21-bus {
@@ -788,8 +786,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc9>;
-			phandle = <0xc9>;
+			linux,phandle = <0xc8>;
+			phandle = <0xc8>;
 		};
 
 		spi21-cs {
@@ -797,8 +795,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x15b>;
-			phandle = <0x15b>;
+			linux,phandle = <0x15a>;
+			phandle = <0x15a>;
 		};
 
 		spi21-cs-func {
@@ -806,8 +804,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x15c>;
-			phandle = <0x15c>;
+			linux,phandle = <0x15b>;
+			phandle = <0x15b>;
 		};
 
 		spi22-bus {
@@ -815,8 +813,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xca>;
-			phandle = <0xca>;
+			linux,phandle = <0xc9>;
+			phandle = <0xc9>;
 		};
 
 		spi22-cs {
@@ -824,8 +822,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x15d>;
-			phandle = <0x15d>;
+			linux,phandle = <0x15c>;
+			phandle = <0x15c>;
 		};
 
 		spi22-cs-func {
@@ -833,128 +831,128 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x15e>;
-			phandle = <0x15e>;
+			linux,phandle = <0x15d>;
+			phandle = <0x15d>;
 		};
 
 		uart20-bus {
 			samsung,pins = "gpm0-0", "gpm1-0", "gpm2-0", "gpm3-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0xe3>;
-			phandle = <0xe3>;
+			linux,phandle = <0xe2>;
+			phandle = <0xe2>;
 		};
 
 		uart20-bus-dual {
 			samsung,pins = "gpm0-0", "gpm1-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x15f>;
-			phandle = <0x15f>;
+			linux,phandle = <0x15e>;
+			phandle = <0x15e>;
 		};
 
 		uart21-bus {
 			samsung,pins = "gpm4-0", "gpm5-0", "gpm6-0", "gpm7-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0xe4>;
-			phandle = <0xe4>;
+			linux,phandle = <0xe3>;
+			phandle = <0xe3>;
 		};
 
 		uart21-bus-dual {
 			samsung,pins = "gpm4-0", "gpm5-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x160>;
-			phandle = <0x160>;
+			linux,phandle = <0x15f>;
+			phandle = <0x15f>;
 		};
 
 		uart22-bus {
 			samsung,pins = "gpm8-0", "gpm9-0", "gpm10-0", "gpm11-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0xe5>;
-			phandle = <0xe5>;
+			linux,phandle = <0xe4>;
+			phandle = <0xe4>;
 		};
 
 		uart22-bus-dual {
 			samsung,pins = "gpm8-0", "gpm9-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x161>;
-			phandle = <0x161>;
+			linux,phandle = <0x160>;
+			phandle = <0x160>;
 		};
 
 		uart23-bus {
 			samsung,pins = "gpm12-0", "gpm13-0", "gpm14-0", "gpm15-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0xe6>;
-			phandle = <0xe6>;
+			linux,phandle = <0xe5>;
+			phandle = <0xe5>;
 		};
 
 		uart23-bus-dual {
 			samsung,pins = "gpm12-0", "gpm13-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x162>;
-			phandle = <0x162>;
+			linux,phandle = <0x161>;
+			phandle = <0x161>;
 		};
 
 		s5100_evt1_dual_ap2cp_wakeup {
 			samsung,pins = "gpm17-0";
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x163>;
-			phandle = <0x163>;
+			linux,phandle = <0x162>;
+			phandle = <0x162>;
 		};
 
 		s5100_evt1_dual_ap2cp_cp_pwr_on {
 			samsung,pins = "gpm20-0";
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x164>;
-			phandle = <0x164>;
+			linux,phandle = <0x163>;
+			phandle = <0x163>;
 		};
 
 		s5100_evt1_dual_ap2cp_dump_noti {
 			samsung,pins = "gpm25-0";
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x165>;
-			phandle = <0x165>;
+			linux,phandle = <0x164>;
+			phandle = <0x164>;
 		};
 
 		s5100_evt1_dual_2cp_uart_sel {
 			samsung,pins = "gpm26-0";
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x166>;
-			phandle = <0x166>;
+			linux,phandle = <0x165>;
+			phandle = <0x165>;
 		};
 
 		s5100_evt1_dual_cp2ap_phone_active {
 			samsung,pins = "gpm28-0";
 			samsung,pin-function = <0xf>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x167>;
-			phandle = <0x167>;
+			linux,phandle = <0x166>;
+			phandle = <0x166>;
 		};
 
 		s5100_evt1_dual_cp2ap_wake_up {
 			samsung,pins = "gpm30-0";
 			samsung,pin-function = <0xf>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x168>;
-			phandle = <0x168>;
+			linux,phandle = <0x167>;
+			phandle = <0x167>;
 		};
 
 		s5100_evt1_dual_cp2ap_cp_ps_hold {
 			samsung,pins = "gpm31-0";
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x169>;
-			phandle = <0x169>;
+			linux,phandle = <0x168>;
+			phandle = <0x168>;
 		};
 
 		wakeup-interrupt-controller {
@@ -966,16 +964,16 @@
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x13030000 0x1000>;
 		interrupts = <0x0 0xf0 0x0>;
-		linux,phandle = <0x16a>;
-		phandle = <0x16a>;
+		linux,phandle = <0x169>;
+		phandle = <0x169>;
 
 		gpf0 {
 			gpio-controller;
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0xed>;
-			phandle = <0xed>;
+			linux,phandle = <0xec>;
+			phandle = <0xec>;
 		};
 
 		pcie1_clkreq {
@@ -985,8 +983,8 @@
 			samsung,pin-drv = <0x3>;
 			samsung,pin-con-pdn = <0x3>;
 			samsung,pin-pud-pdn = <0x3>;
-			linux,phandle = <0xef>;
-			phandle = <0xef>;
+			linux,phandle = <0xee>;
+			phandle = <0xee>;
 		};
 
 		pcie1_perst {
@@ -994,8 +992,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-drv = <0x3>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0xf0>;
-			phandle = <0xf0>;
+			linux,phandle = <0xef>;
+			phandle = <0xef>;
 		};
 	};
 
@@ -1003,10 +1001,28 @@
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x13c40000 0x1000>;
 		interrupts = <0x0 0xfb 0x0>;
-		linux,phandle = <0x16b>;
-		phandle = <0x16b>;
+		linux,phandle = <0x16a>;
+		phandle = <0x16a>;
 
 		gpf1 {
+			gpio-controller;
+			#gpio-cells = <0x2>;
+			interrupt-controller;
+			#interrupt-cells = <0x2>;
+			linux,phandle = <0x16b>;
+			phandle = <0x16b>;
+		};
+
+		gpf2 {
+			gpio-controller;
+			#gpio-cells = <0x2>;
+			interrupt-controller;
+			#interrupt-cells = <0x2>;
+			linux,phandle = <0xe8>;
+			phandle = <0xe8>;
+		};
+
+		gpf3 {
 			gpio-controller;
 			#gpio-cells = <0x2>;
 			interrupt-controller;
@@ -1015,31 +1031,13 @@
 			phandle = <0x16c>;
 		};
 
-		gpf2 {
-			gpio-controller;
-			#gpio-cells = <0x2>;
-			interrupt-controller;
-			#interrupt-cells = <0x2>;
-			linux,phandle = <0xe9>;
-			phandle = <0xe9>;
-		};
-
-		gpf3 {
-			gpio-controller;
-			#gpio-cells = <0x2>;
-			interrupt-controller;
-			#interrupt-cells = <0x2>;
-			linux,phandle = <0x16d>;
-			phandle = <0x16d>;
-		};
-
 		sd2-clk {
 			samsung,pins = "gpf1-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x4>;
-			linux,phandle = <0x16e>;
-			phandle = <0x16e>;
+			linux,phandle = <0x16d>;
+			phandle = <0x16d>;
 		};
 
 		sd2-cmd {
@@ -1047,8 +1045,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
 			samsung,pin-drv = <0x3>;
-			linux,phandle = <0x16f>;
-			phandle = <0x16f>;
+			linux,phandle = <0x16e>;
+			phandle = <0x16e>;
 		};
 
 		sd2-bus-width1 {
@@ -1056,8 +1054,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
 			samsung,pin-drv = <0x3>;
-			linux,phandle = <0x170>;
-			phandle = <0x170>;
+			linux,phandle = <0x16f>;
+			phandle = <0x16f>;
 		};
 
 		sd2-bus-width4 {
@@ -1065,8 +1063,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
 			samsung,pin-drv = <0x3>;
-			linux,phandle = <0x171>;
-			phandle = <0x171>;
+			linux,phandle = <0x170>;
+			phandle = <0x170>;
 		};
 
 		sd2-clk_fast_slew_rate_1x {
@@ -1074,8 +1072,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x172>;
-			phandle = <0x172>;
+			linux,phandle = <0x171>;
+			phandle = <0x171>;
 		};
 
 		sd2-clk_fast_slew_rate_1_5x {
@@ -1083,8 +1081,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x1>;
-			linux,phandle = <0x173>;
-			phandle = <0x173>;
+			linux,phandle = <0x172>;
+			phandle = <0x172>;
 		};
 
 		sd2-clk_fast_slew_rate_2x {
@@ -1092,8 +1090,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x2>;
-			linux,phandle = <0x174>;
-			phandle = <0x174>;
+			linux,phandle = <0x173>;
+			phandle = <0x173>;
 		};
 
 		sd2-clk_fast_slew_rate_2_5x {
@@ -1101,8 +1099,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x3>;
-			linux,phandle = <0x175>;
-			phandle = <0x175>;
+			linux,phandle = <0x174>;
+			phandle = <0x174>;
 		};
 
 		sd2-clk_fast_slew_rate_3x {
@@ -1110,8 +1108,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x4>;
-			linux,phandle = <0x176>;
-			phandle = <0x176>;
+			linux,phandle = <0x175>;
+			phandle = <0x175>;
 		};
 
 		sd2-clk_fast_slew_rate_4x {
@@ -1119,16 +1117,16 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x5>;
-			linux,phandle = <0x177>;
-			phandle = <0x177>;
+			linux,phandle = <0x176>;
+			phandle = <0x176>;
 		};
 
 		sd2-pins-as-pdn {
 			samsung,pins = "gpf1-0", "gpf1-1", "gpf1-2", "gpf1-3", "gpf1-4", "gpf1-5";
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x2>;
-			linux,phandle = <0x178>;
-			phandle = <0x178>;
+			linux,phandle = <0x177>;
+			phandle = <0x177>;
 		};
 
 		pcie0_clkreq {
@@ -1138,8 +1136,8 @@
 			samsung,pin-drv = <0x3>;
 			samsung,pin-con-pdn = <0x3>;
 			samsung,pin-pud-pdn = <0x3>;
-			linux,phandle = <0xeb>;
-			phandle = <0xeb>;
+			linux,phandle = <0xea>;
+			phandle = <0xea>;
 		};
 
 		pcie0_clkreq_output {
@@ -1150,8 +1148,8 @@
 			samsung,pin-con-pdn = <0x3>;
 			samsung,pin-pud-pdn = <0x3>;
 			samsung,pin-val = <0x1>;
-			linux,phandle = <0x179>;
-			phandle = <0x179>;
+			linux,phandle = <0x178>;
+			phandle = <0x178>;
 		};
 
 		pcie0_perst {
@@ -1159,8 +1157,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-drv = <0x3>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0xec>;
-			phandle = <0xec>;
+			linux,phandle = <0xeb>;
+			phandle = <0xeb>;
 		};
 
 		ufs-rst-n {
@@ -1168,7 +1166,6 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			samsung,pin-pud-pdn = <0x0>;
 			linux,phandle = <0x50>;
 			phandle = <0x50>;
 		};
@@ -1178,7 +1175,6 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			samsung,pin-pud-pdn = <0x0>;
 			linux,phandle = <0x51>;
 			phandle = <0x51>;
 		};
@@ -1188,8 +1184,8 @@
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x10430000 0x1000>;
 		interrupts = <0x0 0x17c 0x0>;
-		linux,phandle = <0x17a>;
-		phandle = <0x17a>;
+		linux,phandle = <0x179>;
+		phandle = <0x179>;
 
 		gpp0 {
 			gpio-controller;
@@ -1223,8 +1219,8 @@
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0x17b>;
-			phandle = <0x17b>;
+			linux,phandle = <0x17a>;
+			phandle = <0x17a>;
 		};
 
 		gpg0 {
@@ -1259,8 +1255,8 @@
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0x17c>;
-			phandle = <0x17c>;
+			linux,phandle = <0x17b>;
+			phandle = <0x17b>;
 		};
 
 		cfg_wlanen {
@@ -1270,8 +1266,8 @@
 			samsung,pin-drv = <0x3>;
 			samsung,pin-con-pdn = <0x3>;
 			samsung,pin-pud-pdn = <0x0>;
-			linux,phandle = <0x17d>;
-			phandle = <0x17d>;
+			linux,phandle = <0x17c>;
+			phandle = <0x17c>;
 		};
 
 		smpl-warn {
@@ -1279,18 +1275,16 @@
 			samsung,pin-function = <0xf>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			samsung,pin-con-pdn = <0x2>;
-			samsung,pin-pud-pdn = <0x0>;
-			linux,phandle = <0x17e>;
-			phandle = <0x17e>;
+			linux,phandle = <0x17d>;
+			phandle = <0x17d>;
 		};
 
 		uart0-bus {
 			samsung,pins = "gpp3-2", "gpp3-3";
 			samsung,pin-function = <0x3>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0xcb>;
-			phandle = <0xcb>;
+			linux,phandle = <0xca>;
+			phandle = <0xca>;
 		};
 
 		hsi2c4-bus {
@@ -1352,8 +1346,6 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			samsung,pin-con-pdn = <0x3>;
-			samsung,pin-pud-pdn = <0x0>;
 			linux,phandle = <0x76>;
 			phandle = <0x76>;
 		};
@@ -1475,13 +1467,23 @@
 			phandle = <0x97>;
 		};
 
+		spi1-default {
+			samsung,pins = "gpp0-3", "gpp0-2", "gpp0-1", "gpp0-0";
+			samsung,pin-function = <0x0>;
+			samsung,pin-pud = <0x0>;
+			samsung,pin-drv = <0x3>;
+			samsung,pin-val = <0x0>;
+			linux,phandle = <0x17e>;
+			phandle = <0x17e>;
+		};
+
 		spi1-bus {
 			samsung,pins = "gpp0-2", "gpp0-1", "gpp0-0";
 			samsung,pin-function = <0x2>;
-			samsung,pin-pud = <0x0>;
-			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xb5>;
-			phandle = <0xb5>;
+			samsung,pin-pud = <0x1>;
+			samsung,pin-drv = <0x3>;
+			linux,phandle = <0x17f>;
+			phandle = <0x17f>;
 		};
 
 		spi1-cs {
@@ -1489,17 +1491,46 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x17f>;
-			phandle = <0x17f>;
+			linux,phandle = <0x180>;
+			phandle = <0x180>;
 		};
 
 		spi1-cs-func {
 			samsung,pins = "gpp0-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x180>;
-			phandle = <0x180>;
+			samsung,pin-drv = <0x3>;
+			linux,phandle = <0x181>;
+			phandle = <0x181>;
+		};
+
+		spi1-cs-func-high {
+			samsung,pins = "gpp0-3";
+			samsung,pin-function = <0x2>;
+			samsung,pin-pud = <0x0>;
+			samsung,pin-drv = <0x3>;
+			samsung,pin-val = <0x1>;
+			linux,phandle = <0x182>;
+			phandle = <0x182>;
+		};
+
+		spi1-bus-sleep {
+			samsung,pins = "gpp0-2", "gpp0-1", "gpp0-0";
+			samsung,pin-function = <0x0>;
+			samsung,pin-pud = <0x1>;
+			samsung,pin-drv = <0x3>;
+			linux,phandle = <0x183>;
+			phandle = <0x183>;
+		};
+
+		spi1-cs-high {
+			samsung,pins = "gpp0-3";
+			samsung,pin-function = <0x1>;
+			samsung,pin-pud = <0x0>;
+			samsung,pin-drv = <0x3>;
+			samsung,pin-val = <0x1>;
+			linux,phandle = <0x184>;
+			phandle = <0x184>;
 		};
 
 		spi2-bus {
@@ -1507,8 +1538,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xb6>;
-			phandle = <0xb6>;
+			linux,phandle = <0xb5>;
+			phandle = <0xb5>;
 		};
 
 		spi2-cs {
@@ -1516,8 +1547,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x181>;
-			phandle = <0x181>;
+			linux,phandle = <0x185>;
+			phandle = <0x185>;
 		};
 
 		spi2-cs-func {
@@ -1525,8 +1556,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x182>;
-			phandle = <0x182>;
+			linux,phandle = <0x186>;
+			phandle = <0x186>;
 		};
 
 		spi3-bus {
@@ -1534,8 +1565,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xb7>;
-			phandle = <0xb7>;
+			linux,phandle = <0xb6>;
+			phandle = <0xb6>;
 		};
 
 		spi3-cs {
@@ -1543,8 +1574,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x183>;
-			phandle = <0x183>;
+			linux,phandle = <0x187>;
+			phandle = <0x187>;
 		};
 
 		spi3-cs-func {
@@ -1552,8 +1583,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x184>;
-			phandle = <0x184>;
+			linux,phandle = <0x188>;
+			phandle = <0x188>;
 		};
 
 		spi4-bus {
@@ -1561,8 +1592,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xb8>;
-			phandle = <0xb8>;
+			linux,phandle = <0xb7>;
+			phandle = <0xb7>;
 		};
 
 		spi4-cs {
@@ -1570,8 +1601,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x185>;
-			phandle = <0x185>;
+			linux,phandle = <0x189>;
+			phandle = <0x189>;
 		};
 
 		spi4-cs-func {
@@ -1579,8 +1610,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x186>;
-			phandle = <0x186>;
+			linux,phandle = <0x18a>;
+			phandle = <0x18a>;
 		};
 
 		spi5-bus {
@@ -1588,8 +1619,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xb9>;
-			phandle = <0xb9>;
+			linux,phandle = <0xb8>;
+			phandle = <0xb8>;
 		};
 
 		spi5-cs {
@@ -1597,8 +1628,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x187>;
-			phandle = <0x187>;
+			linux,phandle = <0x18b>;
+			phandle = <0x18b>;
 		};
 
 		spi5-cs-func {
@@ -1606,8 +1637,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x188>;
-			phandle = <0x188>;
+			linux,phandle = <0x18c>;
+			phandle = <0x18c>;
 		};
 
 		spi6-bus {
@@ -1615,8 +1646,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xba>;
-			phandle = <0xba>;
+			linux,phandle = <0xb9>;
+			phandle = <0xb9>;
 		};
 
 		spi6-cs {
@@ -1624,8 +1655,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x189>;
-			phandle = <0x189>;
+			linux,phandle = <0x18d>;
+			phandle = <0x18d>;
 		};
 
 		spi6-cs-func {
@@ -1633,8 +1664,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x18a>;
-			phandle = <0x18a>;
+			linux,phandle = <0x18e>;
+			phandle = <0x18e>;
 		};
 
 		spi13-bus {
@@ -1642,8 +1673,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc1>;
-			phandle = <0xc1>;
+			linux,phandle = <0xc0>;
+			phandle = <0xc0>;
 		};
 
 		spi13-cs {
@@ -1651,8 +1682,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x18b>;
-			phandle = <0x18b>;
+			linux,phandle = <0x18f>;
+			phandle = <0x18f>;
 		};
 
 		spi13-cs-func {
@@ -1660,8 +1691,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x18c>;
-			phandle = <0x18c>;
+			linux,phandle = <0x190>;
+			phandle = <0x190>;
 		};
 
 		spi14-bus {
@@ -1669,8 +1700,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc2>;
-			phandle = <0xc2>;
+			linux,phandle = <0xc1>;
+			phandle = <0xc1>;
 		};
 
 		spi14-cs {
@@ -1678,8 +1709,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x18d>;
-			phandle = <0x18d>;
+			linux,phandle = <0x191>;
+			phandle = <0x191>;
 		};
 
 		spi14-cs-func {
@@ -1687,8 +1718,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x18e>;
-			phandle = <0x18e>;
+			linux,phandle = <0x192>;
+			phandle = <0x192>;
 		};
 
 		spi15-bus {
@@ -1696,8 +1727,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc3>;
-			phandle = <0xc3>;
+			linux,phandle = <0xc2>;
+			phandle = <0xc2>;
 		};
 
 		spi15-cs {
@@ -1705,8 +1736,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x18f>;
-			phandle = <0x18f>;
+			linux,phandle = <0x193>;
+			phandle = <0x193>;
 		};
 
 		spi15-cs-func {
@@ -1714,8 +1745,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x190>;
-			phandle = <0x190>;
+			linux,phandle = <0x194>;
+			phandle = <0x194>;
 		};
 
 		spi16-bus {
@@ -1723,8 +1754,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc4>;
-			phandle = <0xc4>;
+			linux,phandle = <0xc3>;
+			phandle = <0xc3>;
 		};
 
 		spi16-cs {
@@ -1732,8 +1763,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x191>;
-			phandle = <0x191>;
+			linux,phandle = <0x195>;
+			phandle = <0x195>;
 		};
 
 		spi16-cs-func {
@@ -1741,198 +1772,177 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x192>;
-			phandle = <0x192>;
+			linux,phandle = <0x196>;
+			phandle = <0x196>;
 		};
 
 		uart2-bus {
 			samsung,pins = "gpp0-0", "gpp0-1", "gpp0-2", "gpp0-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd1>;
-			phandle = <0xd1>;
+			linux,phandle = <0xd0>;
+			phandle = <0xd0>;
 		};
 
 		uart2-bus-dual {
 			samsung,pins = "gpp0-0", "gpp0-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x193>;
-			phandle = <0x193>;
+			linux,phandle = <0x197>;
+			phandle = <0x197>;
 		};
 
 		uart3-bus {
 			samsung,pins = "gpp0-4", "gpp0-5", "gpp0-6", "gpp0-7";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd2>;
-			phandle = <0xd2>;
+			linux,phandle = <0xd1>;
+			phandle = <0xd1>;
 		};
 
 		uart3-bus-dual {
 			samsung,pins = "gpp0-4", "gpp0-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x194>;
-			phandle = <0x194>;
+			linux,phandle = <0x198>;
+			phandle = <0x198>;
 		};
 
 		uart4-bus {
 			samsung,pins = "gpp1-0", "gpp1-1", "gpp1-2", "gpp1-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd3>;
-			phandle = <0xd3>;
+			linux,phandle = <0xd2>;
+			phandle = <0xd2>;
 		};
 
 		uart4-bus-dual {
 			samsung,pins = "gpp1-0", "gpp1-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x195>;
-			phandle = <0x195>;
+			linux,phandle = <0x199>;
+			phandle = <0x199>;
 		};
 
 		uart5-bus {
 			samsung,pins = "gpp1-4", "gpp1-5", "gpp1-6", "gpp1-7";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd4>;
-			phandle = <0xd4>;
+			linux,phandle = <0xd3>;
+			phandle = <0xd3>;
 		};
 
 		uart5-bus-dual {
 			samsung,pins = "gpp1-4", "gpp1-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x196>;
-			phandle = <0x196>;
+			linux,phandle = <0x19a>;
+			phandle = <0x19a>;
 		};
 
 		uart6-bus {
 			samsung,pins = "gpp2-0", "gpp2-1", "gpp2-2", "gpp2-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd5>;
-			phandle = <0xd5>;
+			linux,phandle = <0xd4>;
+			phandle = <0xd4>;
 		};
 
 		uart6-bus-dual {
 			samsung,pins = "gpp2-0", "gpp2-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x197>;
-			phandle = <0x197>;
+			linux,phandle = <0x19b>;
+			phandle = <0x19b>;
 		};
 
 		uart7-bus {
 			samsung,pins = "gpp2-4", "gpp2-5", "gpp2-6", "gpp2-7";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd6>;
-			phandle = <0xd6>;
+			linux,phandle = <0xd5>;
+			phandle = <0xd5>;
 		};
 
 		uart7-bus-dual {
 			samsung,pins = "gpp2-4", "gpp2-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x198>;
-			phandle = <0x198>;
+			linux,phandle = <0x19c>;
+			phandle = <0x19c>;
 		};
 
 		uart14-bus {
 			samsung,pins = "gpg0-4", "gpg0-5", "gpg0-6", "gpg0-7";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xdd>;
-			phandle = <0xdd>;
+			linux,phandle = <0xdc>;
+			phandle = <0xdc>;
 		};
 
 		uart14-bus-dual {
 			samsung,pins = "gpg0-4", "gpg0-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x199>;
-			phandle = <0x199>;
+			linux,phandle = <0x19d>;
+			phandle = <0x19d>;
 		};
 
 		uart15-bus {
 			samsung,pins = "gpg1-0", "gpg1-1", "gpg1-2", "gpg1-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xde>;
-			phandle = <0xde>;
+			linux,phandle = <0xdd>;
+			phandle = <0xdd>;
 		};
 
 		uart15-bus-dual {
 			samsung,pins = "gpg1-0", "gpg1-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x19a>;
-			phandle = <0x19a>;
+			linux,phandle = <0x19e>;
+			phandle = <0x19e>;
 		};
 
 		uart16-bus {
 			samsung,pins = "gpg1-4", "gpg1-5", "gpg1-6", "gpg1-7";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xdf>;
-			phandle = <0xdf>;
+			linux,phandle = <0xde>;
+			phandle = <0xde>;
 		};
 
 		uart16-bus-dual {
 			samsung,pins = "gpg1-4", "gpg1-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x19b>;
-			phandle = <0x19b>;
+			linux,phandle = <0x19f>;
+			phandle = <0x19f>;
 		};
 
 		uart17-bus {
 			samsung,pins = "gpg2-0", "gpg2-1", "gpg2-2", "gpg2-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xe0>;
-			phandle = <0xe0>;
+			linux,phandle = <0xdf>;
+			phandle = <0xdf>;
 		};
 
 		uart17-bus-dual {
 			samsung,pins = "gpg2-0", "gpg2-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x19c>;
-			phandle = <0x19c>;
-		};
-
-		ap_hw-rev {
-			samsung,pins = "gpg1-5", "gpg1-4", "gpg1-3", "gpg1-2";
-			samsung,pin-function = <0x0>;
-			samsung,pin-pud = <0x0>;
-			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x19d>;
-			phandle = <0x19d>;
-		};
-
-		s5100_ap2cp_cp_nreset_n {
-			samsung,pins = "gpp3-1";
-			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x19e>;
-			phandle = <0x19e>;
-		};
-
-		s5100_ap2cp_wakeup {
-			samsung,pins = "gpg1-7";
-			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x19f>;
-			phandle = <0x19f>;
-		};
-
-		s5100_dual_ap2cp_wakeup {
-			samsung,pins = "gpg1-7";
-			samsung,pin-con-pdn = <0x3>;
 			linux,phandle = <0x1a0>;
 			phandle = <0x1a0>;
+		};
+
+		phy-port {
+			samsung,pins = "gpg0-4";
+			samsung,pin-function = <0x0>;
+			samsung,pin-pud = <0x3>;
+			samsung,pin-drv = <0x0>;
+			linux,phandle = <0x1a1>;
+			phandle = <0x1a1>;
 		};
 	};
 
@@ -1940,8 +1950,8 @@
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x10830000 0x1000>;
 		interrupts = <0x0 0x197 0x0>;
-		linux,phandle = <0x1a1>;
-		phandle = <0x1a1>;
+		linux,phandle = <0x1a2>;
+		phandle = <0x1a2>;
 
 		gpp4 {
 			gpio-controller;
@@ -1984,8 +1994,8 @@
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0x1a2>;
-			phandle = <0x1a2>;
+			linux,phandle = <0x1a3>;
+			phandle = <0x1a3>;
 		};
 
 		gpd0 {
@@ -2020,8 +2030,8 @@
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0x1a3>;
-			phandle = <0x1a3>;
+			linux,phandle = <0x1a4>;
+			phandle = <0x1a4>;
 		};
 
 		decon_f_te_on {
@@ -2196,8 +2206,8 @@
 			samsung,pin-function = <0x3>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1a4>;
-			phandle = <0x1a4>;
+			linux,phandle = <0x1a5>;
+			phandle = <0x1a5>;
 		};
 
 		hsi2c37-bus {
@@ -2223,6 +2233,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
+			samsung,pin-con-pdn = <0x3>;
+			samsung,pin-pud-pdn = <0x0>;
 			linux,phandle = <0xb4>;
 			phandle = <0xb4>;
 		};
@@ -2232,8 +2244,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1a5>;
-			phandle = <0x1a5>;
+			linux,phandle = <0x1a6>;
+			phandle = <0x1a6>;
 		};
 
 		spi0-cs-func {
@@ -2241,8 +2253,10 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1a6>;
-			phandle = <0x1a6>;
+			samsung,pin-con-pdn = <0x3>;
+			samsung,pin-pud-pdn = <0x0>;
+			linux,phandle = <0x1a7>;
+			phandle = <0x1a7>;
 		};
 
 		sensor-mclk0-out {
@@ -2250,8 +2264,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1a7>;
-			phandle = <0x1a7>;
+			linux,phandle = <0x1a8>;
+			phandle = <0x1a8>;
 		};
 
 		sensor-mclk1-out {
@@ -2259,8 +2273,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1a8>;
-			phandle = <0x1a8>;
+			linux,phandle = <0x1a9>;
+			phandle = <0x1a9>;
 		};
 
 		sensor-mclk2-out {
@@ -2268,8 +2282,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1a9>;
-			phandle = <0x1a9>;
+			linux,phandle = <0x1aa>;
+			phandle = <0x1aa>;
 		};
 
 		sensor-mclk3-out {
@@ -2277,8 +2291,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1aa>;
-			phandle = <0x1aa>;
+			linux,phandle = <0x1ab>;
+			phandle = <0x1ab>;
 		};
 
 		sensor-mclk4-out {
@@ -2286,8 +2300,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1ab>;
-			phandle = <0x1ab>;
+			linux,phandle = <0x1ac>;
+			phandle = <0x1ac>;
 		};
 
 		sensor-mclk0-fn {
@@ -2295,8 +2309,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1ac>;
-			phandle = <0x1ac>;
+			linux,phandle = <0x1ad>;
+			phandle = <0x1ad>;
 		};
 
 		sensor-mclk1-fn {
@@ -2304,8 +2318,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1ad>;
-			phandle = <0x1ad>;
+			linux,phandle = <0x1ae>;
+			phandle = <0x1ae>;
 		};
 
 		sensor-mclk2-fn {
@@ -2313,8 +2327,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1ae>;
-			phandle = <0x1ae>;
+			linux,phandle = <0x1af>;
+			phandle = <0x1af>;
 		};
 
 		sensor-mclk3-fn {
@@ -2322,8 +2336,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1af>;
-			phandle = <0x1af>;
+			linux,phandle = <0x1b0>;
+			phandle = <0x1b0>;
 		};
 
 		sensor-mclk4-fn {
@@ -2331,8 +2345,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b0>;
-			phandle = <0x1b0>;
+			linux,phandle = <0x1b1>;
+			phandle = <0x1b1>;
 		};
 
 		spi7-bus {
@@ -2340,8 +2354,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xbb>;
-			phandle = <0xbb>;
+			linux,phandle = <0xba>;
+			phandle = <0xba>;
 		};
 
 		spi7-cs {
@@ -2349,8 +2363,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b1>;
-			phandle = <0x1b1>;
+			linux,phandle = <0x1b2>;
+			phandle = <0x1b2>;
 		};
 
 		spi7-cs-func {
@@ -2358,8 +2372,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b2>;
-			phandle = <0x1b2>;
+			linux,phandle = <0x1b3>;
+			phandle = <0x1b3>;
 		};
 
 		spi8-bus {
@@ -2367,8 +2381,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xbc>;
-			phandle = <0xbc>;
+			linux,phandle = <0xbb>;
+			phandle = <0xbb>;
 		};
 
 		spi8-cs {
@@ -2376,8 +2390,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b3>;
-			phandle = <0x1b3>;
+			linux,phandle = <0x1b4>;
+			phandle = <0x1b4>;
 		};
 
 		spi8-cs-func {
@@ -2385,8 +2399,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b4>;
-			phandle = <0x1b4>;
+			linux,phandle = <0x1b5>;
+			phandle = <0x1b5>;
 		};
 
 		spi9-bus {
@@ -2394,8 +2408,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xbd>;
-			phandle = <0xbd>;
+			linux,phandle = <0xbc>;
+			phandle = <0xbc>;
 		};
 
 		spi9-cs {
@@ -2403,8 +2417,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b5>;
-			phandle = <0x1b5>;
+			linux,phandle = <0x1b6>;
+			phandle = <0x1b6>;
 		};
 
 		spi9-cs-func {
@@ -2412,8 +2426,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b6>;
-			phandle = <0x1b6>;
+			linux,phandle = <0x1b7>;
+			phandle = <0x1b7>;
 		};
 
 		spi10-bus {
@@ -2421,8 +2435,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xbe>;
-			phandle = <0xbe>;
+			linux,phandle = <0xbd>;
+			phandle = <0xbd>;
 		};
 
 		spi10-cs {
@@ -2430,8 +2444,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b7>;
-			phandle = <0x1b7>;
+			linux,phandle = <0x1b8>;
+			phandle = <0x1b8>;
 		};
 
 		spi10-cs-func {
@@ -2439,8 +2453,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b8>;
-			phandle = <0x1b8>;
+			linux,phandle = <0x1b9>;
+			phandle = <0x1b9>;
 		};
 
 		spi11-bus {
@@ -2448,8 +2462,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xbf>;
-			phandle = <0xbf>;
+			linux,phandle = <0xbe>;
+			phandle = <0xbe>;
 		};
 
 		spi11-cs {
@@ -2457,8 +2471,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1b9>;
-			phandle = <0x1b9>;
+			linux,phandle = <0x1ba>;
+			phandle = <0x1ba>;
 		};
 
 		spi11-cs-func {
@@ -2466,8 +2480,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1ba>;
-			phandle = <0x1ba>;
+			linux,phandle = <0x1bb>;
+			phandle = <0x1bb>;
 		};
 
 		spi12-bus {
@@ -2475,8 +2489,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc0>;
-			phandle = <0xc0>;
+			linux,phandle = <0xbf>;
+			phandle = <0xbf>;
 		};
 
 		spi12-cs {
@@ -2484,8 +2498,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1bb>;
-			phandle = <0x1bb>;
+			linux,phandle = <0x1bc>;
+			phandle = <0x1bc>;
 		};
 
 		spi12-cs-func {
@@ -2493,8 +2507,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1bc>;
-			phandle = <0x1bc>;
+			linux,phandle = <0x1bd>;
+			phandle = <0x1bd>;
 		};
 
 		spi17-bus {
@@ -2502,8 +2516,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc5>;
-			phandle = <0xc5>;
+			linux,phandle = <0xc4>;
+			phandle = <0xc4>;
 		};
 
 		spi17-cs {
@@ -2511,8 +2525,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1bd>;
-			phandle = <0x1bd>;
+			linux,phandle = <0x1be>;
+			phandle = <0x1be>;
 		};
 
 		spi17-cs-func {
@@ -2520,8 +2534,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1be>;
-			phandle = <0x1be>;
+			linux,phandle = <0x1bf>;
+			phandle = <0x1bf>;
 		};
 
 		spi18-bus {
@@ -2529,8 +2543,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0xc6>;
-			phandle = <0xc6>;
+			linux,phandle = <0xc5>;
+			phandle = <0xc5>;
 		};
 
 		spi18-cs {
@@ -2538,8 +2552,8 @@
 			samsung,pin-function = <0x1>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1bf>;
-			phandle = <0x1bf>;
+			linux,phandle = <0x1c0>;
+			phandle = <0x1c0>;
 		};
 
 		spi18-cs-func {
@@ -2547,198 +2561,168 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-drv = <0x0>;
-			linux,phandle = <0x1c0>;
-			phandle = <0x1c0>;
+			linux,phandle = <0x1c1>;
+			phandle = <0x1c1>;
 		};
 
 		uart8-bus {
 			samsung,pins = "gpp4-3", "gpp4-2", "gpp4-1", "gpp4-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd7>;
-			phandle = <0xd7>;
+			linux,phandle = <0xd6>;
+			phandle = <0xd6>;
 		};
 
 		uart8-bus-dual {
 			samsung,pins = "gpp4-0", "gpp4-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c1>;
-			phandle = <0x1c1>;
+			linux,phandle = <0x1c2>;
+			phandle = <0x1c2>;
 		};
 
 		uart9-bus {
 			samsung,pins = "gpp4-7", "gpp4-6", "gpp4-5", "gpp4-4";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd8>;
-			phandle = <0xd8>;
+			linux,phandle = <0xd7>;
+			phandle = <0xd7>;
 		};
 
 		uart9-bus-dual {
 			samsung,pins = "gpp4-4", "gpp4-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c2>;
-			phandle = <0x1c2>;
+			linux,phandle = <0x1c3>;
+			phandle = <0x1c3>;
 		};
 
 		uart10-bus {
 			samsung,pins = "gpp5-3", "gpp5-2", "gpp5-1", "gpp5-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xd9>;
-			phandle = <0xd9>;
+			linux,phandle = <0xd8>;
+			phandle = <0xd8>;
 		};
 
 		uart10-bus-dual {
 			samsung,pins = "gpp5-0", "gpp5-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c3>;
-			phandle = <0x1c3>;
+			linux,phandle = <0x1c4>;
+			phandle = <0x1c4>;
 		};
 
 		uart11-bus {
 			samsung,pins = "gpp5-7", "gpp5-6", "gpp5-5", "gpp5-4";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xda>;
-			phandle = <0xda>;
+			linux,phandle = <0xd9>;
+			phandle = <0xd9>;
 		};
 
 		uart11-bus-dual {
 			samsung,pins = "gpp5-4", "gpp5-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c4>;
-			phandle = <0x1c4>;
+			linux,phandle = <0x1c5>;
+			phandle = <0x1c5>;
 		};
 
 		uart12-bus {
 			samsung,pins = "gpp6-3", "gpp6-2", "gpp6-1", "gpp6-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xdb>;
-			phandle = <0xdb>;
+			linux,phandle = <0xda>;
+			phandle = <0xda>;
 		};
 
 		uart12-bus-dual {
 			samsung,pins = "gpp6-0", "gpp6-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c5>;
-			phandle = <0x1c5>;
+			linux,phandle = <0x1c6>;
+			phandle = <0x1c6>;
 		};
 
 		uart13-bus {
 			samsung,pins = "gpg3-6", "gpg3-5", "gpg3-4", "gpg3-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xdc>;
-			phandle = <0xdc>;
+			linux,phandle = <0xdb>;
+			phandle = <0xdb>;
 		};
 
 		uart13-bus-dual {
 			samsung,pins = "gpg3-3", "gpg3-3";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c6>;
-			phandle = <0x1c6>;
+			linux,phandle = <0x1c7>;
+			phandle = <0x1c7>;
 		};
 
 		uart18-bus {
 			samsung,pins = "gph0-3", "gph0-2", "gph0-1", "gph0-0";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xe1>;
-			phandle = <0xe1>;
+			linux,phandle = <0xe0>;
+			phandle = <0xe0>;
 		};
 
 		uart18-bus-dual {
 			samsung,pins = "gph0-0", "gph0-1";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c7>;
-			phandle = <0x1c7>;
+			linux,phandle = <0x1c8>;
+			phandle = <0x1c8>;
 		};
 
 		uart19-bus {
 			samsung,pins = "gph0-7", "gph0-6", "gph0-5", "gph0-4";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x3>;
-			linux,phandle = <0xe2>;
-			phandle = <0xe2>;
+			linux,phandle = <0xe1>;
+			phandle = <0xe1>;
 		};
 
 		uart19-bus-dual {
 			samsung,pins = "gph0-4", "gph0-5";
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
-			linux,phandle = <0x1c8>;
-			phandle = <0x1c8>;
-		};
-
-		cp_hw-rev {
-			samsung,pins = "gpg3-4", "gpg3-3", "gpg3-2", "gpg3-1";
-			samsung,pin-function = <0x0>;
-			samsung,pin-pud = <0x0>;
-			samsung,pin-drv = <0x0>;
 			linux,phandle = <0x1c9>;
 			phandle = <0x1c9>;
-		};
-
-		s5100_ap2cp_pda_active {
-			samsung,pins = "gph1-3";
-			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x1ca>;
-			phandle = <0x1ca>;
-		};
-
-		s5100_dual_ap2cp_pda_active {
-			samsung,pins = "gph1-3";
-			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x1cb>;
-			phandle = <0x1cb>;
-		};
-
-		s5100_dual_ap2cp_nreset_n {
-			samsung,pins = "gph1-4";
-			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x1cc>;
-			phandle = <0x1cc>;
 		};
 
 		s5100_evt1_dual_ap2cp_nreset_n {
 			samsung,pins = "gph1-4";
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x1cd>;
-			phandle = <0x1cd>;
+			linux,phandle = <0x1ca>;
+			phandle = <0x1ca>;
 		};
 
 		s5100_evt1_dual_ap2cp_pda_active {
 			samsung,pins = "gph1-3";
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x3>;
-			linux,phandle = <0x1ce>;
-			phandle = <0x1ce>;
+			linux,phandle = <0x1cb>;
+			phandle = <0x1cb>;
 		};
 	};
 
 	pinctrl@15580000 {
 		compatible = "samsung,exynos9820-pinctrl";
 		reg = <0x0 0x15580000 0x1000>;
-		linux,phandle = <0x1cf>;
-		phandle = <0x1cf>;
+		linux,phandle = <0x1cc>;
+		phandle = <0x1cc>;
 
 		gpv0 {
 			gpio-controller;
 			#gpio-cells = <0x2>;
 			interrupt-controller;
 			#interrupt-cells = <0x2>;
-			linux,phandle = <0x1d0>;
-			phandle = <0x1d0>;
+			linux,phandle = <0x1cd>;
+			phandle = <0x1cd>;
 		};
 
 		dmic-3rd-bus-clk {
@@ -2746,8 +2730,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x129>;
-			phandle = <0x129>;
+			linux,phandle = <0x128>;
+			phandle = <0x128>;
 		};
 
 		dmic-3rd-bus-clk-idle {
@@ -2755,8 +2739,8 @@
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x12d>;
-			phandle = <0x12d>;
+			linux,phandle = <0x12c>;
+			phandle = <0x12c>;
 		};
 
 		dmic-bus-clk {
@@ -2764,8 +2748,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x12b>;
-			phandle = <0x12b>;
+			linux,phandle = <0x12a>;
+			phandle = <0x12a>;
 		};
 
 		amic-bus-clk {
@@ -2773,8 +2757,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x1d1>;
-			phandle = <0x1d1>;
+			linux,phandle = <0x1ce>;
+			phandle = <0x1ce>;
 		};
 
 		mic-bus-clk-idle {
@@ -2782,8 +2766,8 @@
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x12e>;
-			phandle = <0x12e>;
+			linux,phandle = <0x12d>;
+			phandle = <0x12d>;
 		};
 
 		dmic-pdm {
@@ -2791,8 +2775,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x1>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x12c>;
-			phandle = <0x12c>;
+			linux,phandle = <0x12b>;
+			phandle = <0x12b>;
 		};
 
 		dmic-pdm-idle {
@@ -2800,8 +2784,8 @@
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x0>;
 			sung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x12f>;
-			phandle = <0x12f>;
+			linux,phandle = <0x12e>;
+			phandle = <0x12e>;
 		};
 
 		amic-pdm {
@@ -2809,8 +2793,8 @@
 			samsung,pin-function = <0x2>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x12a>;
-			phandle = <0x12a>;
+			linux,phandle = <0x129>;
+			phandle = <0x129>;
 		};
 
 		amic-pdm-idle {
@@ -2818,8 +2802,8 @@
 			samsung,pin-function = <0x0>;
 			samsung,pin-pud = <0x0>;
 			samsung,pin-con-pdn = <0x2>;
-			linux,phandle = <0x130>;
-			phandle = <0x130>;
+			linux,phandle = <0x12f>;
+			phandle = <0x12f>;
 		};
 	};
 
@@ -2874,8 +2858,8 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		linux,phandle = <0x1d2>;
-		phandle = <0x1d2>;
+		linux,phandle = <0x1cf>;
+		phandle = <0x1cf>;
 
 		ion_video_stream {
 			compatible = "exynos9820-ion";
@@ -2898,9 +2882,20 @@
 			ion,alignment = <0x10000>;
 		};
 
+		mm_debug {
+			compatible = "exynos,mm_debug";
+			reg = <0x0 0x91200000 0x1000>;
+		};
+
 		sec_debug_magic {
 			compatible = "exynos,sec_debug_magic";
 			reg = <0x0 0x80000000 0x1000>;
+		};
+
+		sec_rdx_bootdev {
+			compatible = "exynos,sec_rdx_bootdev";
+			no-ship;
+			reg = <0x8 0x80000000 0xad00000>;
 		};
 
 		debug_snapshot {
@@ -3070,8 +3065,8 @@
 		sysmmu,tlb_property = <0x1aa 0x0>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0x5>;
-		linux,phandle = <0xf3>;
-		phandle = <0xf3>;
+		linux,phandle = <0xf2>;
+		phandle = <0xf2>;
 	};
 
 	sysmmu@18A80000 {
@@ -3087,8 +3082,8 @@
 		sysmmu,tlb_property = <0x1aa 0x0>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0x5>;
-		linux,phandle = <0xf4>;
-		phandle = <0xf4>;
+		linux,phandle = <0xf3>;
+		phandle = <0xf3>;
 	};
 
 	sysmmu@18B90000 {
@@ -3104,8 +3099,8 @@
 		sysmmu,tlb_property = <0x1a0 0x0 0x10360 0x30000 0x10360 0x30000 0x10360 0x30000 0x10360 0x30000 0x10320 0x30002 0x1032a 0x30003>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0x5>;
-		linux,phandle = <0x106>;
-		phandle = <0x106>;
+		linux,phandle = <0x105>;
+		phandle = <0x105>;
 	};
 
 	sysmmu@18890000 {
@@ -3220,8 +3215,8 @@
 		sysmmu,tlb_property = <0x160 0x0 0x10360 0x10001>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0xa>;
-		linux,phandle = <0xff>;
-		phandle = <0xff>;
+		linux,phandle = <0xfe>;
+		phandle = <0xfe>;
 	};
 
 	sysmmu@17930000 {
@@ -3237,8 +3232,8 @@
 		sysmmu,tlb_property = <0x160 0x0>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0xb>;
-		linux,phandle = <0x10a>;
-		phandle = <0x10a>;
+		linux,phandle = <0x109>;
+		phandle = <0x109>;
 	};
 
 	sysmmu@17C20000 {
@@ -3254,8 +3249,8 @@
 		sysmmu,tlb_property = <0x16a 0x0>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0xc>;
-		linux,phandle = <0x107>;
-		phandle = <0x107>;
+		linux,phandle = <0x106>;
+		phandle = <0x106>;
 	};
 
 	sysmmu@17C30000 {
@@ -3271,8 +3266,8 @@
 		sysmmu,tlb_property = <0x16a 0x0>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0xc>;
-		linux,phandle = <0x108>;
-		phandle = <0x108>;
+		linux,phandle = <0x107>;
+		phandle = <0x107>;
 	};
 
 	sysmmu@17680000 {
@@ -3288,8 +3283,8 @@
 		sysmmu,tlb_property = <0x160 0x0>;
 		#iommu-cells = <0x0>;
 		samsung,power-domain = <0xd>;
-		linux,phandle = <0x1d3>;
-		phandle = <0x1d3>;
+		linux,phandle = <0x1d0>;
+		phandle = <0x1d0>;
 	};
 
 	debug-snapshot-soc {
@@ -3346,15 +3341,15 @@
 		plugin-len = <0x3>;
 		plugin-name = "S2D";
 		status = "ok";
-		linux,phandle = <0x1d4>;
-		phandle = <0x1d4>;
+		linux,phandle = <0x1d1>;
+		phandle = <0x1d1>;
 	};
 
 	exynos_adv_tracer_misc {
 		compatible = "samsung,exynos-adv-tracer-misc";
 		status = "ok";
-		linux,phandle = <0x1d5>;
-		phandle = <0x1d5>;
+		linux,phandle = <0x1d2>;
+		phandle = <0x1d2>;
 	};
 
 	exynos-ehld {
@@ -3463,16 +3458,16 @@
 			device_type = "etf";
 			offset = <0x4000>;
 			funnel-port = <0x2 0x0>;
-			linux,phandle = <0x1d6>;
-			phandle = <0x1d6>;
+			linux,phandle = <0x1d3>;
+			phandle = <0x1d3>;
 		};
 
 		cs_etf1@5000 {
 			device_type = "etf";
 			offset = <0x5000>;
 			funnel-port = <0x2 0x1>;
-			linux,phandle = <0x1d7>;
-			phandle = <0x1d7>;
+			linux,phandle = <0x1d4>;
+			phandle = <0x1d4>;
 		};
 
 		cs_funnel0@4000 {
@@ -4182,8 +4177,8 @@
 		iommus = <0x35 0x36 0x37 0x38>;
 		#cooling-cells = <0x2>;
 		ewf-index = <0x3>;
-		linux,phandle = <0xf6>;
-		phandle = <0xf6>;
+		linux,phandle = <0xf5>;
+		phandle = <0xf5>;
 	};
 
 	gdc@17530000 {
@@ -4198,8 +4193,8 @@
 		status = "okay";
 		iommus = <0x36>;
 		#cooling-cells = <0x2>;
-		linux,phandle = <0xfd>;
-		phandle = <0xfd>;
+		linux,phandle = <0xfc>;
+		phandle = <0xfc>;
 	};
 
 	camif-wdma@170A0000 {
@@ -4243,8 +4238,8 @@
 		reg = <0x0 0x170e0000 0x100>;
 		modules = <0x39 0x3a 0x3b 0x3c>;
 		samsung,has_test_pattern_gen;
-		linux,phandle = <0x1d8>;
-		phandle = <0x1d8>;
+		linux,phandle = <0x1d5>;
+		phandle = <0x1d5>;
 	};
 
 	camif-wdma@17100000 {
@@ -4287,8 +4282,8 @@
 		compatible = "samsung,camif-wdma-top";
 		reg = <0x0 0x17140000 0x100>;
 		modules = <0x3d 0x3e 0x3f 0x40>;
-		linux,phandle = <0x1d9>;
-		phandle = <0x1d9>;
+		linux,phandle = <0x1d6>;
+		phandle = <0x1d6>;
 	};
 
 	aliases {
@@ -4516,8 +4511,8 @@
 		reg = <0x0 0x19162b00 0x500>;
 		owner = <0x1>;
 		#phy-cells = <0x1>;
-		linux,phandle = <0x44>;
-		phandle = <0x44>;
+		linux,phandle = <0x45>;
+		phandle = <0x45>;
 	};
 
 	dphy_m0s4s4s4_csis3@17020500 {
@@ -4540,8 +4535,8 @@
 		reg = <0x0 0x19163600 0x300>;
 		owner = <0x1>;
 		#phy-cells = <0x1>;
-		linux,phandle = <0x45>;
-		phandle = <0x45>;
+		linux,phandle = <0x44>;
+		phandle = <0x44>;
 	};
 
 	fimc_is_sensor@17030000 {
@@ -4557,19 +4552,48 @@
 		clocks = <0x2 0x9d 0x2 0x9e 0x2 0x9f 0x2 0xa0 0x2 0xa1 0x2 0x97 0x2 0x98 0x2 0x99 0x2 0x9a 0x2 0x9b 0x2 0x17d 0x2 0x17e 0x2 0x17f 0x2 0x180 0x2 0x189>;
 		clock-names = "CIS_CLK0", "CIS_CLK1", "CIS_CLK2", "CIS_CLK3", "CIS_CLK4", "MUX_CIS_CLK0", "MUX_CIS_CLK1", "MUX_CIS_CLK2", "MUX_CIS_CLK3", "MUX_CIS_CLK4", "GATE_IS_ISPPRE_CSIS0", "GATE_IS_ISPPRE_CSIS1", "GATE_IS_ISPPRE_CSIS2", "GATE_IS_ISPPRE_CSIS3", "GATE_IS_ISPPRE_CSIS4";
 		iommus = <0x35>;
-		linux,phandle = <0xf7>;
-		phandle = <0xf7>;
+		linux,phandle = <0xf6>;
+		phandle = <0xf6>;
 
 		sensor0-ch-mode0 {
 			reg = <0x170a0000 0x100 0x170a0400 0x100 0x170a0100 0x100 0x170a0400 0x100 0x170a0200 0x100 0x170a0400 0x100 0x170a0300 0x100 0x170a0400 0x100>;
-			linux,phandle = <0x1da>;
-			phandle = <0x1da>;
+			linux,phandle = <0x1d7>;
+			phandle = <0x1d7>;
 		};
 
 		sensor0-ch-mode1 {
 			reg = <0x170a0000 0x100 0x170a0400 0x100 0x17100100 0x100 0x17100400 0x100 0x17100200 0x100 0x17100400 0x100 0x17100300 0x100 0x17100400 0x100>;
-			linux,phandle = <0x1db>;
-			phandle = <0x1db>;
+			linux,phandle = <0x1d8>;
+			phandle = <0x1d8>;
+		};
+	};
+
+	fimc_is_sensor2@17050000 {
+		compatible = "samsung,exynos5-fimc-is-sensor";
+		#address-cells = <0x1>;
+		#size-cells = <0x1>;
+		reg = <0x0 0x17050000 0x1000 0x0 0x19160000 0x10000>;
+		reg-names = "csi", "phy";
+		interrupts = <0x0 0x137 0x0 0x0 0x13d 0x0 0x0 0x13d 0x0 0x0 0x13d 0x0 0x0 0x13d 0x0 0x0 0x13d 0x0 0x0 0x148 0x0 0x0 0x148 0x0 0x0 0x148 0x0>;
+		interrupt-names = "csi", "mode0_VC0", "mode0_VC1", "mode0_VC2", "mode0_VC3", "mode1_VC0", "mode1_VC1", "mode1_VC2", "mode1_VC3";
+		phys = <0x43 0x0>;
+		phy-names = "csis_dphy";
+		clocks = <0x2 0x9d 0x2 0x9e 0x2 0x9f 0x2 0xa0 0x2 0xa1 0x2 0x97 0x2 0x98 0x2 0x99 0x2 0x9a 0x2 0x9b 0x2 0x17d 0x2 0x17e 0x2 0x17f 0x2 0x180 0x2 0x189>;
+		clock-names = "CIS_CLK0", "CIS_CLK1", "CIS_CLK2", "CIS_CLK3", "CIS_CLK4", "MUX_CIS_CLK0", "MUX_CIS_CLK1", "MUX_CIS_CLK2", "MUX_CIS_CLK3", "MUX_CIS_CLK4", "GATE_IS_ISPPRE_CSIS0", "GATE_IS_ISPPRE_CSIS1", "GATE_IS_ISPPRE_CSIS2", "GATE_IS_ISPPRE_CSIS3", "GATE_IS_ISPPRE_CSIS4";
+		iommus = <0x35>;
+		linux,phandle = <0xf7>;
+		phandle = <0xf7>;
+
+		sensor1-ch-mode0 {
+			reg = <0x170c0000 0x100 0x170c0400 0x100 0x170c0100 0x100 0x170c0400 0x100 0x170c0200 0x100 0x170c0400 0x100 0x170c0300 0x100 0x170c0400 0x100>;
+			linux,phandle = <0x1d9>;
+			phandle = <0x1d9>;
+		};
+
+		sensor1-ch-mode1 {
+			reg = <0x170c0000 0x100 0x170c0400 0x100 0x17120100 0x100 0x17120400 0x100 0x17120200 0x100 0x17120400 0x100 0x17120300 0x100 0x17120400 0x100>;
+			linux,phandle = <0x1da>;
+			phandle = <0x1da>;
 		};
 	};
 
@@ -4589,39 +4613,16 @@
 		linux,phandle = <0xf8>;
 		phandle = <0xf8>;
 
-		sensor1-ch-mode0 {
+		sensor2-ch-mode0 {
 			reg = <0x170c0000 0x100 0x170c0400 0x100 0x170c0100 0x100 0x170c0400 0x100 0x170c0200 0x100 0x170c0400 0x100 0x170c0300 0x100 0x170c0400 0x100>;
+			linux,phandle = <0x1db>;
+			phandle = <0x1db>;
+		};
+
+		sensor2-ch-mode1 {
+			reg = <0x170c0000 0x100 0x170c0400 0x100 0x17120100 0x100 0x17120400 0x100 0x17120200 0x100 0x17120400 0x100 0x17120300 0x100 0x17120400 0x100>;
 			linux,phandle = <0x1dc>;
 			phandle = <0x1dc>;
-		};
-
-		sensor1-ch-mode1 {
-			reg = <0x170c0000 0x100 0x170c0400 0x100 0x17120100 0x100 0x17120400 0x100 0x17120200 0x100 0x17120400 0x100 0x17120300 0x100 0x17120400 0x100>;
-			linux,phandle = <0x1dd>;
-			phandle = <0x1dd>;
-		};
-	};
-
-	fimc_is_sensor2@17040000 {
-		compatible = "samsung,exynos5-fimc-is-sensor";
-		#address-cells = <0x1>;
-		#size-cells = <0x1>;
-		reg = <0x0 0x17040000 0x1000 0x0 0x19160000 0x10000>;
-		reg-names = "csi", "phy";
-		interrupts = <0x0 0x136 0x0 0x0 0x13c 0x0 0x0 0x13c 0x0 0x0 0x13c 0x0 0x0 0x13c 0x0>;
-		interrupt-names = "csi", "mode0_VC0", "mode0_VC1", "mode0_VC2", "mode0_VC3";
-		phys = <0x44 0x0>;
-		phy-names = "csis_dphy";
-		clocks = <0x2 0x9d 0x2 0x9e 0x2 0x9f 0x2 0xa0 0x2 0xa1 0x2 0x97 0x2 0x98 0x2 0x99 0x2 0x9a 0x2 0x9b 0x2 0x17d 0x2 0x17e 0x2 0x17f 0x2 0x180 0x2 0x189>;
-		clock-names = "CIS_CLK0", "CIS_CLK1", "CIS_CLK2", "CIS_CLK3", "CIS_CLK4", "MUX_CIS_CLK0", "MUX_CIS_CLK1", "MUX_CIS_CLK2", "MUX_CIS_CLK3", "MUX_CIS_CLK4", "GATE_IS_ISPPRE_CSIS0", "GATE_IS_ISPPRE_CSIS1", "GATE_IS_ISPPRE_CSIS2", "GATE_IS_ISPPRE_CSIS3", "GATE_IS_ISPPRE_CSIS4";
-		iommus = <0x35>;
-		linux,phandle = <0xf9>;
-		phandle = <0xf9>;
-
-		sensor2-ch-mode0 {
-			reg = <0x170b0000 0x100 0x170b0400 0x100 0x170b0100 0x100 0x170b0400 0x100 0x170b0200 0x100 0x170b0400 0x100 0x170b0300 0x100 0x170b0400 0x100>;
-			linux,phandle = <0x1de>;
-			phandle = <0x1de>;
 		};
 	};
 
@@ -4634,18 +4635,18 @@
 		reg-names = "csi", "phy";
 		interrupts = <0x0 0x14a 0x0 0x0 0x13e 0x0 0x0 0x13e 0x0 0x0 0x13e 0x0 0x0 0x13e 0x0>;
 		interrupt-names = "csi", "mode0_VC0", "mode0_VC1", "mode0_VC2", "mode0_VC3";
-		phys = <0x45 0x0>;
+		phys = <0x44 0x0>;
 		phy-names = "csis_dphy";
 		clocks = <0x2 0x9d 0x2 0x9e 0x2 0x9f 0x2 0xa0 0x2 0xa1 0x2 0x97 0x2 0x98 0x2 0x99 0x2 0x9a 0x2 0x9b 0x2 0x17d 0x2 0x17e 0x2 0x17f 0x2 0x180 0x2 0x189>;
 		clock-names = "CIS_CLK0", "CIS_CLK1", "CIS_CLK2", "CIS_CLK3", "CIS_CLK4", "MUX_CIS_CLK0", "MUX_CIS_CLK1", "MUX_CIS_CLK2", "MUX_CIS_CLK3", "MUX_CIS_CLK4", "GATE_IS_ISPPRE_CSIS0", "GATE_IS_ISPPRE_CSIS1", "GATE_IS_ISPPRE_CSIS2", "GATE_IS_ISPPRE_CSIS3", "GATE_IS_ISPPRE_CSIS4";
 		iommus = <0x35>;
-		linux,phandle = <0xfa>;
-		phandle = <0xfa>;
+		linux,phandle = <0xf9>;
+		phandle = <0xf9>;
 
 		sensor3-ch-mode0 {
 			reg = <0x170d0000 0x100 0x170d0400 0x100 0x170d0100 0x100 0x170d0400 0x100 0x170d0200 0x100 0x170d0400 0x100 0x170d0300 0x100 0x170d0400 0x100>;
-			linux,phandle = <0x1df>;
-			phandle = <0x1df>;
+			linux,phandle = <0x1dd>;
+			phandle = <0x1dd>;
 		};
 	};
 
@@ -4657,18 +4658,18 @@
 		reg-names = "csi", "phy";
 		interrupts = <0x0 0x136 0x0 0x0 0x13c 0x0 0x0 0x13c 0x0 0x0 0x13c 0x0 0x0 0x13c 0x0>;
 		interrupt-names = "csi", "mode0_VC0", "mode0_VC1", "mode0_VC2", "mode0_VC3";
-		phys = <0x44 0x0>;
+		phys = <0x45 0x0>;
 		phy-names = "csis_dphy";
 		clocks = <0x2 0x9d 0x2 0x9e 0x2 0x9f 0x2 0xa0 0x2 0xa1 0x2 0x97 0x2 0x98 0x2 0x99 0x2 0x9a 0x2 0x9b 0x2 0x17d 0x2 0x17e 0x2 0x17f 0x2 0x180 0x2 0x189>;
 		clock-names = "CIS_CLK0", "CIS_CLK1", "CIS_CLK2", "CIS_CLK3", "CIS_CLK4", "MUX_CIS_CLK0", "MUX_CIS_CLK1", "MUX_CIS_CLK2", "MUX_CIS_CLK3", "MUX_CIS_CLK4", "GATE_IS_ISPPRE_CSIS0", "GATE_IS_ISPPRE_CSIS1", "GATE_IS_ISPPRE_CSIS2", "GATE_IS_ISPPRE_CSIS3", "GATE_IS_ISPPRE_CSIS4";
 		iommus = <0x35>;
-		linux,phandle = <0xfb>;
-		phandle = <0xfb>;
+		linux,phandle = <0xfa>;
+		phandle = <0xfa>;
 
 		sensor4-ch-mode0 {
 			reg = <0x170b0000 0x100 0x170b0400 0x100 0x170b0100 0x100 0x170b0400 0x100 0x170b0200 0x100 0x170b0400 0x100 0x170b0300 0x100 0x170b0400 0x100>;
-			linux,phandle = <0x1e0>;
-			phandle = <0x1e0>;
+			linux,phandle = <0x1de>;
+			phandle = <0x1de>;
 		};
 	};
 
@@ -4685,13 +4686,13 @@
 		clocks = <0x2 0x9d 0x2 0x9e 0x2 0x9f 0x2 0xa0 0x2 0xa1 0x2 0x97 0x2 0x98 0x2 0x99 0x2 0x9a 0x2 0x9b 0x2 0x17d 0x2 0x17e 0x2 0x17f 0x2 0x180 0x2 0x189>;
 		clock-names = "CIS_CLK0", "CIS_CLK1", "CIS_CLK2", "CIS_CLK3", "CIS_CLK4", "MUX_CIS_CLK0", "MUX_CIS_CLK1", "MUX_CIS_CLK2", "MUX_CIS_CLK3", "MUX_CIS_CLK4", "GATE_IS_ISPPRE_CSIS0", "GATE_IS_ISPPRE_CSIS1", "GATE_IS_ISPPRE_CSIS2", "GATE_IS_ISPPRE_CSIS3", "GATE_IS_ISPPRE_CSIS4";
 		iommus = <0x35>;
-		linux,phandle = <0xfc>;
-		phandle = <0xfc>;
+		linux,phandle = <0xfb>;
+		phandle = <0xfb>;
 
 		sensor5-ch-mode0 {
 			reg = <0x17130000 0x100 0x17130400 0x100 0x17130100 0x100 0x17130400 0x100 0x17130200 0x100 0x17130400 0x100 0x17130300 0x100 0x17130400 0x100>;
-			linux,phandle = <0x1e1>;
-			phandle = <0x1e1>;
+			linux,phandle = <0x1df>;
+			phandle = <0x1df>;
 		};
 	};
 
@@ -4699,16 +4700,16 @@
 		compatible = "samsung,sensor-paf-pdp";
 		reg = <0x0 0x17160000 0x2000>;
 		interrupts = <0x0 0x139 0x0>;
-		linux,phandle = <0x1e2>;
-		phandle = <0x1e2>;
+		linux,phandle = <0x1e0>;
+		phandle = <0x1e0>;
 	};
 
 	sensor-paf-pdp@17170000 {
 		compatible = "samsung,sensor-paf-pdp";
 		reg = <0x0 0x17170000 0x2000>;
 		interrupts = <0x0 0x139 0x0>;
-		linux,phandle = <0x1e3>;
-		phandle = <0x1e3>;
+		linux,phandle = <0x1e1>;
+		phandle = <0x1e1>;
 	};
 
 	pmucal_dbg {
@@ -5021,6 +5022,7 @@
 		static_info_enc = <0x1 0x180314>;
 		hdr10_plus = <0x1 0x180709>;
 		P010_decoding = <0x1>;
+		enc_ts_delta = <0x1 0x211208>;
 		support_10bit = <0x1>;
 		support_422 = <0x1>;
 		support_rgb = <0x0>;
@@ -5065,8 +5067,8 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		linux,phandle = <0x101>;
-		phandle = <0x101>;
+		linux,phandle = <0x100>;
+		phandle = <0x100>;
 
 		iommu {
 			reg = <0x0 0x18890000 0x9000 0x0 0x188b0000 0x9000>;
@@ -5260,8 +5262,8 @@
 		gpu_set_pmu_duration_reg = <0x0>;
 		gpu_set_pmu_duration_val = <0x0>;
 		gpu_ess_id_type = <0xe>;
-		linux,phandle = <0x11f>;
-		phandle = <0x11f>;
+		linux,phandle = <0x11e>;
+		phandle = <0x11e>;
 	};
 
 	exynos_perf_ncmemcpy {
@@ -5273,6 +5275,14 @@
 	ect {
 		parameter_address = <0x95000000>;
 		parameter_size = <0x3a000>;
+	};
+
+	chosen {
+		bootargs = [00];
+		linux,initrd-start = <0x84000000>;
+		linux,initrd-end = <0x841fffff>;
+		linux,phandle = <0x1e2>;
+		phandle = <0x1e2>;
 	};
 
 	memory@80000000 {
@@ -5290,46 +5300,11 @@
 		reg = <0x9 0x0 0x80000000>;
 	};
 
-	chosen {
-		bootargs = [00];
-		linux,initrd-start = <0x84000000>;
-		linux,initrd-end = <0x841fffff>;
-		linux,phandle = <0x1e4>;
-		phandle = <0x1e4>;
-	};
-
 	firmware {
 
 		android {
 			compatible = "android,firmware";
-			linux,phandle = <0x1e5>;
-			phandle = <0x1e5>;
 
-			fstab {
-				compatible = "android,fstab";
-
-				system {
-					compatible = "android,system";
-					dev = "/dev/block/platform/13d60000.ufs/by-name/system";
-					type = "ext4";
-					mnt_flags = "ro";
-					fsmgr_flags = "wait";
-					status = "disabled";
-					linux,phandle = <0x1e6>;
-					phandle = <0x1e6>;
-				};
-
-				vendor {
-					compatible = "android,vendor";
-					dev = "/dev/block/platform/13d60000.ufs/by-name/vendor";
-					type = "ext4";
-					mnt_flags = "ro";
-					fsmgr_flags = "wait";
-					status = "disabled";
-					linux,phandle = <0x1e7>;
-					phandle = <0x1e7>;
-				};
-			};
 		};
 	};
 
@@ -5645,6 +5620,21 @@
 				};
 			};
 
+			band {
+
+				schedule0 {
+					stage = "4-5";
+					crowd = <0x30>;
+					type = <0x1>;
+				};
+
+				schedule1 {
+					stage = "4-7";
+					crowd = <0x3c>;
+					type = <0x2>;
+				};
+			};
+
 			prefer-perf-service {
 
 				prefer-perf0 {
@@ -5790,8 +5780,8 @@
 		config-table = <0x0 0x0 0x57 0x0 0x1 0x2 0x79 0x0 0x0 0x0 0x57 0x0 0x0 0x0 0x57 0x0 0x1 0x2 0x79 0x0 0x0 0x0 0x57 0x0 0x0 0x0 0x57 0x0 0x1 0x2 0x79 0x0>;
 		bl1-tbpwr-threshold = <0x0 0x0 0x3 0xffff>;
 		bl2-tbpwr-threshold = <0x0 0x0 0x3 0xffff>;
-		linux,phandle = <0x1e8>;
-		phandle = <0x1e8>;
+		linux,phandle = <0x1e3>;
+		phandle = <0x1e3>;
 	};
 
 	exynos-hiu-tb {
@@ -5899,8 +5889,8 @@
 		brd-for-cal = [01];
 		fmp-id = <0x0>;
 		smu-id = <0x0>;
-		linux,phandle = <0x1e9>;
-		phandle = <0x1e9>;
+		linux,phandle = <0x1e4>;
+		phandle = <0x1e4>;
 
 		ufs-phy {
 			#address-cells = <0x2>;
@@ -5973,8 +5963,8 @@
 		regulator-min-microvolt = <0x401640>;
 		regulator-max-microvolt = <0x401640>;
 		regulator-boot-on;
-		linux,phandle = <0x1ea>;
-		phandle = <0x1ea>;
+		linux,phandle = <0x1e5>;
+		phandle = <0x1e5>;
 	};
 
 	abox-gic@18cf0000 {
@@ -6009,8 +5999,8 @@
 		iommus = <0x56>;
 		samsung,pm-qos-int = <0x0 0x0 0x0 0x0 0x0>;
 		samsung,pm-qos-aud = <0x120160 0xc3500 0x900b0 0x60310 0x0>;
-		linux,phandle = <0xe8>;
-		phandle = <0xe8>;
+		linux,phandle = <0xe7>;
+		phandle = <0xe7>;
 
 		abox-core@18c55000 {
 			compatible = "samsung,abox-core";
@@ -6021,23 +6011,23 @@
 			samsung,pmu_power = <0x2d80 0x1>;
 			samsung,pmu_enable = <0x2da0 0x1>;
 			samsung,pmu_standby = <0x2da4 0x11>;
-			linux,phandle = <0x1eb>;
-			phandle = <0x1eb>;
+			linux,phandle = <0x1e6>;
+			phandle = <0x1e6>;
 
 			abox-firmware-sram0 {
 				samsung,name = "calliope_sram.bin";
 				samsung,area = <0x0>;
 				samsung,offset = <0x0>;
-				linux,phandle = <0x1ec>;
-				phandle = <0x1ec>;
+				linux,phandle = <0x1e7>;
+				phandle = <0x1e7>;
 			};
 
 			abox-firmware-dram0 {
 				samsung,name = "calliope_dram.bin";
 				samsung,area = <0x1>;
 				samsung,offset = <0x0>;
-				linux,phandle = <0x1ed>;
-				phandle = <0x1ed>;
+				linux,phandle = <0x1e8>;
+				phandle = <0x1e8>;
 			};
 		};
 
@@ -6050,23 +6040,23 @@
 			samsung,pmu_power = <0x2e00 0x1>;
 			samsung,pmu_enable = <0x2e20 0x1>;
 			samsung,pmu_standby = <0x2e24 0x1>;
-			linux,phandle = <0x1ee>;
-			phandle = <0x1ee>;
+			linux,phandle = <0x1e9>;
+			phandle = <0x1e9>;
 
 			abox-firmware-sram1 {
 				samsung,name = "calliope_sram_2.bin";
 				samsung,area = <0x0>;
 				samsung,offset = <0x32000>;
-				linux,phandle = <0x1ef>;
-				phandle = <0x1ef>;
+				linux,phandle = <0x1ea>;
+				phandle = <0x1ea>;
 			};
 
 			abox-firmware-dram1 {
 				samsung,name = "calliope_dram_2.bin";
 				samsung,area = <0x1>;
 				samsung,offset = <0x280000>;
-				linux,phandle = <0x1f0>;
-				phandle = <0x1f0>;
+				linux,phandle = <0x1eb>;
+				phandle = <0x1eb>;
 			};
 		};
 
@@ -6078,8 +6068,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f1>;
-			phandle = <0x1f1>;
+			linux,phandle = <0x1ec>;
+			phandle = <0x1ec>;
 		};
 
 		abox-rdma@18c51100 {
@@ -6090,8 +6080,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f2>;
-			phandle = <0x1f2>;
+			linux,phandle = <0x1ed>;
+			phandle = <0x1ed>;
 		};
 
 		abox-rdma@18c51200 {
@@ -6102,8 +6092,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "ion";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f3>;
-			phandle = <0x1f3>;
+			linux,phandle = <0x1ee>;
+			phandle = <0x1ee>;
 		};
 
 		abox-rdma@18c51300 {
@@ -6114,8 +6104,8 @@
 			samsung,type = "sync";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f4>;
-			phandle = <0x1f4>;
+			linux,phandle = <0x1ef>;
+			phandle = <0x1ef>;
 		};
 
 		abox-rdma@18c51400 {
@@ -6127,8 +6117,8 @@
 			#sound-dai-cells = <0x0>;
 			samsung,buffer_type = "dma";
 			samsung,asrc-id = <0xa>;
-			linux,phandle = <0x1f5>;
-			phandle = <0x1f5>;
+			linux,phandle = <0x1f0>;
+			phandle = <0x1f0>;
 		};
 
 		abox-rdma@18c51500 {
@@ -6139,8 +6129,8 @@
 			samsung,type = "compress";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f6>;
-			phandle = <0x1f6>;
+			linux,phandle = <0x1f1>;
+			phandle = <0x1f1>;
 		};
 
 		abox-rdma@18c51600 {
@@ -6151,8 +6141,8 @@
 			samsung,type = "realtime";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f7>;
-			phandle = <0x1f7>;
+			linux,phandle = <0x1f2>;
+			phandle = <0x1f2>;
 		};
 
 		abox-rdma@18c51700 {
@@ -6163,8 +6153,8 @@
 			samsung,type = "realtime";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f8>;
-			phandle = <0x1f8>;
+			linux,phandle = <0x1f3>;
+			phandle = <0x1f3>;
 		};
 
 		abox-rdma@18c51800 {
@@ -6175,8 +6165,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1f9>;
-			phandle = <0x1f9>;
+			linux,phandle = <0x1f4>;
+			phandle = <0x1f4>;
 		};
 
 		abox-rdma@18c51900 {
@@ -6187,8 +6177,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1fa>;
-			phandle = <0x1fa>;
+			linux,phandle = <0x1f5>;
+			phandle = <0x1f5>;
 		};
 
 		abox-rdma@18c51a00 {
@@ -6199,8 +6189,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1fb>;
-			phandle = <0x1fb>;
+			linux,phandle = <0x1f6>;
+			phandle = <0x1f6>;
 		};
 
 		abox-rdma@18c51b00 {
@@ -6211,8 +6201,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1fc>;
-			phandle = <0x1fc>;
+			linux,phandle = <0x1f7>;
+			phandle = <0x1f7>;
 		};
 
 		abox-wdma@18c53000 {
@@ -6223,8 +6213,8 @@
 			samsung,type = "realtime";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1fd>;
-			phandle = <0x1fd>;
+			linux,phandle = <0x1f8>;
+			phandle = <0x1f8>;
 		};
 
 		abox-wdma@18c53100 {
@@ -6235,8 +6225,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "ion";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x1fe>;
-			phandle = <0x1fe>;
+			linux,phandle = <0x1f9>;
+			phandle = <0x1f9>;
 		};
 
 		abox-wdma@18c53200 {
@@ -6248,8 +6238,8 @@
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
 			samsung,asrc-id = <0x6>;
-			linux,phandle = <0x1ff>;
-			phandle = <0x1ff>;
+			linux,phandle = <0x1fa>;
+			phandle = <0x1fa>;
 		};
 
 		abox-wdma@18c53300 {
@@ -6261,8 +6251,8 @@
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
 			samsung,asrc-id = <0x5>;
-			linux,phandle = <0x200>;
-			phandle = <0x200>;
+			linux,phandle = <0x1fb>;
+			phandle = <0x1fb>;
 		};
 
 		abox-wdma@18c53400 {
@@ -6274,8 +6264,8 @@
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
 			samsung,asrc-id = <0x4>;
-			linux,phandle = <0x201>;
-			phandle = <0x201>;
+			linux,phandle = <0x1fc>;
+			phandle = <0x1fc>;
 		};
 
 		abox-wdma@18c53500 {
@@ -6286,8 +6276,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x202>;
-			phandle = <0x202>;
+			linux,phandle = <0x1fd>;
+			phandle = <0x1fd>;
 		};
 
 		abox-wdma@18c53600 {
@@ -6298,8 +6288,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x203>;
-			phandle = <0x203>;
+			linux,phandle = <0x1fe>;
+			phandle = <0x1fe>;
 		};
 
 		abox-wdma@18c53700 {
@@ -6310,8 +6300,8 @@
 			samsung,type = "normal";
 			samsung,buffer_type = "dma";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x204>;
-			phandle = <0x204>;
+			linux,phandle = <0x1ff>;
+			phandle = <0x1ff>;
 		};
 
 		abox-uaif@18c50500 {
@@ -6325,8 +6315,8 @@
 			pinctrl-0 = <0x57>;
 			pinctrl-1 = <0x58>;
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x205>;
-			phandle = <0x205>;
+			linux,phandle = <0x200>;
+			phandle = <0x200>;
 		};
 
 		abox-uaif@18c50510 {
@@ -6340,8 +6330,8 @@
 			pinctrl-0 = <0x59>;
 			pinctrl-1 = <0x5a>;
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x206>;
-			phandle = <0x206>;
+			linux,phandle = <0x201>;
+			phandle = <0x201>;
 		};
 
 		abox-uaif@18c50520 {
@@ -6355,8 +6345,8 @@
 			pinctrl-0 = <0x5b>;
 			pinctrl-1 = <0x5c>;
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x207>;
-			phandle = <0x207>;
+			linux,phandle = <0x202>;
+			phandle = <0x202>;
 		};
 
 		abox-uaif@18c50530 {
@@ -6370,8 +6360,8 @@
 			pinctrl-0 = <0x5d>;
 			pinctrl-1 = <0x5e>;
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x208>;
-			phandle = <0x208>;
+			linux,phandle = <0x203>;
+			phandle = <0x203>;
 		};
 
 		abox-dsif@18c50550 {
@@ -6382,32 +6372,32 @@
 			clocks = <0x2 0x42 0x2 0x33>;
 			clock-names = "bclk", "bclk_gate";
 			#sound-dai-cells = <0x0>;
-			linux,phandle = <0x209>;
-			phandle = <0x209>;
+			linux,phandle = <0x204>;
+			phandle = <0x204>;
 		};
 
 		abox-effect@18d2e000 {
 			compatible = "samsung,abox-effect";
 			reg = <0x0 0x18d2e000 0x1000>;
 			reg-names = "reg";
-			linux,phandle = <0x20a>;
-			phandle = <0x20a>;
+			linux,phandle = <0x205>;
+			phandle = <0x205>;
 		};
 
 		abox-debug@0 {
 			compatible = "samsung,abox-debug";
 			memory-region = <0x5f>;
 			reg = <0x0 0x0 0x0>;
-			linux,phandle = <0x20b>;
-			phandle = <0x20b>;
+			linux,phandle = <0x206>;
+			phandle = <0x206>;
 		};
 
 		abox-vss@0 {
 			compatible = "samsung,abox-vss";
 			samsung,magic-offset = <0x700000>;
 			reg = <0x0 0x0 0x0>;
-			linux,phandle = <0x20c>;
-			phandle = <0x20c>;
+			linux,phandle = <0x207>;
+			phandle = <0x207>;
 		};
 
 		ext-bin@0 {
@@ -6415,8 +6405,8 @@
 			samsung,name = "dummy.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x0>;
-			linux,phandle = <0x20d>;
-			phandle = <0x20d>;
+			linux,phandle = <0x208>;
+			phandle = <0x208>;
 		};
 
 		ext-bin@1 {
@@ -6424,8 +6414,8 @@
 			samsung,name = "AP_AUDIO_SLSI.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x7f0000>;
-			linux,phandle = <0x20e>;
-			phandle = <0x20e>;
+			linux,phandle = <0x209>;
+			phandle = <0x209>;
 		};
 
 		ext-bin@2 {
@@ -6433,8 +6423,8 @@
 			samsung,name = "APBargeIn_AUDIO_SLSI.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x7ec000>;
-			linux,phandle = <0x20f>;
-			phandle = <0x20f>;
+			linux,phandle = <0x20a>;
+			phandle = <0x20a>;
 		};
 
 		ext-bin@3 {
@@ -6442,8 +6432,8 @@
 			samsung,name = "SoundBoosterParam.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x4fc000>;
-			linux,phandle = <0x210>;
-			phandle = <0x210>;
+			linux,phandle = <0x20b>;
+			phandle = <0x20b>;
 		};
 
 		ext-bin@4 {
@@ -6451,8 +6441,8 @@
 			samsung,name = "APDV_AUDIO_SLSI.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x4d0000>;
-			linux,phandle = <0x211>;
-			phandle = <0x211>;
+			linux,phandle = <0x20c>;
+			phandle = <0x20c>;
 		};
 
 		ext-bin@5 {
@@ -6460,8 +6450,8 @@
 			samsung,name = "APBiBF_AUDIO_SLSI.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x7ef000>;
-			linux,phandle = <0x212>;
-			phandle = <0x212>;
+			linux,phandle = <0x20d>;
+			phandle = <0x20d>;
 		};
 
 		ext-bin@6 {
@@ -6469,8 +6459,8 @@
 			samsung,name = "dnn.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x500800>;
-			linux,phandle = <0x213>;
-			phandle = <0x213>;
+			linux,phandle = <0x20e>;
+			phandle = <0x20e>;
 		};
 
 		ext-bin@7 {
@@ -6478,8 +6468,8 @@
 			samsung,name = "usbout.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x1100000>;
-			linux,phandle = <0x214>;
-			phandle = <0x214>;
+			linux,phandle = <0x20f>;
+			phandle = <0x20f>;
 		};
 
 		ext-bin@8 {
@@ -6487,8 +6477,8 @@
 			samsung,name = "usbin.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x1110000>;
-			linux,phandle = <0x215>;
-			phandle = <0x215>;
+			linux,phandle = <0x210>;
+			phandle = <0x210>;
 		};
 
 		ext-bin@9 {
@@ -6496,8 +6486,8 @@
 			samsung,name = "fmsb.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x1120000>;
-			linux,phandle = <0x216>;
-			phandle = <0x216>;
+			linux,phandle = <0x211>;
+			phandle = <0x211>;
 		};
 
 		ext-bin@a {
@@ -6505,8 +6495,8 @@
 			samsung,name = "txse1.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x1200000>;
-			linux,phandle = <0x217>;
-			phandle = <0x217>;
+			linux,phandle = <0x212>;
+			phandle = <0x212>;
 		};
 
 		ext-bin@b {
@@ -6514,8 +6504,8 @@
 			samsung,name = "rxse.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x1300000>;
-			linux,phandle = <0x218>;
-			phandle = <0x218>;
+			linux,phandle = <0x213>;
+			phandle = <0x213>;
 		};
 
 		ext-bin@c {
@@ -6523,8 +6513,8 @@
 			samsung,name = "txse2.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x13b0000>;
-			linux,phandle = <0x219>;
-			phandle = <0x219>;
+			linux,phandle = <0x214>;
+			phandle = <0x214>;
 		};
 
 		ext-bin@d {
@@ -6532,8 +6522,8 @@
 			samsung,name = "a2dpcom.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x13e2000>;
-			linux,phandle = <0x21a>;
-			phandle = <0x21a>;
+			linux,phandle = <0x215>;
+			phandle = <0x215>;
 		};
 
 		ext-bin@e {
@@ -6541,8 +6531,8 @@
 			samsung,name = "bidirmic.bin";
 			samsung,area = <0x1>;
 			samsung,offset = <0x1414000>;
-			linux,phandle = <0x21b>;
-			phandle = <0x21b>;
+			linux,phandle = <0x216>;
+			phandle = <0x216>;
 		};
 
 		ext-bin@f {
@@ -6551,8 +6541,8 @@
 			samsung,area = <0x1>;
 			samsung,offset = <0x11fe000>;
 			samsung,mixer-control;
-			linux,phandle = <0x21c>;
-			phandle = <0x21c>;
+			linux,phandle = <0x217>;
+			phandle = <0x217>;
 		};
 	};
 
@@ -6589,8 +6579,8 @@
 		scale_up = <0x1>;
 		fmt_cnt = <0x4>;
 		fmt = <0xf 0x10 0x11 0x12>;
-		linux,phandle = <0x21d>;
-		phandle = <0x21d>;
+		linux,phandle = <0x218>;
+		phandle = <0x218>;
 	};
 
 	dpp@0x19076000 {
@@ -6604,8 +6594,8 @@
 		scale_up = <0x8>;
 		fmt_cnt = <0x15>;
 		fmt = <0xf 0x10 0x11 0x12 0x13 0x14 0x16 0x17 0x18 0x19 0x1e 0x1f 0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28>;
-		linux,phandle = <0x21e>;
-		phandle = <0x21e>;
+		linux,phandle = <0x219>;
+		phandle = <0x219>;
 	};
 
 	dpp@0x19072000 {
@@ -6619,8 +6609,8 @@
 		scale_up = <0x1>;
 		fmt_cnt = <0x4>;
 		fmt = <0xf 0x10 0x11 0x12>;
-		linux,phandle = <0x21f>;
-		phandle = <0x21f>;
+		linux,phandle = <0x21a>;
+		phandle = <0x21a>;
 	};
 
 	dpp@0x19075000 {
@@ -6634,8 +6624,8 @@
 		scale_up = <0x1>;
 		fmt_cnt = <0x15>;
 		fmt = <0xf 0x10 0x11 0x12 0x13 0x14 0x16 0x17 0x18 0x19 0x1e 0x1f 0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28>;
-		linux,phandle = <0x220>;
-		phandle = <0x220>;
+		linux,phandle = <0x21b>;
+		phandle = <0x21b>;
 	};
 
 	dpp@0x19073000 {
@@ -6649,8 +6639,8 @@
 		scale_up = <0x1>;
 		fmt_cnt = <0x15>;
 		fmt = <0xf 0x10 0x11 0x12 0x13 0x14 0x16 0x17 0x18 0x19 0x1e 0x1f 0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28>;
-		linux,phandle = <0x221>;
-		phandle = <0x221>;
+		linux,phandle = <0x21c>;
+		phandle = <0x21c>;
 	};
 
 	dpp@0x19074000 {
@@ -6664,8 +6654,8 @@
 		scale_up = <0x8>;
 		fmt_cnt = <0x15>;
 		fmt = <0xf 0x10 0x11 0x12 0x13 0x14 0x16 0x17 0x18 0x19 0x1e 0x1f 0x20 0x21 0x22 0x23 0x24 0x25 0x26 0x27 0x28>;
-		linux,phandle = <0x222>;
-		phandle = <0x222>;
+		linux,phandle = <0x21d>;
+		phandle = <0x21d>;
 	};
 
 	mcdhdr@0x191C1000 {
@@ -6673,8 +6663,8 @@
 		status = "disabled";
 		reg = <0x0 0x191c1000 0x1000>;
 		attr = <0x1>;
-		linux,phandle = <0x223>;
-		phandle = <0x223>;
+		linux,phandle = <0x21e>;
+		phandle = <0x21e>;
 	};
 
 	mcdhdr@0x191C6000 {
@@ -6682,8 +6672,8 @@
 		status = "disabled";
 		reg = <0x0 0x191c6000 0x1000>;
 		attr = <0x7>;
-		linux,phandle = <0x224>;
-		phandle = <0x224>;
+		linux,phandle = <0x21f>;
+		phandle = <0x21f>;
 	};
 
 	mcdhdr@0x191C2000 {
@@ -6691,8 +6681,8 @@
 		status = "disabled";
 		reg = <0x0 0x191c2000 0x1000>;
 		attr = <0x1>;
-		linux,phandle = <0x225>;
-		phandle = <0x225>;
+		linux,phandle = <0x220>;
+		phandle = <0x220>;
 	};
 
 	mcdhdr@0x191C4000 {
@@ -6700,8 +6690,8 @@
 		status = "disabled";
 		reg = <0x0 0x191c4000 0x1000>;
 		attr = <0x3>;
-		linux,phandle = <0x226>;
-		phandle = <0x226>;
+		linux,phandle = <0x221>;
+		phandle = <0x221>;
 	};
 
 	mcdhdr@0x191C3000 {
@@ -6709,8 +6699,8 @@
 		status = "disabled";
 		reg = <0x0 0x191c3000 0x1000>;
 		attr = <0x3>;
-		linux,phandle = <0x227>;
-		phandle = <0x227>;
+		linux,phandle = <0x222>;
+		phandle = <0x222>;
 	};
 
 	mcdhdr@0x191C5000 {
@@ -6718,21 +6708,21 @@
 		status = "disabled";
 		reg = <0x0 0x191c5000 0x1000>;
 		attr = <0x3>;
-		linux,phandle = <0x228>;
-		phandle = <0x228>;
+		linux,phandle = <0x223>;
+		phandle = <0x223>;
 	};
 
 	disp_ss@0x16010000 {
 		compatible = "samsung,exynos9-disp_ss";
 		reg = <0x0 0x19011000 0x10>;
-		linux,phandle = <0x229>;
-		phandle = <0x229>;
+		linux,phandle = <0x224>;
+		phandle = <0x224>;
 	};
 
 	fmp {
 		compatible = "samsung,exynos-fmp";
-		linux,phandle = <0x22a>;
-		phandle = <0x22a>;
+		linux,phandle = <0x225>;
+		phandle = <0x225>;
 	};
 
 	dphy_m4s4_dsim0@0x19160000 {
@@ -6800,12 +6790,17 @@
 		dpp_cnt = <0x7>;
 		dsim_cnt = <0x2>;
 		decon_cnt = <0x3>;
+		hdr_num = <0x2>;
+		hdr_type = <0x2 0x3 0x0 0x0>;
+		hdr_max_luma = <0x2625a0>;
+		hdr_avg_luma = <0x124f80>;
+		hdr_min_luma = <0x5>;
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
 		gpios = <0x53 0x0 0xf>;
-		linux,phandle = <0x22b>;
-		phandle = <0x22b>;
+		linux,phandle = <0x226>;
+		phandle = <0x226>;
 
 		te_eint {
 			reg = <0x0 0x10830a14 0x4>;
@@ -6833,18 +6828,23 @@
 		dpp_cnt = <0x7>;
 		dsim_cnt = <0x2>;
 		decon_cnt = <0x3>;
+		hdr_num = <0x2>;
+		hdr_type = <0x2 0x3 0x0 0x0>;
+		hdr_max_luma = <0x2625a0>;
+		hdr_avg_luma = <0x124f80>;
+		hdr_min_luma = <0x5>;
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		linux,phandle = <0x22c>;
-		phandle = <0x22c>;
+		linux,phandle = <0x227>;
+		phandle = <0x227>;
 	};
 
 	panel@0 {
 		compatible = "samsung,panel-drv";
 		status = "disabled";
-		linux,phandle = <0x22d>;
-		phandle = <0x22d>;
+		linux,phandle = <0x228>;
+		phandle = <0x228>;
 	};
 
 	acpm {
@@ -6899,8 +6899,8 @@
 			dma-instwrapper = <0x1a2e4500>;
 			dma-mask-bit = <0x24>;
 			coherent-mask-bit = <0x24>;
-			linux,phandle = <0x133>;
-			phandle = <0x133>;
+			linux,phandle = <0x132>;
+			phandle = <0x132>;
 		};
 	};
 
@@ -6908,400 +6908,400 @@
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421004 0x4>;
 		status = "disabled";
-		linux,phandle = <0x22e>;
-		phandle = <0x22e>;
+		linux,phandle = <0x229>;
+		phandle = <0x229>;
 	};
 
 	usi@10421008 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421008 0x4>;
 		status = "disabled";
-		linux,phandle = <0x22f>;
-		phandle = <0x22f>;
+		linux,phandle = <0x22a>;
+		phandle = <0x22a>;
 	};
 
 	usi@1042100c {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1042100c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x230>;
-		phandle = <0x230>;
+		linux,phandle = <0x22b>;
+		phandle = <0x22b>;
 	};
 
 	usi@10421010 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421010 0x4>;
 		status = "disabled";
-		linux,phandle = <0x231>;
-		phandle = <0x231>;
+		linux,phandle = <0x22c>;
+		phandle = <0x22c>;
 	};
 
 	usi@10421014 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421014 0x4>;
 		status = "disabled";
-		linux,phandle = <0x232>;
-		phandle = <0x232>;
+		linux,phandle = <0x22d>;
+		phandle = <0x22d>;
 	};
 
 	usi@10421018 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421018 0x4>;
 		status = "disabled";
-		linux,phandle = <0x233>;
-		phandle = <0x233>;
+		linux,phandle = <0x22e>;
+		phandle = <0x22e>;
 	};
 
 	usi@1042101C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1042101c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x234>;
-		phandle = <0x234>;
+		linux,phandle = <0x22f>;
+		phandle = <0x22f>;
 	};
 
 	usi@10421020 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421020 0x4>;
 		status = "disabled";
-		linux,phandle = <0x235>;
-		phandle = <0x235>;
+		linux,phandle = <0x230>;
+		phandle = <0x230>;
 	};
 
 	usi@10421024 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421024 0x4>;
 		status = "disabled";
-		linux,phandle = <0x236>;
-		phandle = <0x236>;
+		linux,phandle = <0x231>;
+		phandle = <0x231>;
 	};
 
 	usi@10421028 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421028 0x4>;
 		status = "disabled";
-		linux,phandle = <0x237>;
-		phandle = <0x237>;
+		linux,phandle = <0x232>;
+		phandle = <0x232>;
 	};
 
 	usi@1042102C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1042102c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x238>;
-		phandle = <0x238>;
+		linux,phandle = <0x233>;
+		phandle = <0x233>;
 	};
 
 	usi@10421030 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421030 0x4>;
 		status = "disabled";
-		linux,phandle = <0x239>;
-		phandle = <0x239>;
+		linux,phandle = <0x234>;
+		phandle = <0x234>;
 	};
 
 	usi@10821018 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821018 0x4>;
 		status = "disabled";
-		linux,phandle = <0x23a>;
-		phandle = <0x23a>;
+		linux,phandle = <0x235>;
+		phandle = <0x235>;
 	};
 
 	usi@1082101C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1082101c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x23b>;
-		phandle = <0x23b>;
+		linux,phandle = <0x236>;
+		phandle = <0x236>;
 	};
 
 	usi@10821020 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821020 0x4>;
 		status = "disabled";
-		linux,phandle = <0x23c>;
-		phandle = <0x23c>;
+		linux,phandle = <0x237>;
+		phandle = <0x237>;
 	};
 
 	usi@10821024 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821024 0x4>;
 		status = "disabled";
-		linux,phandle = <0x23d>;
-		phandle = <0x23d>;
+		linux,phandle = <0x238>;
+		phandle = <0x238>;
 	};
 
 	usi@10821028 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821028 0x4>;
 		status = "disabled";
-		linux,phandle = <0x23e>;
-		phandle = <0x23e>;
+		linux,phandle = <0x239>;
+		phandle = <0x239>;
 	};
 
 	usi@1082102C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1082102c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x23f>;
-		phandle = <0x23f>;
+		linux,phandle = <0x23a>;
+		phandle = <0x23a>;
 	};
 
 	usi@10821030 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821030 0x4>;
 		status = "disabled";
-		linux,phandle = <0x240>;
-		phandle = <0x240>;
+		linux,phandle = <0x23b>;
+		phandle = <0x23b>;
 	};
 
 	usi@10821034 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821034 0x4>;
 		status = "disabled";
-		linux,phandle = <0x241>;
-		phandle = <0x241>;
+		linux,phandle = <0x23c>;
+		phandle = <0x23c>;
 	};
 
 	usi@10821038 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821038 0x4>;
 		status = "disabled";
-		linux,phandle = <0x242>;
-		phandle = <0x242>;
+		linux,phandle = <0x23d>;
+		phandle = <0x23d>;
 	};
 
 	usi@1082103C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1082103c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x243>;
-		phandle = <0x243>;
+		linux,phandle = <0x23e>;
+		phandle = <0x23e>;
 	};
 
 	usi@10821040 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821040 0x4>;
 		status = "disabled";
-		linux,phandle = <0x244>;
-		phandle = <0x244>;
+		linux,phandle = <0x23f>;
+		phandle = <0x23f>;
 	};
 
 	usi@10821044 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821044 0x4>;
 		status = "disabled";
-		linux,phandle = <0x245>;
-		phandle = <0x245>;
+		linux,phandle = <0x240>;
+		phandle = <0x240>;
 	};
 
 	usi@10421034 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421034 0x4>;
 		status = "disabled";
-		linux,phandle = <0x246>;
-		phandle = <0x246>;
+		linux,phandle = <0x241>;
+		phandle = <0x241>;
 	};
 
 	usi@10421038 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421038 0x4>;
 		status = "disabled";
-		linux,phandle = <0x247>;
-		phandle = <0x247>;
+		linux,phandle = <0x242>;
+		phandle = <0x242>;
 	};
 
 	usi@1042103C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1042103c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x248>;
-		phandle = <0x248>;
+		linux,phandle = <0x243>;
+		phandle = <0x243>;
 	};
 
 	usi@10421040 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421040 0x4>;
 		status = "disabled";
-		linux,phandle = <0x249>;
-		phandle = <0x249>;
+		linux,phandle = <0x244>;
+		phandle = <0x244>;
 	};
 
 	usi@10421044 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421044 0x4>;
 		status = "disabled";
-		linux,phandle = <0x24a>;
-		phandle = <0x24a>;
+		linux,phandle = <0x245>;
+		phandle = <0x245>;
 	};
 
 	usi@10421048 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421048 0x4>;
 		status = "disabled";
-		linux,phandle = <0x24b>;
-		phandle = <0x24b>;
+		linux,phandle = <0x246>;
+		phandle = <0x246>;
 	};
 
 	usi@1042104C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1042104c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x24c>;
-		phandle = <0x24c>;
+		linux,phandle = <0x247>;
+		phandle = <0x247>;
 	};
 
 	usi@10421050 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421050 0x4>;
 		status = "disabled";
-		linux,phandle = <0x24d>;
-		phandle = <0x24d>;
+		linux,phandle = <0x248>;
+		phandle = <0x248>;
 	};
 
 	usi@10821048 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821048 0x4>;
 		status = "disabled";
-		linux,phandle = <0x24e>;
-		phandle = <0x24e>;
+		linux,phandle = <0x249>;
+		phandle = <0x249>;
 	};
 
 	usi@1082104C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1082104c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x24f>;
-		phandle = <0x24f>;
+		linux,phandle = <0x24a>;
+		phandle = <0x24a>;
 	};
 
 	usi@10821050 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821050 0x4>;
 		status = "disabled";
-		linux,phandle = <0x250>;
-		phandle = <0x250>;
+		linux,phandle = <0x24b>;
+		phandle = <0x24b>;
 	};
 
 	usi@15C22000 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22000 0x4>;
 		status = "disabled";
-		linux,phandle = <0x251>;
-		phandle = <0x251>;
+		linux,phandle = <0x24c>;
+		phandle = <0x24c>;
 	};
 
 	usi@15C22004 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22004 0x4>;
 		status = "disabled";
-		linux,phandle = <0x252>;
-		phandle = <0x252>;
+		linux,phandle = <0x24d>;
+		phandle = <0x24d>;
 	};
 
 	usi@15C22010 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22010 0x4>;
 		status = "disabled";
-		linux,phandle = <0x253>;
-		phandle = <0x253>;
+		linux,phandle = <0x24e>;
+		phandle = <0x24e>;
 	};
 
 	usi@15C22014 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22014 0x4>;
 		status = "disabled";
-		linux,phandle = <0x254>;
-		phandle = <0x254>;
+		linux,phandle = <0x24f>;
+		phandle = <0x24f>;
 	};
 
 	usi@15C22020 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22020 0x4>;
 		status = "disabled";
-		linux,phandle = <0x255>;
-		phandle = <0x255>;
+		linux,phandle = <0x250>;
+		phandle = <0x250>;
 	};
 
 	usi@15C22024 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22024 0x4>;
 		status = "disabled";
-		linux,phandle = <0x256>;
-		phandle = <0x256>;
+		linux,phandle = <0x251>;
+		phandle = <0x251>;
 	};
 
 	usi@15C22030 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22030 0x4>;
 		status = "disabled";
-		linux,phandle = <0x257>;
-		phandle = <0x257>;
+		linux,phandle = <0x252>;
+		phandle = <0x252>;
 	};
 
 	usi@15C22034 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x15c22034 0x4>;
 		status = "disabled";
-		linux,phandle = <0x258>;
-		phandle = <0x258>;
+		linux,phandle = <0x253>;
+		phandle = <0x253>;
 	};
 
 	usi@10821008 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821008 0x4>;
 		status = "disabled";
-		linux,phandle = <0x259>;
-		phandle = <0x259>;
+		linux,phandle = <0x254>;
+		phandle = <0x254>;
 	};
 
 	usi@1082100C {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x1082100c 0x4>;
 		status = "disabled";
-		linux,phandle = <0x25a>;
-		phandle = <0x25a>;
+		linux,phandle = <0x255>;
+		phandle = <0x255>;
 	};
 
 	usi@10821010 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821010 0x4>;
 		status = "disabled";
-		linux,phandle = <0x25b>;
-		phandle = <0x25b>;
+		linux,phandle = <0x256>;
+		phandle = <0x256>;
 	};
 
 	usi@10821014 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821014 0x4>;
 		status = "disabled";
-		linux,phandle = <0x25c>;
-		phandle = <0x25c>;
+		linux,phandle = <0x257>;
+		phandle = <0x257>;
 	};
 
 	usi@10821004 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821004 0x4>;
 		status = "disabled";
-		linux,phandle = <0x25d>;
-		phandle = <0x25d>;
+		linux,phandle = <0x258>;
+		phandle = <0x258>;
 	};
 
 	usi@10421000 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10421000 0x4>;
 		status = "disabled";
-		linux,phandle = <0x25e>;
-		phandle = <0x25e>;
+		linux,phandle = <0x259>;
+		phandle = <0x259>;
 	};
 
 	usi@10821000 {
 		compatible = "samsung,exynos-usi-v2";
 		reg = <0x0 0x10821000 0x4>;
 		status = "disabled";
-		linux,phandle = <0x25f>;
-		phandle = <0x25f>;
+		linux,phandle = <0x25a>;
+		phandle = <0x25a>;
 	};
 
 	hsi2c@10860000 {
@@ -7321,8 +7321,8 @@
 		gpio_scl = <0x6a 0x0 0x1>;
 		gpio_sda = <0x6a 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x260>;
-		phandle = <0x260>;
+		linux,phandle = <0x25b>;
+		phandle = <0x25b>;
 	};
 
 	hsi2c@10870000 {
@@ -7342,8 +7342,8 @@
 		gpio_scl = <0x6a 0x2 0x1>;
 		gpio_sda = <0x6a 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x261>;
-		phandle = <0x261>;
+		linux,phandle = <0x25c>;
+		phandle = <0x25c>;
 	};
 
 	hsi2c@10880000 {
@@ -7363,8 +7363,8 @@
 		gpio_scl = <0x6a 0x4 0x1>;
 		gpio_sda = <0x6a 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x262>;
-		phandle = <0x262>;
+		linux,phandle = <0x25d>;
+		phandle = <0x25d>;
 	};
 
 	hsi2c@10890000 {
@@ -7384,8 +7384,8 @@
 		gpio_scl = <0x6a 0x6 0x1>;
 		gpio_sda = <0x6a 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x263>;
-		phandle = <0x263>;
+		linux,phandle = <0x25e>;
+		phandle = <0x25e>;
 	};
 
 	hsi2c@10450000 {
@@ -7405,8 +7405,8 @@
 		gpio_scl = <0x6f 0x0 0x1>;
 		gpio_sda = <0x6f 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x264>;
-		phandle = <0x264>;
+		linux,phandle = <0x25f>;
+		phandle = <0x25f>;
 	};
 
 	hsi2c@10460000 {
@@ -7426,8 +7426,8 @@
 		gpio_scl = <0x6f 0x2 0x1>;
 		gpio_sda = <0x6f 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x265>;
-		phandle = <0x265>;
+		linux,phandle = <0x260>;
+		phandle = <0x260>;
 	};
 
 	hsi2c@10470000 {
@@ -7447,8 +7447,8 @@
 		gpio_scl = <0x6f 0x4 0x1>;
 		gpio_sda = <0x6f 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x266>;
-		phandle = <0x266>;
+		linux,phandle = <0x261>;
+		phandle = <0x261>;
 	};
 
 	hsi2c@10480000 {
@@ -7468,8 +7468,8 @@
 		gpio_scl = <0x6f 0x6 0x1>;
 		gpio_sda = <0x6f 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x267>;
-		phandle = <0x267>;
+		linux,phandle = <0x262>;
+		phandle = <0x262>;
 	};
 
 	hsi2c@10490000 {
@@ -7489,8 +7489,8 @@
 		gpio_scl = <0x74 0x0 0x1>;
 		gpio_sda = <0x74 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x268>;
-		phandle = <0x268>;
+		linux,phandle = <0x263>;
+		phandle = <0x263>;
 	};
 
 	hsi2c@104A0000 {
@@ -7510,8 +7510,8 @@
 		gpio_scl = <0x74 0x2 0x1>;
 		gpio_sda = <0x74 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x269>;
-		phandle = <0x269>;
+		linux,phandle = <0x264>;
+		phandle = <0x264>;
 	};
 
 	hsi2c@104B0000 {
@@ -7531,8 +7531,8 @@
 		gpio_scl = <0x74 0x4 0x1>;
 		gpio_sda = <0x74 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x26a>;
-		phandle = <0x26a>;
+		linux,phandle = <0x265>;
+		phandle = <0x265>;
 	};
 
 	hsi2c@104C0000 {
@@ -7552,8 +7552,8 @@
 		gpio_scl = <0x74 0x6 0x1>;
 		gpio_sda = <0x74 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x26b>;
-		phandle = <0x26b>;
+		linux,phandle = <0x266>;
+		phandle = <0x266>;
 	};
 
 	hsi2c@104D0000 {
@@ -7573,8 +7573,8 @@
 		gpio_scl = <0x79 0x0 0x1>;
 		gpio_sda = <0x79 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x26c>;
-		phandle = <0x26c>;
+		linux,phandle = <0x267>;
+		phandle = <0x267>;
 	};
 
 	hsi2c@104E0000 {
@@ -7594,8 +7594,8 @@
 		gpio_scl = <0x79 0x2 0x1>;
 		gpio_sda = <0x79 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x26d>;
-		phandle = <0x26d>;
+		linux,phandle = <0x268>;
+		phandle = <0x268>;
 	};
 
 	hsi2c@104F0000 {
@@ -7615,8 +7615,8 @@
 		gpio_scl = <0x79 0x4 0x1>;
 		gpio_sda = <0x79 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x26e>;
-		phandle = <0x26e>;
+		linux,phandle = <0x269>;
+		phandle = <0x269>;
 	};
 
 	hsi2c@10500000 {
@@ -7636,8 +7636,8 @@
 		gpio_scl = <0x79 0x6 0x1>;
 		gpio_sda = <0x79 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x26f>;
-		phandle = <0x26f>;
+		linux,phandle = <0x26a>;
+		phandle = <0x26a>;
 	};
 
 	hsi2c@108A0000 {
@@ -7657,8 +7657,8 @@
 		gpio_scl = <0x7e 0x0 0x1>;
 		gpio_sda = <0x7e 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x270>;
-		phandle = <0x270>;
+		linux,phandle = <0x26b>;
+		phandle = <0x26b>;
 	};
 
 	hsi2c@108B0000 {
@@ -7678,8 +7678,8 @@
 		gpio_scl = <0x7e 0x2 0x1>;
 		gpio_sda = <0x7e 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x271>;
-		phandle = <0x271>;
+		linux,phandle = <0x26c>;
+		phandle = <0x26c>;
 	};
 
 	hsi2c@108C0000 {
@@ -7699,8 +7699,8 @@
 		gpio_scl = <0x7e 0x4 0x1>;
 		gpio_sda = <0x7e 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x272>;
-		phandle = <0x272>;
+		linux,phandle = <0x26d>;
+		phandle = <0x26d>;
 	};
 
 	hsi2c@108D0000 {
@@ -7720,8 +7720,8 @@
 		gpio_scl = <0x7e 0x6 0x1>;
 		gpio_sda = <0x7e 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x273>;
-		phandle = <0x273>;
+		linux,phandle = <0x26e>;
+		phandle = <0x26e>;
 	};
 
 	hsi2c@108E0000 {
@@ -7741,8 +7741,8 @@
 		gpio_scl = <0x83 0x0 0x1>;
 		gpio_sda = <0x83 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x274>;
-		phandle = <0x274>;
+		linux,phandle = <0x26f>;
+		phandle = <0x26f>;
 	};
 
 	hsi2c@108F0000 {
@@ -7762,8 +7762,8 @@
 		gpio_scl = <0x83 0x2 0x1>;
 		gpio_sda = <0x83 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x275>;
-		phandle = <0x275>;
+		linux,phandle = <0x270>;
+		phandle = <0x270>;
 	};
 
 	hsi2c@10900000 {
@@ -7783,8 +7783,8 @@
 		gpio_scl = <0x83 0x4 0x1>;
 		gpio_sda = <0x83 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x276>;
-		phandle = <0x276>;
+		linux,phandle = <0x271>;
+		phandle = <0x271>;
 	};
 
 	hsi2c@10910000 {
@@ -7804,8 +7804,8 @@
 		gpio_scl = <0x83 0x6 0x1>;
 		gpio_sda = <0x83 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x277>;
-		phandle = <0x277>;
+		linux,phandle = <0x272>;
+		phandle = <0x272>;
 	};
 
 	hsi2c@10920000 {
@@ -7825,8 +7825,8 @@
 		gpio_scl = <0x88 0x0 0x1>;
 		gpio_sda = <0x88 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x278>;
-		phandle = <0x278>;
+		linux,phandle = <0x273>;
+		phandle = <0x273>;
 	};
 
 	hsi2c@10930000 {
@@ -7846,8 +7846,8 @@
 		gpio_scl = <0x88 0x2 0x1>;
 		gpio_sda = <0x88 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x279>;
-		phandle = <0x279>;
+		linux,phandle = <0x274>;
+		phandle = <0x274>;
 	};
 
 	hsi2c@10940000 {
@@ -7867,8 +7867,8 @@
 		gpio_scl = <0x8b 0x3 0x1>;
 		gpio_sda = <0x8b 0x4 0x1>;
 		status = "disabled";
-		linux,phandle = <0x27a>;
-		phandle = <0x27a>;
+		linux,phandle = <0x275>;
+		phandle = <0x275>;
 	};
 
 	hsi2c@10950000 {
@@ -7888,8 +7888,8 @@
 		gpio_scl = <0x8b 0x5 0x1>;
 		gpio_sda = <0x8b 0x6 0x1>;
 		status = "disabled";
-		linux,phandle = <0x27b>;
-		phandle = <0x27b>;
+		linux,phandle = <0x276>;
+		phandle = <0x276>;
 	};
 
 	hsi2c@10520000 {
@@ -7909,8 +7909,8 @@
 		gpio_scl = <0x8e 0x4 0x1>;
 		gpio_sda = <0x8e 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x27c>;
-		phandle = <0x27c>;
+		linux,phandle = <0x277>;
+		phandle = <0x277>;
 	};
 
 	hsi2c@10530000 {
@@ -7930,8 +7930,8 @@
 		gpio_scl = <0x8e 0x6 0x1>;
 		gpio_sda = <0x8e 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x27d>;
-		phandle = <0x27d>;
+		linux,phandle = <0x278>;
+		phandle = <0x278>;
 	};
 
 	hsi2c@10540000 {
@@ -7951,8 +7951,8 @@
 		gpio_scl = <0x91 0x0 0x1>;
 		gpio_sda = <0x91 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x27e>;
-		phandle = <0x27e>;
+		linux,phandle = <0x279>;
+		phandle = <0x279>;
 	};
 
 	hsi2c@10550000 {
@@ -7972,8 +7972,8 @@
 		gpio_scl = <0x91 0x2 0x1>;
 		gpio_sda = <0x91 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x27f>;
-		phandle = <0x27f>;
+		linux,phandle = <0x27a>;
+		phandle = <0x27a>;
 	};
 
 	hsi2c@10560000 {
@@ -7993,8 +7993,8 @@
 		gpio_scl = <0x91 0x4 0x1>;
 		gpio_sda = <0x91 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x280>;
-		phandle = <0x280>;
+		linux,phandle = <0x27b>;
+		phandle = <0x27b>;
 	};
 
 	hsi2c@10570000 {
@@ -8014,8 +8014,8 @@
 		gpio_scl = <0x91 0x6 0x1>;
 		gpio_sda = <0x91 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x281>;
-		phandle = <0x281>;
+		linux,phandle = <0x27c>;
+		phandle = <0x27c>;
 	};
 
 	hsi2c@10580000 {
@@ -8035,8 +8035,8 @@
 		gpio_scl = <0x96 0x0 0x1>;
 		gpio_sda = <0x96 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x282>;
-		phandle = <0x282>;
+		linux,phandle = <0x27d>;
+		phandle = <0x27d>;
 	};
 
 	hsi2c@10590000 {
@@ -8056,8 +8056,8 @@
 		gpio_scl = <0x96 0x2 0x1>;
 		gpio_sda = <0x96 0x3 0x1>;
 		status = "disabled";
-		linux,phandle = <0x283>;
-		phandle = <0x283>;
+		linux,phandle = <0x27e>;
+		phandle = <0x27e>;
 	};
 
 	hsi2c@10970000 {
@@ -8077,8 +8077,8 @@
 		gpio_scl = <0x99 0x0 0x1>;
 		gpio_sda = <0x99 0x1 0x1>;
 		status = "disabled";
-		linux,phandle = <0x284>;
-		phandle = <0x284>;
+		linux,phandle = <0x27f>;
+		phandle = <0x27f>;
 	};
 
 	hsi2c@10990000 {
@@ -8098,8 +8098,8 @@
 		gpio_scl = <0x99 0x4 0x1>;
 		gpio_sda = <0x99 0x5 0x1>;
 		status = "disabled";
-		linux,phandle = <0x285>;
-		phandle = <0x285>;
+		linux,phandle = <0x280>;
+		phandle = <0x280>;
 	};
 
 	hsi2c@109A0000 {
@@ -8119,8 +8119,8 @@
 		gpio_scl = <0x99 0x6 0x1>;
 		gpio_sda = <0x99 0x7 0x1>;
 		status = "disabled";
-		linux,phandle = <0x286>;
-		phandle = <0x286>;
+		linux,phandle = <0x281>;
+		phandle = <0x281>;
 	};
 
 	hsi2c@15D00000 {
@@ -8140,8 +8140,8 @@
 		gpio_scl = <0x9d 0x0 0x1>;
 		gpio_sda = <0x9e 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x287>;
-		phandle = <0x287>;
+		linux,phandle = <0x282>;
+		phandle = <0x282>;
 	};
 
 	hsi2c@15D10000 {
@@ -8161,8 +8161,8 @@
 		gpio_scl = <0xa0 0x0 0x1>;
 		gpio_sda = <0xa1 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x288>;
-		phandle = <0x288>;
+		linux,phandle = <0x283>;
+		phandle = <0x283>;
 	};
 
 	hsi2c@15D20000 {
@@ -8182,8 +8182,8 @@
 		gpio_scl = <0xa3 0x0 0x1>;
 		gpio_sda = <0xa4 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x289>;
-		phandle = <0x289>;
+		linux,phandle = <0x284>;
+		phandle = <0x284>;
 	};
 
 	hsi2c@15D30000 {
@@ -8203,8 +8203,8 @@
 		gpio_scl = <0xa6 0x0 0x1>;
 		gpio_sda = <0xa7 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x28a>;
-		phandle = <0x28a>;
+		linux,phandle = <0x285>;
+		phandle = <0x285>;
 	};
 
 	hsi2c@15D40000 {
@@ -8224,8 +8224,8 @@
 		gpio_scl = <0xa9 0x0 0x1>;
 		gpio_sda = <0xaa 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x28b>;
-		phandle = <0x28b>;
+		linux,phandle = <0x286>;
+		phandle = <0x286>;
 	};
 
 	hsi2c@15D50000 {
@@ -8245,8 +8245,8 @@
 		gpio_scl = <0xac 0x0 0x1>;
 		gpio_sda = <0xad 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x28c>;
-		phandle = <0x28c>;
+		linux,phandle = <0x287>;
+		phandle = <0x287>;
 	};
 
 	hsi2c@15D60000 {
@@ -8266,8 +8266,8 @@
 		gpio_scl = <0xaf 0x0 0x1>;
 		gpio_sda = <0xb0 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x28d>;
-		phandle = <0x28d>;
+		linux,phandle = <0x288>;
+		phandle = <0x288>;
 	};
 
 	hsi2c@15D70000 {
@@ -8287,8 +8287,8 @@
 		gpio_scl = <0xb2 0x0 0x1>;
 		gpio_sda = <0xb3 0x0 0x1>;
 		status = "disabled";
-		linux,phandle = <0x28e>;
-		phandle = <0x28e>;
+		linux,phandle = <0x289>;
+		phandle = <0x289>;
 	};
 
 	spi@10850000 {
@@ -8305,8 +8305,8 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <0xb4>;
 		status = "disabled";
-		linux,phandle = <0x28f>;
-		phandle = <0x28f>;
+		linux,phandle = <0x28a>;
+		phandle = <0x28a>;
 	};
 
 	spi@10450000 {
@@ -8319,11 +8319,9 @@
 		#size-cells = <0x0>;
 		clocks = <0x2 0x1e7 0x2 0x1fa>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
-		pinctrl-names = "default";
-		pinctrl-0 = <0xb5>;
 		status = "disabled";
-		linux,phandle = <0x290>;
-		phandle = <0x290>;
+		linux,phandle = <0x28b>;
+		phandle = <0x28b>;
 	};
 
 	spi@10470000 {
@@ -8338,10 +8336,10 @@
 		clocks = <0x2 0x1e9 0x2 0x1fb>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xb6>;
+		pinctrl-0 = <0xb5>;
 		status = "disabled";
-		linux,phandle = <0x291>;
-		phandle = <0x291>;
+		linux,phandle = <0x28c>;
+		phandle = <0x28c>;
 	};
 
 	spi@10490000 {
@@ -8356,10 +8354,10 @@
 		clocks = <0x2 0x1eb 0x2 0x1fc>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xb7>;
+		pinctrl-0 = <0xb6>;
 		status = "disabled";
-		linux,phandle = <0x292>;
-		phandle = <0x292>;
+		linux,phandle = <0x28d>;
+		phandle = <0x28d>;
 	};
 
 	spi@104B0000 {
@@ -8374,10 +8372,10 @@
 		clocks = <0x2 0x1ed 0x2 0x1fd>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xb8>;
+		pinctrl-0 = <0xb7>;
 		status = "disabled";
-		linux,phandle = <0x293>;
-		phandle = <0x293>;
+		linux,phandle = <0x28e>;
+		phandle = <0x28e>;
 	};
 
 	spi@104D0000 {
@@ -8392,10 +8390,10 @@
 		clocks = <0x2 0x1ef 0x2 0x1fe>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xb9>;
+		pinctrl-0 = <0xb8>;
 		status = "disabled";
-		linux,phandle = <0x294>;
-		phandle = <0x294>;
+		linux,phandle = <0x28f>;
+		phandle = <0x28f>;
 	};
 
 	spi@104F0000 {
@@ -8410,10 +8408,10 @@
 		clocks = <0x2 0x1f1 0x2 0x1ff>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xba>;
+		pinctrl-0 = <0xb9>;
 		status = "disabled";
-		linux,phandle = <0x295>;
-		phandle = <0x295>;
+		linux,phandle = <0x290>;
+		phandle = <0x290>;
 	};
 
 	spi@108A0000 {
@@ -8428,10 +8426,10 @@
 		clocks = <0x2 0x22c 0x2 0x23e>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xbb>;
+		pinctrl-0 = <0xba>;
 		status = "disabled";
-		linux,phandle = <0x296>;
-		phandle = <0x296>;
+		linux,phandle = <0x291>;
+		phandle = <0x291>;
 	};
 
 	spi@108C0000 {
@@ -8446,10 +8444,10 @@
 		clocks = <0x2 0x22e 0x2 0x23f>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xbc>;
+		pinctrl-0 = <0xbb>;
 		status = "disabled";
-		linux,phandle = <0x297>;
-		phandle = <0x297>;
+		linux,phandle = <0x292>;
+		phandle = <0x292>;
 	};
 
 	spi@108E0000 {
@@ -8464,10 +8462,10 @@
 		clocks = <0x2 0x230 0x2 0x240>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xbd>;
+		pinctrl-0 = <0xbc>;
 		status = "disabled";
-		linux,phandle = <0x298>;
-		phandle = <0x298>;
+		linux,phandle = <0x293>;
+		phandle = <0x293>;
 	};
 
 	spi@10900000 {
@@ -8482,10 +8480,10 @@
 		clocks = <0x2 0x232 0x2 0x246>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xbe>;
+		pinctrl-0 = <0xbd>;
 		status = "disabled";
-		linux,phandle = <0x299>;
-		phandle = <0x299>;
+		linux,phandle = <0x294>;
+		phandle = <0x294>;
 	};
 
 	spi@10920000 {
@@ -8500,10 +8498,10 @@
 		clocks = <0x2 0x234 0x2 0x247>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xbf>;
+		pinctrl-0 = <0xbe>;
 		status = "disabled";
-		linux,phandle = <0x29a>;
-		phandle = <0x29a>;
+		linux,phandle = <0x295>;
+		phandle = <0x295>;
 	};
 
 	spi@10940000 {
@@ -8517,10 +8515,10 @@
 		clocks = <0x2 0x236 0x2 0x248>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc0>;
+		pinctrl-0 = <0xbf>;
 		status = "disabled";
-		linux,phandle = <0x29b>;
-		phandle = <0x29b>;
+		linux,phandle = <0x296>;
+		phandle = <0x296>;
 	};
 
 	spi@10520000 {
@@ -8534,10 +8532,10 @@
 		clocks = <0x2 0x1f3 0x2 0x202>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc1>;
+		pinctrl-0 = <0xc0>;
 		status = "disabled";
-		linux,phandle = <0x29c>;
-		phandle = <0x29c>;
+		linux,phandle = <0x297>;
+		phandle = <0x297>;
 	};
 
 	spi@10540000 {
@@ -8551,10 +8549,10 @@
 		clocks = <0x2 0x1f5 0x2 0x203>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc2>;
+		pinctrl-0 = <0xc1>;
 		status = "disabled";
-		linux,phandle = <0x29d>;
-		phandle = <0x29d>;
+		linux,phandle = <0x298>;
+		phandle = <0x298>;
 	};
 
 	spi@10560000 {
@@ -8568,10 +8566,10 @@
 		clocks = <0x2 0x1f7 0x2 0x204>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc3>;
+		pinctrl-0 = <0xc2>;
 		status = "disabled";
-		linux,phandle = <0x29e>;
-		phandle = <0x29e>;
+		linux,phandle = <0x299>;
+		phandle = <0x299>;
 	};
 
 	spi@10580000 {
@@ -8585,10 +8583,10 @@
 		clocks = <0x2 0x1f9 0x2 0x205>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc4>;
+		pinctrl-0 = <0xc3>;
 		status = "disabled";
-		linux,phandle = <0x29f>;
-		phandle = <0x29f>;
+		linux,phandle = <0x29a>;
+		phandle = <0x29a>;
 	};
 
 	spi@10970000 {
@@ -8602,10 +8600,10 @@
 		clocks = <0x2 0x239 0x2 0x249>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc5>;
+		pinctrl-0 = <0xc4>;
 		status = "disabled";
-		linux,phandle = <0x2a0>;
-		phandle = <0x2a0>;
+		linux,phandle = <0x29b>;
+		phandle = <0x29b>;
 	};
 
 	spi@10990000 {
@@ -8619,10 +8617,10 @@
 		clocks = <0x2 0x23b 0x2 0x24a>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc6>;
+		pinctrl-0 = <0xc5>;
 		status = "disabled";
-		linux,phandle = <0x2a1>;
-		phandle = <0x2a1>;
+		linux,phandle = <0x29c>;
+		phandle = <0x29c>;
 	};
 
 	spi@15D00000 {
@@ -8636,10 +8634,10 @@
 		clocks = <0x2 0x7a 0x2 0x80>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc7>;
+		pinctrl-0 = <0xc6>;
 		status = "disabled";
-		linux,phandle = <0x2a2>;
-		phandle = <0x2a2>;
+		linux,phandle = <0x29d>;
+		phandle = <0x29d>;
 	};
 
 	spi@15D20000 {
@@ -8653,10 +8651,10 @@
 		clocks = <0x2 0x7b 0x2 0x7f>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc8>;
+		pinctrl-0 = <0xc7>;
 		status = "disabled";
-		linux,phandle = <0x2a3>;
-		phandle = <0x2a3>;
+		linux,phandle = <0x29e>;
+		phandle = <0x29e>;
 	};
 
 	spi@15D40000 {
@@ -8670,10 +8668,10 @@
 		clocks = <0x2 0x7c 0x2 0x81>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xc9>;
+		pinctrl-0 = <0xc8>;
 		status = "disabled";
-		linux,phandle = <0x2a4>;
-		phandle = <0x2a4>;
+		linux,phandle = <0x29f>;
+		phandle = <0x29f>;
 	};
 
 	spi@15D60000 {
@@ -8687,10 +8685,10 @@
 		clocks = <0x2 0x7d 0x2 0x82>;
 		clock-names = "gate_spi_clk", "ipclk_spi";
 		pinctrl-names = "default";
-		pinctrl-0 = <0xca>;
+		pinctrl-0 = <0xc9>;
 		status = "disabled";
-		linux,phandle = <0x2a5>;
-		phandle = <0x2a5>;
+		linux,phandle = <0x2a0>;
+		phandle = <0x2a0>;
 	};
 
 	uart@10440000 {
@@ -8700,13 +8698,13 @@
 		samsung,fifo-size = <0x100>;
 		interrupts = <0x0 0x17d 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xcb>;
+		pinctrl-0 = <0xca>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1e5 0x2 0x201>;
 		clock-names = "gate_uart_clk0", "ipclk_uart0";
 		status = "disabled";
-		linux,phandle = <0x2a6>;
-		phandle = <0x2a6>;
+		linux,phandle = <0x2a1>;
+		phandle = <0x2a1>;
 	};
 
 	reboot {
@@ -8723,15 +8721,15 @@
 		samsung,fifo-size = <0x100>;
 		interrupts = <0x0 0x198 0x0>;
 		pinctrl-names = "default", "rts", "tx_dat";
-		pinctrl-0 = <0xcc 0xcd>;
-		pinctrl-1 = <0xce 0xcf>;
-		pinctrl-2 = <0xd0>;
+		pinctrl-0 = <0xcb 0xcc>;
+		pinctrl-1 = <0xcd 0xce>;
+		pinctrl-2 = <0xcf>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x22a 0x2 0x23c>;
 		clock-names = "gate_uart_clk1", "ipclk_uart1";
 		status = "disabled";
-		linux,phandle = <0x2a7>;
-		phandle = <0x2a7>;
+		linux,phandle = <0x2a2>;
+		phandle = <0x2a2>;
 	};
 
 	uart@10450000 {
@@ -8741,13 +8739,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x17e 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd1>;
+		pinctrl-0 = <0xd0>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1e7 0x2 0x1fa>;
 		clock-names = "gate_uart_clk2", "ipclk_uart2";
 		status = "disabled";
-		linux,phandle = <0x2a8>;
-		phandle = <0x2a8>;
+		linux,phandle = <0x2a3>;
+		phandle = <0x2a3>;
 	};
 
 	uart@10470000 {
@@ -8757,13 +8755,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x180 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd2>;
+		pinctrl-0 = <0xd1>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1e9 0x2 0x1fb>;
 		clock-names = "gate_uart_clk3", "ipclk_uart3";
 		status = "disabled";
-		linux,phandle = <0x2a9>;
-		phandle = <0x2a9>;
+		linux,phandle = <0x2a4>;
+		phandle = <0x2a4>;
 	};
 
 	uart@10490000 {
@@ -8773,13 +8771,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x182 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd3>;
+		pinctrl-0 = <0xd2>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1eb 0x2 0x1fc>;
 		clock-names = "gate_uart_clk4", "ipclk_uart4";
 		status = "disabled";
-		linux,phandle = <0x2aa>;
-		phandle = <0x2aa>;
+		linux,phandle = <0x2a5>;
+		phandle = <0x2a5>;
 	};
 
 	uart@104B0000 {
@@ -8789,13 +8787,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x184 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd4>;
+		pinctrl-0 = <0xd3>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1ed 0x2 0x1fd>;
 		clock-names = "gate_uart_clk5", "ipclk_uart5";
 		status = "disabled";
-		linux,phandle = <0x2ab>;
-		phandle = <0x2ab>;
+		linux,phandle = <0x2a6>;
+		phandle = <0x2a6>;
 	};
 
 	uart@104D0000 {
@@ -8805,13 +8803,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x186 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd5>;
+		pinctrl-0 = <0xd4>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1ef 0x2 0x1fe>;
 		clock-names = "gate_uart_clk6", "ipclk_uart6";
 		status = "disabled";
-		linux,phandle = <0x2ac>;
-		phandle = <0x2ac>;
+		linux,phandle = <0x2a7>;
+		phandle = <0x2a7>;
 	};
 
 	uart@104F0000 {
@@ -8821,13 +8819,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x188 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd6>;
+		pinctrl-0 = <0xd5>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1f1 0x2 0x1ff>;
 		clock-names = "gate_uart_clk7", "ipclk_uart7";
 		status = "disabled";
-		linux,phandle = <0x2ad>;
-		phandle = <0x2ad>;
+		linux,phandle = <0x2a8>;
+		phandle = <0x2a8>;
 	};
 
 	uart@108A0000 {
@@ -8837,13 +8835,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x19e 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd7>;
+		pinctrl-0 = <0xd6>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x22c 0x2 0x23e>;
 		clock-names = "gate_uart_clk8", "ipclk_uart8";
 		status = "disabled";
-		linux,phandle = <0x2ae>;
-		phandle = <0x2ae>;
+		linux,phandle = <0x2a9>;
+		phandle = <0x2a9>;
 	};
 
 	uart@108C0000 {
@@ -8853,13 +8851,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x1a0 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd8>;
+		pinctrl-0 = <0xd7>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x22e 0x2 0x23f>;
 		clock-names = "gate_uart_clk9", "ipclk_uart9";
 		status = "disabled";
-		linux,phandle = <0x2af>;
-		phandle = <0x2af>;
+		linux,phandle = <0x2aa>;
+		phandle = <0x2aa>;
 	};
 
 	uart@108E0000 {
@@ -8869,13 +8867,13 @@
 		samsung,fifo-size = <0x100>;
 		interrupts = <0x0 0x1a2 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xd9>;
+		pinctrl-0 = <0xd8>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x230 0x2 0x240>;
 		clock-names = "gate_uart_clk10", "ipclk_uart10";
 		status = "disabled";
-		linux,phandle = <0x2b0>;
-		phandle = <0x2b0>;
+		linux,phandle = <0x2ab>;
+		phandle = <0x2ab>;
 	};
 
 	uart@10900000 {
@@ -8885,13 +8883,13 @@
 		samsung,fifo-size = <0x100>;
 		interrupts = <0x0 0x1a4 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xda>;
+		pinctrl-0 = <0xd9>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x232 0x2 0x246>;
 		clock-names = "gate_uart_clk11", "ipclk_uart11";
 		status = "disabled";
-		linux,phandle = <0x2b1>;
-		phandle = <0x2b1>;
+		linux,phandle = <0x2ac>;
+		phandle = <0x2ac>;
 	};
 
 	uart@10920000 {
@@ -8901,13 +8899,13 @@
 		samsung,fifo-size = <0x100>;
 		interrupts = <0x0 0x1a6 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xdb>;
+		pinctrl-0 = <0xda>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x234 0x2 0x247>;
 		clock-names = "gate_uart_clk12", "ipclk_uart12";
 		status = "disabled";
-		linux,phandle = <0x2b2>;
-		phandle = <0x2b2>;
+		linux,phandle = <0x2ad>;
+		phandle = <0x2ad>;
 	};
 
 	uart@10940000 {
@@ -8917,13 +8915,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x1a8 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xdc>;
+		pinctrl-0 = <0xdb>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x236 0x2 0x248>;
 		clock-names = "gate_uart_clk13", "ipclk_uart13";
 		status = "disabled";
-		linux,phandle = <0x2b3>;
-		phandle = <0x2b3>;
+		linux,phandle = <0x2ae>;
+		phandle = <0x2ae>;
 	};
 
 	uart@10520000 {
@@ -8933,13 +8931,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x18f 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xdd>;
+		pinctrl-0 = <0xdc>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1f3 0x2 0x202>;
 		clock-names = "gate_uart_clk14", "ipclk_uart14";
 		status = "disabled";
-		linux,phandle = <0x2b4>;
-		phandle = <0x2b4>;
+		linux,phandle = <0x2af>;
+		phandle = <0x2af>;
 	};
 
 	uart@10540000 {
@@ -8949,13 +8947,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x191 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xde>;
+		pinctrl-0 = <0xdd>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1f5 0x2 0x203>;
 		clock-names = "gate_uart_clk15", "ipclk_uart15";
 		status = "disabled";
-		linux,phandle = <0x2b5>;
-		phandle = <0x2b5>;
+		linux,phandle = <0x2b0>;
+		phandle = <0x2b0>;
 	};
 
 	uart@10560000 {
@@ -8965,13 +8963,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x193 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xdf>;
+		pinctrl-0 = <0xde>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1f7 0x2 0x204>;
 		clock-names = "gate_uart_clk16", "ipclk_uart16";
 		status = "disabled";
-		linux,phandle = <0x2b6>;
-		phandle = <0x2b6>;
+		linux,phandle = <0x2b1>;
+		phandle = <0x2b1>;
 	};
 
 	uart@10580000 {
@@ -8981,13 +8979,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x17a 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe0>;
+		pinctrl-0 = <0xdf>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x1f9 0x2 0x205>;
 		clock-names = "gate_uart_clk17", "ipclk_uart17";
 		status = "disabled";
-		linux,phandle = <0x2b7>;
-		phandle = <0x2b7>;
+		linux,phandle = <0x2b2>;
+		phandle = <0x2b2>;
 	};
 
 	uart@10970000 {
@@ -8997,13 +8995,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x1aa 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe1>;
+		pinctrl-0 = <0xe0>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x239 0x2 0x249>;
 		clock-names = "gate_uart_clk18", "ipclk_uart18";
 		status = "disabled";
-		linux,phandle = <0x2b8>;
-		phandle = <0x2b8>;
+		linux,phandle = <0x2b3>;
+		phandle = <0x2b3>;
 	};
 
 	uart@10990000 {
@@ -9013,13 +9011,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x1ab 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe2>;
+		pinctrl-0 = <0xe1>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x23b 0x2 0x24a>;
 		clock-names = "gate_uart_clk19", "ipclk_uart19";
 		status = "disabled";
-		linux,phandle = <0x2b9>;
-		phandle = <0x2b9>;
+		linux,phandle = <0x2b4>;
+		phandle = <0x2b4>;
 	};
 
 	uart@15D00000 {
@@ -9029,13 +9027,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x4c 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe3>;
+		pinctrl-0 = <0xe2>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x7a 0x2 0x80>;
 		clock-names = "gate_uart_clk20", "ipclk_uart20";
 		status = "disabled";
-		linux,phandle = <0x2ba>;
-		phandle = <0x2ba>;
+		linux,phandle = <0x2b5>;
+		phandle = <0x2b5>;
 	};
 
 	uart@15D20000 {
@@ -9045,13 +9043,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x4e 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe4>;
+		pinctrl-0 = <0xe3>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x7b 0x2 0x7f>;
 		clock-names = "gate_uart_clk21", "ipclk_uart21";
 		status = "disabled";
-		linux,phandle = <0x2bb>;
-		phandle = <0x2bb>;
+		linux,phandle = <0x2b6>;
+		phandle = <0x2b6>;
 	};
 
 	uart@15D40000 {
@@ -9061,13 +9059,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x50 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe5>;
+		pinctrl-0 = <0xe4>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x7c 0x2 0x81>;
 		clock-names = "gate_uart_clk22", "ipclk_uart22";
 		status = "disabled";
-		linux,phandle = <0x2bc>;
-		phandle = <0x2bc>;
+		linux,phandle = <0x2b7>;
+		phandle = <0x2b7>;
 	};
 
 	uart@15D60000 {
@@ -9077,13 +9075,13 @@
 		samsung,fifo-size = <0x40>;
 		interrupts = <0x0 0x52 0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xe6>;
+		pinctrl-0 = <0xe5>;
 		samsung,usi-serial-v2;
 		clocks = <0x2 0x7d 0x2 0x82>;
 		clock-names = "gate_uart_clk23", "ipclk_uart23";
 		status = "disabled";
-		linux,phandle = <0x2bd>;
-		phandle = <0x2bd>;
+		linux,phandle = <0x2b8>;
+		phandle = <0x2b8>;
 	};
 
 	usb@10C00000 {
@@ -9096,8 +9094,8 @@
 		ranges;
 		samsung,power-domain = <0x34>;
 		status = "disabled";
-		linux,phandle = <0x2be>;
-		phandle = <0x2be>;
+		linux,phandle = <0x2b9>;
+		phandle = <0x2b9>;
 
 		dwc3 {
 			compatible = "synopsys,dwc3";
@@ -9107,16 +9105,16 @@
 			adj-sof-accuracy = <0x0>;
 			is_not_vbus_pad = <0x1>;
 			enable_sprs_transfer = <0x1>;
-			phys = <0xe7 0x0 0xe7 0x1>;
+			phys = <0xe6 0x0 0xe6 0x1>;
 			phy-names = "usb2-phy", "usb3-phy";
 			xhci_l2_support = <0x1>;
 			usb_audio_offloading = <0x1>;
-			abox = <0xe8>;
+			abox = <0xe7>;
 			ldos = <0x3>;
 			ldo_number = <0xa 0xb 0xc>;
 			usb-pm-qos-int = <0x61a80>;
-			linux,phandle = <0x2bf>;
-			phandle = <0x2bf>;
+			linux,phandle = <0x2ba>;
+			phandle = <0x2ba>;
 		};
 	};
 
@@ -9150,22 +9148,22 @@
 		status = "disabled";
 		#phy-cells = <0x1>;
 		ranges;
-		linux,phandle = <0xe7>;
-		phandle = <0xe7>;
+		linux,phandle = <0xe6>;
+		phandle = <0xe6>;
 	};
 
 	sysreg-controller@13C10000 {
 		compatible = "samsung,exynos8895-sysreg", "syscon";
 		reg = <0x0 0x13c10000 0x1200>;
-		linux,phandle = <0xea>;
-		phandle = <0xea>;
+		linux,phandle = <0xe9>;
+		phandle = <0xe9>;
 	};
 
 	sysreg-controller@13020000 {
 		compatible = "samsung,exynos8895-sysreg", "syscon";
 		reg = <0x0 0x13020000 0x1200>;
-		linux,phandle = <0xee>;
-		phandle = <0xee>;
+		linux,phandle = <0xed>;
+		phandle = <0xed>;
 	};
 
 	sysmmu@13C20000 {
@@ -9177,8 +9175,8 @@
 		port-name = "PCIe";
 		#iommu-cells = <0x0>;
 		ch-num = <0x0>;
-		linux,phandle = <0x2c0>;
-		phandle = <0x2c0>;
+		linux,phandle = <0x2bb>;
+		phandle = <0x2bb>;
 	};
 
 	sysmmu@13070000 {
@@ -9194,15 +9192,15 @@
 
 	pcie0@13ED0000 {
 		compatible = "samsung,exynos-pcie";
-		gpios = <0xe9 0x2 0x1>;
+		gpios = <0xe8 0x2 0x1>;
 		reg = <0x0 0x13ed0000 0x1000 0x0 0x13ef0000 0x1000 0x0 0x13c11044 0x10 0x0 0x13f00000 0x1000 0x0 0x13ee0000 0x1fc 0x0 0x14ffe000 0x2000 0x0 0x13ec0000 0x1000>;
 		reg-names = "elbi", "phy", "sysreg", "dbi", "pcs", "config", "ia";
 		interrupts = <0x0 0xfd 0x0>;
 		samsung,syscon-phandle = <0x54>;
-		samsung,sysreg-phandle = <0xea>;
+		samsung,sysreg-phandle = <0xe9>;
 		clocks = <0x2 0x129>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xeb 0xec>;
+		pinctrl-0 = <0xea 0xeb>;
 		#address-cells = <0x3>;
 		#size-cells = <0x2>;
 		device_type = "pci";
@@ -9223,21 +9221,21 @@
 		use-ia = "true";
 		max-link-speed = <0x1>;
 		status = "disabled";
-		linux,phandle = <0x2c1>;
-		phandle = <0x2c1>;
+		linux,phandle = <0x2bc>;
+		phandle = <0x2bc>;
 	};
 
 	pcie1@13120000 {
 		compatible = "samsung,exynos-pcie-host-v1";
-		gpios = <0xed 0x2 0x1>;
+		gpios = <0xec 0x2 0x1>;
 		reg = <0x0 0x13120000 0x1410 0x0 0x13150000 0x2000 0x0 0x13020708 0x140 0x0 0x13400000 0x300920 0x0 0x13140000 0x1fc 0x0 0x11ffe000 0x2000 0x0 0x13100000 0x1000>;
 		reg-names = "elbi", "phy", "sysreg", "dbi", "pcs", "config", "ia";
 		interrupts = <0x0 0xec 0x0>;
 		samsung,syscon-phandle = <0x54>;
-		samsung,sysreg-phandle = <0xee>;
+		samsung,sysreg-phandle = <0xed>;
 		clocks = <0x2 0x101>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xef 0xf0>;
+		pinctrl-0 = <0xee 0xef>;
 		#address-cells = <0x3>;
 		#size-cells = <0x2>;
 		device_type = "pci";
@@ -9259,8 +9257,8 @@
 		use-ia = "false";
 		max-link-speed = <0x3>;
 		status = "disabled";
-		linux,phandle = <0x2c2>;
-		phandle = <0x2c2>;
+		linux,phandle = <0x2bd>;
+		phandle = <0x2bd>;
 	};
 
 	speedy@15970000 {
@@ -9270,10 +9268,10 @@
 		#address-cells = <0x1>;
 		#size-cells = <0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xf1>;
+		pinctrl-0 = <0xf0>;
 		status = "disabled";
-		linux,phandle = <0x2c3>;
-		phandle = <0x2c3>;
+		linux,phandle = <0x2be>;
+		phandle = <0x2be>;
 	};
 
 	speedy1@15980000 {
@@ -9283,10 +9281,10 @@
 		#address-cells = <0x1>;
 		#size-cells = <0x0>;
 		pinctrl-names = "default";
-		pinctrl-0 = <0xf2>;
+		pinctrl-0 = <0xf1>;
 		status = "disabled";
-		linux,phandle = <0x2c4>;
-		phandle = <0x2c4>;
+		linux,phandle = <0x2bf>;
+		phandle = <0x2bf>;
 	};
 
 	watchdog_cl0@10050000 {
@@ -9320,8 +9318,8 @@
 		io-channel-ranges;
 		clocks = <0x2 0x6e>;
 		clock-names = "gate_adcif";
-		linux,phandle = <0x2c5>;
-		phandle = <0x2c5>;
+		linux,phandle = <0x2c0>;
+		phandle = <0x2c0>;
 	};
 
 	pwm@10510000 {
@@ -9332,8 +9330,8 @@
 		clocks = <0x2 0x1e4 0x2 0x1>;
 		clock-names = "pwm_pclk", "pwm_sclk";
 		status = "ok";
-		linux,phandle = <0x2c6>;
-		phandle = <0x2c6>;
+		linux,phandle = <0x2c1>;
+		phandle = <0x2c1>;
 	};
 
 	dwmmc2@13D00000 {
@@ -9346,8 +9344,8 @@
 		clocks = <0x2 0x137 0x2 0x128>;
 		clock-names = "ciu", "ciu_gate";
 		status = "disabled";
-		linux,phandle = <0x2c7>;
-		phandle = <0x2c7>;
+		linux,phandle = <0x2c2>;
+		phandle = <0x2c2>;
 	};
 
 	rtc@15950000 {
@@ -9361,7 +9359,7 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		domain-clients = <0xe8>;
+		domain-clients = <0xe7>;
 	};
 
 	g2d@18A20000 {
@@ -9370,14 +9368,14 @@
 		interrupts = <0x0 0x10a 0x0>;
 		clock-names = "gate";
 		clocks = <0x2 0x142>;
-		iommus = <0xf3 0xf4>;
+		iommus = <0xf2 0xf3>;
 		hw_ppc = <0xd48 0xc1c 0x898 0xe10 0x13ec 0x1b58 0xce4 0xa8c 0x7d0 0xbb8 0x1450 0x1964 0xbb8 0xb54 0xa28 0xd48 0x13ec 0x2e7c 0xc80 0x7d0 0x76c 0xce4 0x1450 0x1b58 0x960 0x76c 0x76c 0xa8c 0xc1c 0x1004 0x9c4 0x384 0x384 0x898 0xb54 0xe74 0xaf0 0xbb8 0x640 0x640 0x960 0xc80 0xaf0 0xbb8 0x640 0x640 0x960 0xc80 0xaf0>;
 		g2d_dvfs_table = <0x825f0 0xad958 0x61a80 0x825f0 0x52080 0x61a80 0x412f8 0x56ea0 0x2b750 0x30d40 0x1a1f8 0x20b70>;
 		itmon,port = "G2D0", "G2D1";
 		itmon,dest = "G2D";
 		dma-coherent;
-		linux,phandle = <0xf5>;
-		phandle = <0xf5>;
+		linux,phandle = <0xf4>;
+		phandle = <0xf4>;
 	};
 
 	iommu-domain_g2d {
@@ -9385,7 +9383,7 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		domain-clients = <0xf5>;
+		domain-clients = <0xf4>;
 	};
 
 	iommu-domain_isp {
@@ -9393,7 +9391,7 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		domain-clients = <0xf6 0xf7 0xf8 0xf9 0xfa 0xfb 0xfc 0xfd>;
+		domain-clients = <0xf5 0xf6 0xf7 0xf8 0xf9 0xfa 0xfb 0xfc>;
 	};
 
 	iommu-domain_iva {
@@ -9401,21 +9399,21 @@
 		#dma-address-cells = <0x1>;
 		#dma-size-cells = <0x1>;
 		dma-window = <0x60000000 0x70000000>;
-		domain-clients = <0xfe>;
+		domain-clients = <0xfd>;
 	};
 
 	iva@0x18200000 {
 		compatible = "samsung,iva";
 		reg = <0x0 0x18200000 0x200000>;
-		iommus = <0xff>;
+		iommus = <0xfe>;
 		interrupt-names = "iva_mbox_irq";
 		interrupts = <0x0 0x14b 0x0>;
 		clocks = <0x2 0x19b>;
 		clock-names = "clk_iva";
-		dvfs-dev = <0x100>;
+		dvfs-dev = <0xff>;
 		qos_rate = <0x825f0>;
-		linux,phandle = <0xfe>;
-		phandle = <0xfe>;
+		linux,phandle = <0xfd>;
+		phandle = <0xfd>;
 
 		mcu-info {
 			print_delay = <0x32>;
@@ -9430,7 +9428,7 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		domain-clients = <0x101 0x102>;
+		domain-clients = <0x100 0x101>;
 	};
 
 	tsmux@188E0000 {
@@ -9438,15 +9436,15 @@
 		reg = <0x0 0x188e0000 0x1000>;
 		interrupts = <0x0 0x153 0x0>;
 		iommus = <0x48>;
-		linux,phandle = <0x102>;
-		phandle = <0x102>;
+		linux,phandle = <0x101>;
+		phandle = <0x101>;
 	};
 
 	repeater@0 {
 		compatible = "samsung,exynos-repeater";
 		samsung,power-domain = <0x5>;
-		linux,phandle = <0x2c8>;
-		phandle = <0x2c8>;
+		linux,phandle = <0x2c3>;
+		phandle = <0x2c3>;
 	};
 
 	iommu-domain_mscl_smfc {
@@ -9454,7 +9452,7 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		domain-clients = <0x103 0x104 0x105>;
+		domain-clients = <0x102 0x103 0x104>;
 	};
 
 	scaler@18B10000 {
@@ -9466,11 +9464,11 @@
 		clock-names = "gate";
 		itmon,master = "MSCL";
 		itmon,dest = "G2D";
-		iommus = <0x106>;
+		iommus = <0x105>;
 		mscl_qos_table = <0x1b5fd0 0x825f0 0x0 0x14a140 0x61a80 0x0 0xce4c8 0x412f8 0x0 0xa50a0 0x30d40 0x0>;
 		mscl_ppc_table = <0xc 0x1e6 0x1b5 0xf 0x185 0x15e 0x10 0x144 0x124 0x18 0x16d 0x148 0x20 0xa2 0x92>;
-		linux,phandle = <0x103>;
-		phandle = <0x103>;
+		linux,phandle = <0x102>;
+		phandle = <0x102>;
 	};
 
 	smfc@18B00000 {
@@ -9480,10 +9478,10 @@
 		interrupts = <0x0 0x10b 0x0>;
 		clocks = <0x2 0x143>;
 		clock-names = "gate";
-		iommus = <0x106>;
+		iommus = <0x105>;
 		smfc,int_qos_minlock = <0x825f0>;
-		linux,phandle = <0x104>;
-		phandle = <0x104>;
+		linux,phandle = <0x103>;
+		phandle = <0x103>;
 	};
 
 	jsqz@18B30000 {
@@ -9492,10 +9490,10 @@
 		interrupts = <0x0 0x109 0x0>;
 		clocks = <0x2 0x144>;
 		clock-names = "gate";
-		iommus = <0x106>;
+		iommus = <0x105>;
 		jsqz,int_qos_minlock = <0x82208>;
-		linux,phandle = <0x105>;
-		phandle = <0x105>;
+		linux,phandle = <0x104>;
+		phandle = <0x104>;
 	};
 
 	score@17D00000 {
@@ -9505,9 +9503,9 @@
 		interrupts = <0x0 0xdc 0x0>;
 		clocks = <0x2 0xde 0x2 0xf2>;
 		clock-names = "dspm", "dsps";
-		iommus = <0x107 0x108>;
-		linux,phandle = <0x109>;
-		phandle = <0x109>;
+		iommus = <0x106 0x107>;
+		linux,phandle = <0x108>;
+		phandle = <0x108>;
 	};
 
 	iommu-domain_score {
@@ -9515,19 +9513,19 @@
 		#address-cells = <0x2>;
 		#size-cells = <0x1>;
 		ranges;
-		domain-clients = <0x109>;
+		domain-clients = <0x108>;
 	};
 
 	npu@17800000 {
 		compatible = "samsung,exynos-npu";
-		iommus = <0x10a>;
+		iommus = <0x109>;
 		interrupts = <0x0 0x1b0 0x0 0x0 0x1b1 0x0>;
 		clocks = <0x2 0x1ba>;
 		clock-names = "clk_npu";
-		dvfs-dev = <0x10b>;
+		dvfs-dev = <0x10a>;
 		npu_default_qos_rate = <0x36330>;
-		linux,phandle = <0x10c>;
-		phandle = <0x10c>;
+		linux,phandle = <0x10b>;
+		phandle = <0x10b>;
 	};
 
 	iommu-domain_npu {
@@ -9535,15 +9533,15 @@
 		#dma-address-cells = <0x1>;
 		#dma-size-cells = <0x1>;
 		dma-window = <0x80000000 0x40000000>;
-		domain-clients = <0x10c>;
+		domain-clients = <0x10b>;
 	};
 
 	exynos-dm@17000000 {
 		compatible = "samsung,exynos-dvfs-manager";
 		reg = <0x0 0x17000000 0x0>;
 		acpm-ipc-channel = <0x1>;
-		linux,phandle = <0x2c9>;
-		phandle = <0x2c9>;
+		linux,phandle = <0x2c4>;
+		phandle = <0x2c4>;
 
 		dm_domains {
 
@@ -9728,8 +9726,8 @@
 			shared-cpus = "0-3";
 			enabled = <0x0>;
 			qos_min_class = <0x3>;
-			linux,phandle = <0x2ca>;
-			phandle = <0x2ca>;
+			linux,phandle = <0x2c5>;
+			phandle = <0x2c5>;
 		};
 
 		domain@1 {
@@ -9738,8 +9736,8 @@
 			enabled = <0x1>;
 			expired_time = <0x50>;
 			qos_min_class = <0x5>;
-			linux,phandle = <0x2cb>;
-			phandle = <0x2cb>;
+			linux,phandle = <0x2c6>;
+			phandle = <0x2c6>;
 		};
 
 		domain@2 {
@@ -9748,8 +9746,8 @@
 			enabled = <0x1>;
 			expired_time = <0x50>;
 			qos_min_class = <0x7>;
-			linux,phandle = <0x2cc>;
-			phandle = <0x2cc>;
+			linux,phandle = <0x2c7>;
+			phandle = <0x2c7>;
 		};
 	};
 
@@ -9808,14 +9806,16 @@
 			user-default-qos = <0xc4c70>;
 			user-boost = <0x0>;
 			ucc-index = <0x0>;
+			user-boost-game = <0x0>;
 		};
 
 		domain@1 {
 			device_type = "cpufreq-userctrl";
 			shared-cpus = "4-5";
 			user-default-qos = <0xce4c8>;
-			user-boost = <0x1>;
+			user-boost = <0x3>;
 			ucc-index = <0x1>;
+			user-boost-game = <0x1>;
 
 			min-limit {
 				ctrl-type = <0x0>;
@@ -9836,6 +9836,7 @@
 			user-default-qos = <0xe4840>;
 			user-boost = <0x2>;
 			ucc-index = <0x2>;
+			user-boost-game = <0x2>;
 
 			min-limit {
 				ctrl-type = <0x0>;
@@ -9869,8 +9870,8 @@
 			pm_qos-min-class = <0x3>;
 			pm_qos-max-class = <0x4>;
 			#cooling-cells = <0x2>;
-			linux,phandle = <0x115>;
-			phandle = <0x115>;
+			linux,phandle = <0x114>;
+			phandle = <0x114>;
 
 			dm-constraints {
 
@@ -9892,8 +9893,8 @@
 			pm_qos-min-class = <0x5>;
 			pm_qos-max-class = <0x6>;
 			#cooling-cells = <0x2>;
-			linux,phandle = <0x112>;
-			phandle = <0x112>;
+			linux,phandle = <0x111>;
+			phandle = <0x111>;
 
 			dm-constraints {
 
@@ -9921,16 +9922,17 @@
 			min-freq = <0x7ef40>;
 			pm_qos-min-class = <0x7>;
 			pm_qos-max-class = <0x8>;
+			pm_qos-booting = <0x1fbd00>;
 			#cooling-cells = <0x2>;
-			linux,phandle = <0x10f>;
-			phandle = <0x10f>;
+			linux,phandle = <0x10e>;
+			phandle = <0x10e>;
 
 			dm-constraints {
 
 				mif-perf {
 					const-type = <0x0>;
 					dm-type = <0x3>;
-					table = <0x2c6f00 0x1fefc8 0x2ad8c0 0x1fefc8 0x29a810 0x1fefc8 0x27ac40 0x1fefc8 0x269ad0 0x1fefc8 0x25b070 0x1fefc8 0x23b4a0 0x1fefc8 0x221e60 0x1fefc8 0x1fbd00 0x1fefc8 0x1e26c0 0x0 0x1bc560 0x0 0x196400 0x0 0x17cdc0 0x0 0x163780 0x0 0x1506d0 0x0 0x130b00 0x0 0x1174c0 0x0 0xfde80 0x0 0xe4840 0x0 0xc7f38 0x0 0xb1bc0 0x0 0x98580 0x0 0x7ef40 0x0>;
+					table = <0x2c6f00 0x1fefc8 0x2ad8c0 0x1fefc8 0x29a810 0x1fefc8 0x27ac40 0x1fefc8 0x269ad0 0x1fefc8 0x25b070 0x1fefc8 0x23b4a0 0x1fefc8 0x221e60 0x1fefc8 0x1fbd00 0x0 0x1e26c0 0x0 0x1bc560 0x0 0x196400 0x0 0x17cdc0 0x0 0x163780 0x0 0x1506d0 0x0 0x130b00 0x0 0x1174c0 0x0 0xfde80 0x0 0xe4840 0x0 0xc7f38 0x0 0xb1bc0 0x0 0x98580 0x0 0x7ef40 0x0>;
 				};
 
 				mif-skew {
@@ -9977,8 +9979,8 @@
 			hold_sample_time = <0x64>;
 			hispeed_load = <0x62>;
 			hispeed_freq = <0xf78f0>;
-			linux,phandle = <0x2cd>;
-			phandle = <0x2cd>;
+			linux,phandle = <0x2c8>;
+			phandle = <0x2c8>;
 		};
 
 		devfreq_int@17000020 {
@@ -9998,8 +10000,8 @@
 			dfs_id = <0xb040001>;
 			acpm-ipc-channel = <0x1>;
 			use_acpm = "true";
-			linux,phandle = <0x2ce>;
-			phandle = <0x2ce>;
+			linux,phandle = <0x2c9>;
+			phandle = <0x2c9>;
 		};
 
 		devfreq_intcam@17000030 {
@@ -10017,8 +10019,8 @@
 			governor = <0x0>;
 			bts_update = "false";
 			dfs_id = <0xb04000b>;
-			linux,phandle = <0x2cf>;
-			phandle = <0x2cf>;
+			linux,phandle = <0x2ca>;
+			phandle = <0x2ca>;
 		};
 
 		devfreq_disp@17000040 {
@@ -10036,8 +10038,8 @@
 			governor = <0x0>;
 			bts_update = "false";
 			dfs_id = <0xb040006>;
-			linux,phandle = <0x2d0>;
-			phandle = <0x2d0>;
+			linux,phandle = <0x2cb>;
+			phandle = <0x2cb>;
 		};
 
 		devfreq_cam@17000050 {
@@ -10055,8 +10057,8 @@
 			governor = <0x0>;
 			bts_update = "false";
 			dfs_id = <0xb04000c>;
-			linux,phandle = <0x2d1>;
-			phandle = <0x2d1>;
+			linux,phandle = <0x2cc>;
+			phandle = <0x2cc>;
 		};
 
 		devfreq_aud@17000060 {
@@ -10076,8 +10078,8 @@
 			dfs_id = <0xb040008>;
 			samsung,power-domain = <0x4>;
 			pd_name = "pd-aud";
-			linux,phandle = <0x2d2>;
-			phandle = <0x2d2>;
+			linux,phandle = <0x2cd>;
+			phandle = <0x2cd>;
 		};
 
 		devfreq_iva@17000070 {
@@ -10095,8 +10097,8 @@
 			governor = <0x0>;
 			bts_update = "false";
 			dfs_id = <0xb04000d>;
-			linux,phandle = <0x100>;
-			phandle = <0x100>;
+			linux,phandle = <0xff>;
+			phandle = <0xff>;
 		};
 
 		devfreq_score@17000080 {
@@ -10114,8 +10116,8 @@
 			governor = <0x0>;
 			bts_update = "false";
 			dfs_id = <0xb040007>;
-			linux,phandle = <0x2d3>;
-			phandle = <0x2d3>;
+			linux,phandle = <0x2ce>;
+			phandle = <0x2ce>;
 		};
 
 		devfreq_mfc@17000090 {
@@ -10133,8 +10135,8 @@
 			governor = <0x0>;
 			bts_update = "false";
 			dfs_id = <0xb04000e>;
-			linux,phandle = <0x2d4>;
-			phandle = <0x2d4>;
+			linux,phandle = <0x2cf>;
+			phandle = <0x2cf>;
 		};
 
 		devfreq_npu@170000A0 {
@@ -10154,8 +10156,8 @@
 			dfs_id = <0xb040005>;
 			samsung,power-domain = <0xb>;
 			pd_name = "pd-npu1";
-			linux,phandle = <0x10b>;
-			phandle = <0x10b>;
+			linux,phandle = <0x10a>;
+			phandle = <0x10a>;
 		};
 	};
 
@@ -10181,8 +10183,8 @@
 		samsung,tmu_default_trip_temp = <0x73>;
 		samsung,tmu_cal_type = <0x0>;
 		samsung,tmu_sensor_type = <0x8>;
-		linux,phandle = <0x10d>;
-		phandle = <0x10d>;
+		linux,phandle = <0x10c>;
+		phandle = <0x10c>;
 	};
 
 	MID@10090000 {
@@ -10204,8 +10206,8 @@
 		samsung,tmu_default_trip_temp = <0x73>;
 		samsung,tmu_cal_type = <0x0>;
 		samsung,tmu_sensor_type = <0x8>;
-		linux,phandle = <0x110>;
-		phandle = <0x110>;
+		linux,phandle = <0x10f>;
+		phandle = <0x10f>;
 	};
 
 	LITTLE@10090000 {
@@ -10227,8 +10229,8 @@
 		samsung,tmu_default_trip_temp = <0x73>;
 		samsung,tmu_cal_type = <0x0>;
 		samsung,tmu_sensor_type = <0x8>;
-		linux,phandle = <0x113>;
-		phandle = <0x113>;
+		linux,phandle = <0x112>;
+		phandle = <0x112>;
 	};
 
 	G3D@100A0000 {
@@ -10250,8 +10252,8 @@
 		samsung,tmu_default_trip_temp = <0x73>;
 		samsung,tmu_cal_type = <0x0>;
 		samsung,tmu_sensor_type = <0x8>;
-		linux,phandle = <0x11d>;
-		phandle = <0x11d>;
+		linux,phandle = <0x11c>;
+		phandle = <0x11c>;
 	};
 
 	ISP@100A0000 {
@@ -10273,8 +10275,8 @@
 		samsung,tmu_default_trip_temp = <0x73>;
 		samsung,tmu_cal_type = <0x0>;
 		samsung,tmu_sensor_type = <0x8>;
-		linux,phandle = <0x120>;
-		phandle = <0x120>;
+		linux,phandle = <0x11f>;
+		phandle = <0x11f>;
 	};
 
 	acpm_tmu {
@@ -10287,7 +10289,7 @@
 			zone_name = "BIG_THERMAL";
 			polling-delay-passive = <0x32>;
 			polling-delay = <0x3e8>;
-			thermal-sensors = <0x10d>;
+			thermal-sensors = <0x10c>;
 			governor = "power_allocator";
 			sustainable-power = <0x0>;
 			k_po = <0x0>;
@@ -10295,8 +10297,8 @@
 			k_i = <0x0>;
 			i_max = <0x0>;
 			integral_cutoff = <0x0>;
-			linux,phandle = <0x2d5>;
-			phandle = <0x2d5>;
+			linux,phandle = <0x2d0>;
+			phandle = <0x2d0>;
 
 			trips {
 
@@ -10304,72 +10306,72 @@
 					temperature = <0x4e20>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2d6>;
-					phandle = <0x2d6>;
+					linux,phandle = <0x2d1>;
+					phandle = <0x2d1>;
 				};
 
 				big-switch-on {
 					temperature = <0xd6d8>;
 					hysteresis = <0x7d0>;
 					type = "active";
-					linux,phandle = <0x2d7>;
-					phandle = <0x2d7>;
+					linux,phandle = <0x2d2>;
+					phandle = <0x2d2>;
 				};
 
 				big-control-temp {
 					temperature = <0x14438>;
 					hysteresis = <0x1388>;
 					type = "passive";
-					linux,phandle = <0x10e>;
-					phandle = <0x10e>;
+					linux,phandle = <0x10d>;
+					phandle = <0x10d>;
 				};
 
 				big-alert0 {
 					temperature = <0x17318>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2d8>;
-					phandle = <0x2d8>;
+					linux,phandle = <0x2d3>;
+					phandle = <0x2d3>;
 				};
 
 				big-alert1 {
 					temperature = <0x186a0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2d9>;
-					phandle = <0x2d9>;
+					linux,phandle = <0x2d4>;
+					phandle = <0x2d4>;
 				};
 
 				big-alert2 {
 					temperature = <0x19a28>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2da>;
-					phandle = <0x2da>;
+					linux,phandle = <0x2d5>;
+					phandle = <0x2d5>;
 				};
 
 				big-alert3 {
 					temperature = <0x1adb0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2db>;
-					phandle = <0x2db>;
+					linux,phandle = <0x2d6>;
+					phandle = <0x2d6>;
 				};
 
 				big-hot {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "hot";
-					linux,phandle = <0x2dc>;
-					phandle = <0x2dc>;
+					linux,phandle = <0x2d7>;
+					phandle = <0x2d7>;
 				};
 			};
 
 			cooling-maps {
 
 				map0 {
-					trip = <0x10e>;
-					cooling-device = <0x10f 0xffffffff 0xffffffff>;
+					trip = <0x10d>;
+					cooling-device = <0x10e 0xffffffff 0xffffffff>;
 				};
 			};
 		};
@@ -10378,7 +10380,7 @@
 			zone_name = "MID_THERMAL";
 			polling-delay-passive = <0x32>;
 			polling-delay = <0x3e8>;
-			thermal-sensors = <0x110>;
+			thermal-sensors = <0x10f>;
 			governor = "power_allocator";
 			sustainable-power = <0x0>;
 			k_po = <0x0>;
@@ -10386,8 +10388,8 @@
 			k_i = <0x0>;
 			i_max = <0x0>;
 			integral_cutoff = <0x0>;
-			linux,phandle = <0x2dd>;
-			phandle = <0x2dd>;
+			linux,phandle = <0x2d8>;
+			phandle = <0x2d8>;
 
 			trips {
 
@@ -10395,72 +10397,72 @@
 					temperature = <0x4e20>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2de>;
-					phandle = <0x2de>;
+					linux,phandle = <0x2d9>;
+					phandle = <0x2d9>;
 				};
 
 				mid-switch-on {
 					temperature = <0xd6d8>;
 					hysteresis = <0x7d0>;
 					type = "active";
-					linux,phandle = <0x2df>;
-					phandle = <0x2df>;
+					linux,phandle = <0x2da>;
+					phandle = <0x2da>;
 				};
 
 				mid-control-temp {
 					temperature = <0x14438>;
 					hysteresis = <0x1388>;
 					type = "passive";
-					linux,phandle = <0x111>;
-					phandle = <0x111>;
+					linux,phandle = <0x110>;
+					phandle = <0x110>;
 				};
 
 				mid-alert0 {
 					temperature = <0x17318>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2e0>;
-					phandle = <0x2e0>;
+					linux,phandle = <0x2db>;
+					phandle = <0x2db>;
 				};
 
 				mid-alert1 {
 					temperature = <0x186a0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2e1>;
-					phandle = <0x2e1>;
+					linux,phandle = <0x2dc>;
+					phandle = <0x2dc>;
 				};
 
 				mid-alert2 {
 					temperature = <0x19a28>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2e2>;
-					phandle = <0x2e2>;
+					linux,phandle = <0x2dd>;
+					phandle = <0x2dd>;
 				};
 
 				mid-alert3 {
 					temperature = <0x1adb0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2e3>;
-					phandle = <0x2e3>;
+					linux,phandle = <0x2de>;
+					phandle = <0x2de>;
 				};
 
 				mid-hot {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "hot";
-					linux,phandle = <0x2e4>;
-					phandle = <0x2e4>;
+					linux,phandle = <0x2df>;
+					phandle = <0x2df>;
 				};
 			};
 
 			cooling-maps {
 
 				map0 {
-					trip = <0x111>;
-					cooling-device = <0x112 0xffffffff 0xffffffff>;
+					trip = <0x110>;
+					cooling-device = <0x111 0xffffffff 0xffffffff>;
 				};
 			};
 		};
@@ -10469,9 +10471,9 @@
 			zone_name = "LITTLE_THERMAL";
 			polling-delay-passive = <0x0>;
 			polling-delay = <0x0>;
-			thermal-sensors = <0x113>;
-			linux,phandle = <0x2e5>;
-			phandle = <0x2e5>;
+			thermal-sensors = <0x112>;
+			linux,phandle = <0x2e0>;
+			phandle = <0x2e0>;
 
 			trips {
 
@@ -10479,107 +10481,107 @@
 					temperature = <0x4e20>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x114>;
-					phandle = <0x114>;
+					linux,phandle = <0x113>;
+					phandle = <0x113>;
 				};
 
 				little-alert1 {
 					temperature = <0x128e0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x116>;
-					phandle = <0x116>;
+					linux,phandle = <0x115>;
+					phandle = <0x115>;
 				};
 
 				little-alert2 {
 					temperature = <0x13c68>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x117>;
-					phandle = <0x117>;
+					linux,phandle = <0x116>;
+					phandle = <0x116>;
 				};
 
 				little-alert3 {
 					temperature = <0x14ff0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x118>;
-					phandle = <0x118>;
+					linux,phandle = <0x117>;
+					phandle = <0x117>;
 				};
 
 				little-alert4 {
 					temperature = <0x16378>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x119>;
-					phandle = <0x119>;
+					linux,phandle = <0x118>;
+					phandle = <0x118>;
 				};
 
 				little-alert5 {
 					temperature = <0x17700>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x11a>;
-					phandle = <0x11a>;
+					linux,phandle = <0x119>;
+					phandle = <0x119>;
 				};
 
 				little-alert6 {
 					temperature = <0x18a88>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x11b>;
-					phandle = <0x11b>;
+					linux,phandle = <0x11a>;
+					phandle = <0x11a>;
 				};
 
 				little-hot {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "hot";
-					linux,phandle = <0x11c>;
-					phandle = <0x11c>;
+					linux,phandle = <0x11b>;
+					phandle = <0x11b>;
 				};
 			};
 
 			cooling-maps {
 
 				map0 {
-					trip = <0x114>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x113>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map1 {
-					trip = <0x116>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x115>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map2 {
-					trip = <0x117>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x116>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map3 {
-					trip = <0x118>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x117>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map4 {
-					trip = <0x119>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x118>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map5 {
-					trip = <0x11a>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x119>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map6 {
-					trip = <0x11b>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x11a>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 
 				map7 {
-					trip = <0x11c>;
-					cooling-device = <0x115 0x0 0x0>;
+					trip = <0x11b>;
+					cooling-device = <0x114 0x0 0x0>;
 				};
 			};
 		};
@@ -10588,7 +10590,7 @@
 			zone_name = "G3D_THERMAL";
 			polling-delay-passive = <0x64>;
 			polling-delay = <0x0>;
-			thermal-sensors = <0x11d>;
+			thermal-sensors = <0x11c>;
 			governor = "power_allocator";
 			sustainable-power = <0x0>;
 			k_po = <0x0>;
@@ -10596,8 +10598,8 @@
 			k_i = <0x0>;
 			i_max = <0x0>;
 			integral_cutoff = <0x0>;
-			linux,phandle = <0x2e6>;
-			phandle = <0x2e6>;
+			linux,phandle = <0x2e1>;
+			phandle = <0x2e1>;
 
 			trips {
 
@@ -10605,72 +10607,72 @@
 					temperature = <0x4e20>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2e7>;
-					phandle = <0x2e7>;
+					linux,phandle = <0x2e2>;
+					phandle = <0x2e2>;
 				};
 
 				gpu-switch-on {
 					temperature = <0x130b0>;
 					hysteresis = <0x7d0>;
 					type = "active";
-					linux,phandle = <0x2e8>;
-					phandle = <0x2e8>;
+					linux,phandle = <0x2e3>;
+					phandle = <0x2e3>;
 				};
 
 				gpu-control-temp {
 					temperature = <0x157c0>;
 					hysteresis = <0x1388>;
 					type = "passive";
-					linux,phandle = <0x11e>;
-					phandle = <0x11e>;
+					linux,phandle = <0x11d>;
+					phandle = <0x11d>;
 				};
 
 				gpu-alert0 {
 					temperature = <0x19a28>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2e9>;
-					phandle = <0x2e9>;
+					linux,phandle = <0x2e4>;
+					phandle = <0x2e4>;
 				};
 
 				gpu-alert1 {
 					temperature = <0x1adb0>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2ea>;
-					phandle = <0x2ea>;
+					linux,phandle = <0x2e5>;
+					phandle = <0x2e5>;
 				};
 
 				gpu-alert2 {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2eb>;
-					phandle = <0x2eb>;
+					linux,phandle = <0x2e6>;
+					phandle = <0x2e6>;
 				};
 
 				gpu-alert3 {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x2ec>;
-					phandle = <0x2ec>;
+					linux,phandle = <0x2e7>;
+					phandle = <0x2e7>;
 				};
 
 				gpu-hot {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "hot";
-					linux,phandle = <0x2ed>;
-					phandle = <0x2ed>;
+					linux,phandle = <0x2e8>;
+					phandle = <0x2e8>;
 				};
 			};
 
 			cooling-maps {
 
 				map0 {
-					trip = <0x11e>;
-					cooling-device = <0x11f 0xffffffff 0xffffffff>;
+					trip = <0x11d>;
+					cooling-device = <0x11e 0xffffffff 0xffffffff>;
 				};
 			};
 		};
@@ -10679,9 +10681,9 @@
 			zone_name = "ISP_THERMAL";
 			polling-delay-passive = <0x0>;
 			polling-delay = <0x0>;
-			thermal-sensors = <0x120>;
-			linux,phandle = <0x2ee>;
-			phandle = <0x2ee>;
+			thermal-sensors = <0x11f>;
+			linux,phandle = <0x2e9>;
+			phandle = <0x2e9>;
 
 			trips {
 
@@ -10689,27 +10691,35 @@
 					temperature = <0x4e20>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x121>;
-					phandle = <0x121>;
+					linux,phandle = <0x120>;
+					phandle = <0x120>;
 				};
 
 				isp-alert1 {
 					temperature = <0x16378>;
 					hysteresis = <0x1388>;
 					type = "active";
-					linux,phandle = <0x122>;
-					phandle = <0x122>;
+					linux,phandle = <0x121>;
+					phandle = <0x121>;
 				};
 
 				isp-alert2 {
 					temperature = <0x17700>;
 					hysteresis = <0x1388>;
 					type = "active";
+					linux,phandle = <0x122>;
+					phandle = <0x122>;
+				};
+
+				isp-alert3 {
+					temperature = <0x18a88>;
+					hysteresis = <0x1388>;
+					type = "active";
 					linux,phandle = <0x123>;
 					phandle = <0x123>;
 				};
 
-				isp-alert3 {
+				isp-alert4 {
 					temperature = <0x18a88>;
 					hysteresis = <0x1388>;
 					type = "active";
@@ -10717,7 +10727,7 @@
 					phandle = <0x124>;
 				};
 
-				isp-alert4 {
+				isp-alert5 {
 					temperature = <0x18a88>;
 					hysteresis = <0x1388>;
 					type = "active";
@@ -10725,7 +10735,7 @@
 					phandle = <0x125>;
 				};
 
-				isp-alert5 {
+				isp-alert6 {
 					temperature = <0x18a88>;
 					hysteresis = <0x1388>;
 					type = "active";
@@ -10733,63 +10743,55 @@
 					phandle = <0x126>;
 				};
 
-				isp-alert6 {
-					temperature = <0x18a88>;
-					hysteresis = <0x1388>;
-					type = "active";
-					linux,phandle = <0x127>;
-					phandle = <0x127>;
-				};
-
 				isp-hot {
 					temperature = <0x1c138>;
 					hysteresis = <0x1388>;
 					type = "hot";
-					linux,phandle = <0x128>;
-					phandle = <0x128>;
+					linux,phandle = <0x127>;
+					phandle = <0x127>;
 				};
 			};
 
 			cooling-maps {
 
 				map0 {
-					trip = <0x121>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x120>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map1 {
-					trip = <0x122>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x121>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map2 {
-					trip = <0x123>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x122>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map3 {
-					trip = <0x124>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x123>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map4 {
-					trip = <0x125>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x124>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map5 {
-					trip = <0x126>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x125>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map6 {
-					trip = <0x127>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x126>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 
 				map7 {
-					trip = <0x128>;
-					cooling-device = <0xf6 0x0 0x0>;
+					trip = <0x127>;
+					cooling-device = <0xf5 0x0 0x0>;
 				};
 			};
 		};
@@ -10801,7 +10803,7 @@
 	};
 
 	tee {
-		compatible = "samsung,blowfish";
+		compatible = "samsung,teegris";
 		interrupts = <0x0 0x1d4 0x0 0x0 0x1d5 0x0>;
 	};
 
@@ -10822,8 +10824,8 @@
 		basecnt = <0x4>;
 		irqcnt = <0x4>;
 		interrupts = <0x0 0x15c 0x0 0x0 0x163 0x0 0x0 0x16a 0x0 0x0 0x171 0x0>;
-		linux,phandle = <0x2ef>;
-		phandle = <0x2ef>;
+		linux,phandle = <0x2ea>;
+		phandle = <0x2ea>;
 	};
 
 	exynos-sci {
@@ -10868,8 +10870,8 @@
 		interrupts = <0x0 0x1ae 0x0>;
 		interrupt-controller;
 		#interrupt-cells = <0x1>;
-		linux,phandle = <0x131>;
-		phandle = <0x131>;
+		linux,phandle = <0x130>;
+		phandle = <0x130>;
 	};
 
 	vts@0x15510000 {
@@ -10880,45 +10882,45 @@
 		#size-cells = <0x1>;
 		ranges;
 		pinctrl-names = "dmic_default", "amic_default", "idle";
-		pinctrl-0 = <0x129 0x12a>;
-		pinctrl-1 = <0x12b 0x12c>;
-		pinctrl-2 = <0x12d 0x12e 0x12f 0x130>;
+		pinctrl-0 = <0x128 0x129>;
+		pinctrl-1 = <0x12a 0x12b>;
+		pinctrl-2 = <0x12c 0x12d 0x12e 0x12f>;
 		samsung,power-domain = <0x33>;
 		clocks = <0x2 0x277 0x2 0x289 0x2 0x288 0x2 0x28a>;
 		clock-names = "rco", "dmic", "dmic_if", "dmic_sync";
-		mailbox = <0x131>;
+		mailbox = <0x130>;
 		#sound-dai-cells = <0x1>;
-		interrupt-parent = <0x131>;
+		interrupt-parent = <0x130>;
 		interrupts = <0x0 0x1 0x2 0x3 0x4 0x5 0x6 0x7 0x8 0x9>;
 		interrupt-names = "error", "boot_completed", "ipc_received", "voice_triggered", "trigger_period_elapsed", "record_period_elapsed", "debuglog_bufzero", "debuglog_bufone", "audio_dump", "log_dump";
-		linux,phandle = <0x132>;
-		phandle = <0x132>;
+		linux,phandle = <0x131>;
+		phandle = <0x131>;
 
 		vts_dma@0 {
 			compatible = "samsung,vts-dma";
-			vts = <0x132>;
+			vts = <0x131>;
 			id = <0x0>;
 			type = "vts-trigger";
-			linux,phandle = <0x2f0>;
-			phandle = <0x2f0>;
+			linux,phandle = <0x2eb>;
+			phandle = <0x2eb>;
 		};
 
 		vts_dma@1 {
 			compatible = "samsung,vts-dma";
-			vts = <0x132>;
+			vts = <0x131>;
 			id = <0x1>;
 			type = "vts-record";
-			linux,phandle = <0x2f1>;
-			phandle = <0x2f1>;
+			linux,phandle = <0x2ec>;
+			phandle = <0x2ec>;
 		};
 	};
 
 	dp_dma {
 		compatible = "samsung,displayport-adma";
-		dmas = <0x133 0x1c>;
+		dmas = <0x132 0x1c>;
 		dma-names = "tx";
-		linux,phandle = <0x2f2>;
-		phandle = <0x2f2>;
+		linux,phandle = <0x2ed>;
+		phandle = <0x2ed>;
 	};
 
 	ppmpu {
@@ -11086,9 +11088,13 @@
 		hsi2c33_bus = "/pinctrl@10430000/hsi2c33-bus";
 		hsi2c34_bus = "/pinctrl@10430000/hsi2c34-bus";
 		hsi2c35_bus = "/pinctrl@10430000/hsi2c35-bus";
+		spi1_default = "/pinctrl@10430000/spi1-default";
 		spi1_bus = "/pinctrl@10430000/spi1-bus";
 		spi1_cs = "/pinctrl@10430000/spi1-cs";
 		spi1_cs_func = "/pinctrl@10430000/spi1-cs-func";
+		spi1_cs_func_high = "/pinctrl@10430000/spi1-cs-func-high";
+		spi1_bus_sleep = "/pinctrl@10430000/spi1-bus-sleep";
+		spi1_cs_high = "/pinctrl@10430000/spi1-cs-high";
 		spi2_bus = "/pinctrl@10430000/spi2-bus";
 		spi2_cs = "/pinctrl@10430000/spi2-cs";
 		spi2_cs_func = "/pinctrl@10430000/spi2-cs-func";
@@ -11136,10 +11142,7 @@
 		uart16_bus_dual = "/pinctrl@10430000/uart16-bus-dual";
 		uart17_bus_single = "/pinctrl@10430000/uart17-bus";
 		uart17_bus_dual = "/pinctrl@10430000/uart17-bus-dual";
-		ap_hw_rev = "/pinctrl@10430000/ap_hw-rev";
-		s5100_ap2cp_cp_nreset_n = "/pinctrl@10430000/s5100_ap2cp_cp_nreset_n";
-		s5100_ap2cp_wakeup = "/pinctrl@10430000/s5100_ap2cp_wakeup";
-		s5100_dual_ap2cp_wakeup = "/pinctrl@10430000/s5100_dual_ap2cp_wakeup";
+		phy_port = "/pinctrl@10430000/phy-port";
 		pinctrl_6 = "/pinctrl@10830000";
 		gpp4 = "/pinctrl@10830000/gpp4";
 		gpp5 = "/pinctrl@10830000/gpp5";
@@ -11225,10 +11228,6 @@
 		uart18_bus_dual = "/pinctrl@10830000/uart18-bus-dual";
 		uart19_bus_single = "/pinctrl@10830000/uart19-bus";
 		uart19_bus_dual = "/pinctrl@10830000/uart19-bus-dual";
-		cp_hw_rev = "/pinctrl@10830000/cp_hw-rev";
-		s5100_ap2cp_pda_active = "/pinctrl@10830000/s5100_ap2cp_pda_active";
-		s5100_dual_ap2cp_pda_active = "/pinctrl@10830000/s5100_dual_ap2cp_pda_active";
-		s5100_dual_ap2cp_nreset_n = "/pinctrl@10830000/s5100_dual_ap2cp_nreset_n";
 		s5100_evt1_dual_ap2cp_nreset_n = "/pinctrl@10830000/s5100_evt1_dual_ap2cp_nreset_n";
 		s5100_evt1_dual_ap2cp_pda_active = "/pinctrl@10830000/s5100_evt1_dual_ap2cp_pda_active";
 		pinctrl_7 = "/pinctrl@15580000";
@@ -11329,11 +11328,12 @@
 		fimc_is_sensor0 = "/fimc_is_sensor@17030000";
 		sensor0_ch_mode0 = "/fimc_is_sensor@17030000/sensor0-ch-mode0";
 		sensor0_ch_mode1 = "/fimc_is_sensor@17030000/sensor0-ch-mode1";
-		fimc_is_sensor1 = "/fimc_is_sensor@17050000";
-		sensor1_ch_mode0 = "/fimc_is_sensor@17050000/sensor1-ch-mode0";
-		sensor1_ch_mode1 = "/fimc_is_sensor@17050000/sensor1-ch-mode1";
-		fimc_is_sensor2 = "/fimc_is_sensor2@17040000";
-		sensor2_ch_mode0 = "/fimc_is_sensor2@17040000/sensor2-ch-mode0";
+		fimc_is_sensor1 = "/fimc_is_sensor2@17050000";
+		sensor1_ch_mode0 = "/fimc_is_sensor2@17050000/sensor1-ch-mode0";
+		sensor1_ch_mode1 = "/fimc_is_sensor2@17050000/sensor1-ch-mode1";
+		fimc_is_sensor2 = "/fimc_is_sensor@17050000";
+		sensor2_ch_mode0 = "/fimc_is_sensor@17050000/sensor2-ch-mode0";
+		sensor2_ch_mode1 = "/fimc_is_sensor@17050000/sensor2-ch-mode1";
 		fimc_is_sensor3 = "/fimc_is_sensor@17090000";
 		sensor3_ch_mode0 = "/fimc_is_sensor@17090000/sensor3-ch-mode0";
 		fimc_is_sensor4 = "/fimc_is_sensor@17040000";
@@ -11345,9 +11345,6 @@
 		mfc_0 = "/mfc@188D0000";
 		mali = "/mali@18500000";
 		chosen = "/chosen";
-		android = "/firmware/android";
-		system = "/firmware/android/fstab/system";
-		vendor = "/firmware/android/fstab/vendor";
 		cpu0 = "/cpus/cpu@0000";
 		cpu1 = "/cpus/cpu@0001";
 		cpu2 = "/cpus/cpu@0002";
