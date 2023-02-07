@@ -30,6 +30,11 @@
 #include <linux/of.h>
 #include <linux/of_irq.h>
 #include <linux/spinlock.h>
+#include <linux/debug-snapshot.h>
+
+#ifndef CONFIG_SEC_KEY_NOTIFIER
+static int call_gpio_keys_notifier(unsigned int code, int state);
+#endif
 
 struct gpio_button_data {
 	const struct gpio_keys_button *button;
@@ -371,6 +376,10 @@ static void gpio_keys_gpio_report_event(struct gpio_button_data *bdata)
 		return;
 	}
 
+#ifndef CONFIG_SEC_DEBUG
+	dbg_snapshot_check_crash_key(button->code, state);
+#endif
+
 	if (type == EV_ABS) {
 		if (state)
 			input_event(input, type, button->code, button->value);
@@ -394,8 +403,22 @@ static void gpio_keys_gpio_work_func(struct work_struct *work)
 static irqreturn_t gpio_keys_gpio_isr(int irq, void *dev_id)
 {
 	struct gpio_button_data *bdata = dev_id;
+#ifndef CONFIG_SEC_KEY_NOTIFIER
+	/*
+	 * int state = (gpio_get_value(bdata->button->gpio) ? 1 : 0) ^ bdata->button->active_low;
+	 *
+	 * bdata->button->gpio is just 0, no value from gpio_get_value function
+	 * active_low is not considered, if HW is changed, value may be reversed
+	 *
+	 */
+	int state = gpiod_get_value(bdata->gpiod);
+#endif
 
 	BUG_ON(irq != bdata->irq);
+
+#ifndef CONFIG_SEC_KEY_NOTIFIER
+	call_gpio_keys_notifier(bdata->button->code, state);
+#endif
 
 	if (bdata->button->wakeup) {
 		const struct gpio_keys_button *button = bdata->button;
@@ -896,6 +919,27 @@ static int __maybe_unused gpio_keys_resume(struct device *dev)
 	gpio_keys_report_state(ddata);
 	return 0;
 }
+
+#ifndef CONFIG_SEC_KEY_NOTIFIER
+static ATOMIC_NOTIFIER_HEAD(gpio_keys_notifiers);
+
+int register_gpio_keys_notifier(struct  notifier_block *nb)
+{
+	return atomic_notifier_chain_register(&gpio_keys_notifiers, nb);
+}
+EXPORT_SYMBOL_GPL(register_gpio_keys_notifier);
+
+int unregister_gpio_keys_notifier(struct notifier_block *nb)
+{
+	return atomic_notifier_chain_unregister(&gpio_keys_notifiers, nb);
+}
+EXPORT_SYMBOL_GPL(unregister_gpio_keys_notifier);
+
+static int call_gpio_keys_notifier(unsigned int code, int state)
+{
+	return atomic_notifier_call_chain(&gpio_keys_notifiers, code, &state);
+}
+#endif
 
 static SIMPLE_DEV_PM_OPS(gpio_keys_pm_ops, gpio_keys_suspend, gpio_keys_resume);
 

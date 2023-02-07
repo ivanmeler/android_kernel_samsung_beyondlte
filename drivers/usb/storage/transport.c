@@ -63,6 +63,9 @@
 
 #include <linux/blkdev.h>
 #include "../../scsi/sd.h"
+#ifdef CONFIG_USB_HOST_SAMSUNG_FEATURE
+#include "../core/usb.h"
+#endif
 
 
 /***********************************************************************
@@ -1445,9 +1448,24 @@ int usb_stor_port_reset(struct us_data *us)
 			result = -EIO;
 			usb_stor_dbg(us, "No reset during disconnect\n");
 		} else {
+#ifdef CONFIG_USB_HOST_SAMSUNG_FEATURE
+			if (test_bit(US_FLIDX_TIMED_OUT, &us->dflags)) {
+#ifdef CONFIG_USB_DEBUG_DETAILED_LOG
+				printk(KERN_ERR "usb_storage: %s remove device\n",
+					__func__);
+#endif
+				result = usb_remove_device(us->pusb_dev);
+
+			} else {
+				result = usb_reset_device(us->pusb_dev);
+				usb_stor_dbg(us, "usb_reset_device returns %d\n",
+					     result);
+			}
+#else
 			result = usb_reset_device(us->pusb_dev);
 			usb_stor_dbg(us, "usb_reset_device returns %d\n",
 				     result);
+#endif /* CONFIG_USB_STORAGE_DETECT */
 		}
 		usb_unlock_device(us->pusb_dev);
 	}

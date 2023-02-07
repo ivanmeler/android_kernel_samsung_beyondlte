@@ -9,6 +9,8 @@ source "drivers/bus/Kconfig"
 
 source "drivers/connector/Kconfig"
 
+source "drivers/gnss/Kconfig"
+
 source "drivers/mtd/Kconfig"
 
 source "drivers/of/Kconfig"
@@ -24,6 +26,10 @@ source "drivers/nvme/Kconfig"
 # misc before ide - BLK_DEV_SGIIOC4 depends on SGI_IOC4
 
 source "drivers/misc/Kconfig"
+
+source "drivers/muic/Kconfig"
+
+source "drivers/ifconn/Kconfig"
 
 source "drivers/ide/Kconfig"
 
@@ -105,6 +111,8 @@ source "drivers/memstick/Kconfig"
 
 source "drivers/leds/Kconfig"
 
+source "drivers/switch/Kconfig"
+
 source "drivers/accessibility/Kconfig"
 
 source "drivers/infiniband/Kconfig"
@@ -173,6 +181,10 @@ source "drivers/irqchip/Kconfig"
 
 source "drivers/ipack/Kconfig"
 
+source "drivers/battery/Kconfig"
+
+source "drivers/battery_v2/Kconfig"
+
 source "drivers/reset/Kconfig"
 
 source "drivers/fmc/Kconfig"
@@ -190,6 +202,8 @@ source "drivers/ras/Kconfig"
 source "drivers/thunderbolt/Kconfig"
 
 source "drivers/android/Kconfig"
+
+source "drivers/gpu/trace/Kconfig"
 
 source "drivers/nvdimm/Kconfig"
 
@@ -209,4 +223,31 @@ source "drivers/tee/Kconfig"
 
 source "drivers/mux/Kconfig"
 
+source "drivers/ccic/Kconfig"
+
+source "drivers/gud/Kconfig"
+
+source "drivers/bts/Kconfig"
+
+source "drivers/vision/Kconfig"
+
+source "drivers/samsung/Kconfig"
+
+source "drivers/vibrator/Kconfig"
+
+source "drivers/sensorhub/brcm/Kconfig"
+
+source "drivers/fingerprint/Kconfig"
+
+source "drivers/sensors/Kconfig"
+
+source "drivers/spu_verify/Kconfig"
+
+source "drivers/security/samsung/tzic/Kconfig"
+
+source "drivers/security/samsung/five_tee_driver/Kconfig"
+
+source "drivers/security/samsung/icdrv/Kconfig"
+
+source "drivers/kperfmon/Kconfig"
 endmenu

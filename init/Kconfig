@@ -16,6 +16,12 @@ config DEFCONFIG_LIST
 	default "$ARCH_DEFCONFIG"
 	default "arch/$ARCH/defconfig"
 
+config TOOLS_SUPPORT_RELR
+	bool "Declare tool support for RELR"
+	# Prevent this from being enabled by default in allyesconfig or
+	# allmodconfig builds.
+	depends on !COMPILE_TEST
+
 config CONSTRUCTORS
 	bool
 	depends on !UML
@@ -546,6 +552,15 @@ config IKCONFIG_PROC
 	  This option enables access to the kernel configuration file
 	  through /proc/config.gz.
 
+config IKHEADERS
+	tristate "Enable kernel headers through /sys/kernel/kheaders.tar.xz"
+	depends on SYSFS
+	help
+	  This option enables access to the in-kernel headers that are generated during
+	  the build process. These can be used to build eBPF tracing programs,
+	  or similar programs.  If you build the headers as a module, a module called
+	  kheaders.ko is built which can be loaded on-demand to get access to headers.
+
 config LOG_BUF_SHIFT
 	int "Kernel log buffer size (16 => 64KB, 17 => 128KB)"
 	range 12 25
@@ -638,7 +653,7 @@ menu "FAIR Scheuler tunables"
 
 choice
 	prompt "Utilization's PELT half-Life"
-	default PELT_UTIL_HALFLIFE_32
+	default PELT_UTIL_HALFLIFE_16
 	help
 	  Allows choosing one of the possible values for the PELT half-life to
 	  be used for the update of the utilization of tasks and CPUs.
@@ -646,7 +661,7 @@ choice
 	  build up to 50% utilization. The higher the half-life the longer it
 	  takes for a task to be represented as a big one.
 
-	  If not sure, use the default of 32 ms.
+	  If not sure, use the deafult of 16 ms.
 
 config PELT_UTIL_HALFLIFE_32
 	bool "32 ms, default for server"
@@ -764,6 +779,11 @@ config MEMCG_SWAP_ENABLED
 	  select this option (if, for some reason, they need to disable it
 	  then swapaccount=0 does the trick).
 
+config MEMCG_FORCE_USE_VM_SWAPPINESS
+	bool "Force to use vm_swappiness instead of memcg->swappiness"
+	depends on MEMCG_SWAP
+	default y
+
 config BLK_CGROUP
 	bool "IO controller"
 	depends on BLOCK
@@ -816,7 +836,6 @@ config FAIR_GROUP_SCHED
 config CFS_BANDWIDTH
 	bool "CPU bandwidth provisioning for FAIR_GROUP_SCHED"
 	depends on FAIR_GROUP_SCHED
-	depends on !SCHED_WALT
 	default n
 	help
 	  This option allows users to define CPU bandwidth rates (limits) for
@@ -1066,6 +1085,18 @@ config SCHED_TUNE
 
 	  If unsure, say N.
 
+config SCHED_EMS
+	bool "Exynos Mobile Scheduler"
+	depends on SMP
+	help
+	  This option supports Exynos mobile scheduler. It is designed to
+	  secure the limits of energy aware scheduler. This option provides
+	  features such as independent boosting functinos such as on-time migration,
+	  and prefer_perf and enhanced prefer_idle that work in conjunction with
+	  SCHEDTUNE.
+
+	  If unsure, say N.
+
 config DEFAULT_USE_ENERGY_AWARE
 	bool "Default to enabling the Energy Aware Scheduler feature"
 	default n
@@ -1075,6 +1106,28 @@ config DEFAULT_USE_ENERGY_AWARE
 	  via sysctl.
 
 	  Say N if unsure.
+
+config SIMPLIFIED_ENERGY_MODEL
+	bool "Enable simplified energy model feature"
+	depends on SCHED_EMS
+	default n
+	help
+	  This option enables support for simplified energy model. This allows
+	  using a simple energy table declared per_cpu instead of using the EAS
+	  energy table.
+
+	  Say N if unsure.
+
+config SCHED_USE_FLUID_RT
+	bool "Enable Fluid RT scheduler feature"
+	depends on SCHED_EMS
+	default n
+	help
+	Basically, the Fluid RT selects the core by a task priority as usual.
+	But beyond the basic behavior, FRT performs the load balancing of
+	RT task by core selection with reference to utilization of rq.
+	And in some circumstances, she allows the task of lower priority
+	to preempt the higher one based on weighted load.
 
 config SYSFS_DEPRECATED
 	bool "Enable deprecated sysfs features to support old userspace tools"
@@ -1170,9 +1223,6 @@ config CC_OPTIMIZE_FOR_SIZE
 endchoice
 
 config SYSCTL
-	bool
-
-config ANON_INODES
 	bool
 
 config HAVE_UID16
@@ -1414,14 +1464,12 @@ config HAVE_FUTEX_CMPXCHG
 config EPOLL
 	bool "Enable eventpoll support" if EXPERT
 	default y
-	select ANON_INODES
 	help
 	  Disabling this option will cause the kernel to be built without
 	  support for epoll family of system calls.
 
 config SIGNALFD
 	bool "Enable signalfd() system call" if EXPERT
-	select ANON_INODES
 	default y
 	help
 	  Enable the signalfd() system call that allows to receive signals
@@ -1431,7 +1479,6 @@ config SIGNALFD
 
 config TIMERFD
 	bool "Enable timerfd() system call" if EXPERT
-	select ANON_INODES
 	default y
 	help
 	  Enable the timerfd() system call that allows to receive timer
@@ -1441,7 +1488,6 @@ config TIMERFD
 
 config EVENTFD
 	bool "Enable eventfd() system call" if EXPERT
-	select ANON_INODES
 	default y
 	help
 	  Enable the eventfd() system call that allows to receive both
@@ -1452,7 +1498,6 @@ config EVENTFD
 # syscall, maps, verifier
 config BPF_SYSCALL
 	bool "Enable bpf() system call"
-	select ANON_INODES
 	select BPF
 	default n
 	help
@@ -1497,7 +1542,6 @@ config ADVISE_SYSCALLS
 
 config USERFAULTFD
 	bool "Enable userfaultfd() system call"
-	select ANON_INODES
 	depends on MMU
 	help
 	  Enable the userfaultfd() system call that allows to intercept and
@@ -1556,7 +1600,6 @@ config PERF_EVENTS
 	bool "Kernel performance events and counters"
 	default y if PROFILING
 	depends on HAVE_PERF_EVENTS
-	select ANON_INODES
 	select IRQ_WORK
 	select SRCU
 	help

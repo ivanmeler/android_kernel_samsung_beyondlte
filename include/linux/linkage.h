@@ -39,6 +39,21 @@
 #define __page_aligned_data	__section(.data..page_aligned) __aligned(PAGE_SIZE)
 #define __page_aligned_bss	__section(.bss..page_aligned) __aligned(PAGE_SIZE)
 
+#ifdef CONFIG_RKP
+#define __page_aligned_rkp_bss		__section(.uh_bss.page_aligned) __aligned(PAGE_SIZE)
+#define __rkp_ro				__section(.rkp_ro)
+#else
+#define __page_aligned_rkp_bss		__page_aligned_bss
+#define __rkp_ro
+#endif
+
+#ifdef CONFIG_KDP_CRED
+#define __kdp_ro __section(.kdp_ro)
+#define __lsm_ro_after_init_kdp	__section(.kdp_ro)
+#else
+#define __kdp_ro
+#define __lsm_ro_after_init_kdp __lsm_ro_after_init
+#endif
 /*
  * For assembly routines.
  *
@@ -86,6 +101,21 @@
 	name:
 #endif
 #endif /* LINKER_SCRIPT */
+
+#ifdef CONFIG_RKP_CFP_JOPP
+#define NOP_ENTRY(name) \
+	.globl name ASM_NL \
+	nop; \
+	ALIGN ASM_NL \
+	name :
+
+/*
+ * Fallthrough won't work anymore once you start putting MAGIC in ENTRY(...).
+ */
+#define FALLTHROUGH(target) \
+	b target
+
+#endif /* CONFIG_RKP_CFP_JOPP */
 
 #ifndef WEAK
 #define WEAK(name)	   \

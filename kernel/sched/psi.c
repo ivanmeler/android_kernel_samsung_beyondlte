@@ -141,6 +141,7 @@
 #include <linux/file.h>
 #include <linux/poll.h>
 #include <linux/psi.h>
+#include <linux/ologk.h>
 #include "sched.h"
 
 static int psi_bug __read_mostly;
@@ -168,6 +169,14 @@ __setup("psi=", setup_psi);
 #define WINDOW_MIN_US 500000	/* Min window size is 500ms */
 #define WINDOW_MAX_US 10000000	/* Max window size is 10s */
 #define UPDATES_PER_WINDOW 10	/* 10 updates per window */
+
+#define MONITOR_WINDOW_MIN_NS 1000000000 /* 1s */
+#define MONITOR_THRESHOLD_MIN_NS 100000000 /* 100ms */
+
+#define PERFLOG_PSI_THRESHOLD	250
+#define AVG10			0
+#define AVG60			1
+#define AVG300			2
 
 /* Sampling frequency in nanoseconds */
 static u64 psi_period __read_mostly;
@@ -403,6 +412,29 @@ static u64 update_averages(struct psi_group *group, u64 now)
 			sample = period;
 		group->avg_total[s] += sample;
 		calc_avgs(group->avg[s], missed_periods, sample, period);
+		if (s % 2 && (LOAD_INT(group->avg[s][AVG10]) * 100 + LOAD_FRAC(group->avg[s][AVG10])) >= PERFLOG_PSI_THRESHOLD) {
+			u64 total_full = 0, total_some = 0;
+			int some, full;
+			char title[NR_PSI_RESOURCES][4] = {"IO", "MEM", "CPU"};
+			char *strtitle;
+
+			strtitle = title[s / 2];
+			some = s - 1;
+			full = s;
+
+			total_some = div_u64(group->total[PSI_AVGS][some], NSEC_PER_USEC);
+			total_full = div_u64(group->total[PSI_AVGS][full], NSEC_PER_USEC);
+
+			perflog(PERFLOG_UNKNOWN, "[PSI][%s][%s] avg10=[%lu.%02lu/%lu.%02lu]  avg60=[%lu.%02lu/%lu.%02lu]  avg300=[%lu.%02lu/%lu.%02lu] total=[%llu/%llu]",
+				   strtitle, (group == &psi_system) ? "SYSTEM" : "CGROUP",
+				   LOAD_INT(group->avg[some][AVG10]), LOAD_FRAC(group->avg[some][AVG10]),
+				   LOAD_INT(group->avg[full][AVG10]), LOAD_FRAC(group->avg[full][AVG10]),
+				   LOAD_INT(group->avg[some][AVG60]), LOAD_FRAC(group->avg[some][AVG60]),
+				   LOAD_INT(group->avg[full][AVG60]), LOAD_FRAC(group->avg[full][AVG60]),
+				   LOAD_INT(group->avg[some][AVG300]), LOAD_FRAC(group->avg[some][AVG300]),
+				   LOAD_INT(group->avg[full][AVG300]), LOAD_FRAC(group->avg[full][AVG300]),
+				   total_some, total_full);
+		}
 	}
 
 	return avg_next_update;
@@ -1053,7 +1085,7 @@ struct psi_trigger *psi_trigger_create(struct psi_group *group,
 
 	if (!rcu_access_pointer(group->poll_kworker)) {
 		struct sched_param param = {
-			.sched_priority = MAX_RT_PRIO - 1,
+			.sched_priority = 1,
 		};
 		struct kthread_worker *kworker;
 
@@ -1063,7 +1095,7 @@ struct psi_trigger *psi_trigger_create(struct psi_group *group,
 			mutex_unlock(&group->trigger_lock);
 			return ERR_CAST(kworker);
 		}
-		sched_setscheduler(kworker->task, SCHED_FIFO, &param);
+		sched_setscheduler_nocheck(kworker->task, SCHED_FIFO, &param);
 		kthread_init_delayed_work(&group->poll_work,
 				psi_poll_work);
 		rcu_assign_pointer(group->poll_kworker, kworker);
@@ -1133,7 +1165,15 @@ static void psi_trigger_destroy(struct kref *ref)
 	 * deadlock while waiting for psi_poll_work to acquire trigger_lock
 	 */
 	if (kworker_to_destroy) {
+		/*
+		 * After the RCU grace period has expired, the worker
+		 * can no longer be found through group->poll_kworker.
+		 * But it might have been already scheduled before
+		 * that - deschedule it cleanly before destroying it.
+		 */
 		kthread_cancel_delayed_work_sync(&group->poll_work);
+		atomic_set(&group->poll_scheduled, 0);
+
 		kthread_destroy_worker(kworker_to_destroy);
 	}
 	kfree(t);

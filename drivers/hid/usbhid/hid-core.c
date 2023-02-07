@@ -1404,6 +1404,11 @@ static int usbhid_probe(struct usb_interface *intf, const struct usb_device_id *
 		goto err_free;
 	}
 
+#ifndef CONFIG_USB_HOST_SAMSUNG_FEATURE
+	if (dev->do_remote_wakeup)
+		usb_enable_autosuspend(dev);
+#endif
+
 	return 0;
 err_free:
 	kfree(usbhid);

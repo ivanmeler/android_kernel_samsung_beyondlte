@@ -21,6 +21,7 @@
 #include <linux/delay.h>
 #include <linux/psci.h>
 #include <linux/mm.h>
+#include <soc/samsung/exynos-cpupm.h>
 
 #include <uapi/linux/psci.h>
 
@@ -46,7 +47,8 @@ static int __init cpu_psci_cpu_prepare(unsigned int cpu)
 
 static int cpu_psci_cpu_boot(unsigned int cpu)
 {
-	int err = psci_ops.cpu_on(cpu_logical_map(cpu), __pa_symbol(secondary_entry));
+	int err = psci_ops.cpu_on(cpu_logical_map(cpu),
+				  __pa_function(secondary_entry));
 	if (err)
 		pr_err("failed to boot CPU%d (%d)\n", cpu, err);
 
@@ -69,13 +71,21 @@ static int cpu_psci_cpu_disable(unsigned int cpu)
 
 static void cpu_psci_cpu_die(unsigned int cpu)
 {
-	int ret;
+	u32 state;
+	int ret, affinity_level = 0;
 	/*
 	 * There are no known implementations of PSCI actually using the
 	 * power state field, pass a sensible default for now.
 	 */
-	u32 state = PSCI_POWER_STATE_TYPE_POWER_DOWN <<
-		    PSCI_0_2_POWER_STATE_TYPE_SHIFT;
+	if (exynos_cpuhp_last_cpu(cpu))
+		affinity_level = 1;
+
+	state = ((PSCI_POWER_STATE_TYPE_POWER_DOWN
+			<< PSCI_0_2_POWER_STATE_TYPE_SHIFT)
+			& PSCI_0_2_POWER_STATE_TYPE_MASK) |
+		((affinity_level
+			<< PSCI_0_2_POWER_STATE_AFFL_SHIFT)
+			& PSCI_0_2_POWER_STATE_AFFL_MASK);
 
 	ret = psci_ops.cpu_off(state);
 

@@ -28,6 +28,9 @@
 #include <linux/interrupt.h>
 #include <linux/debug_locks.h>
 #include <linux/osq_lock.h>
+#ifdef CONFIG_KPERFMON
+#include <linux/ologk.h>
+#endif
 
 #ifdef CONFIG_DEBUG_MUTEXES
 # include "mutex-debug.h"
@@ -46,6 +49,12 @@ __mutex_init(struct mutex *lock, const char *name, struct lock_class_key *key)
 #endif
 
 	debug_mutex_init(lock, name, key);
+
+#ifdef CONFIG_KPERFMON
+	if (lock != 0) {
+		lock->time = 0;
+	}
+#endif
 }
 EXPORT_SYMBOL(__mutex_init);
 
@@ -607,11 +616,27 @@ static noinline void __sched __mutex_unlock_slowpath(struct mutex *lock, unsigne
  */
 void __sched mutex_unlock(struct mutex *lock)
 {
+#ifdef CONFIG_KPERFMON
+	unsigned long lock_jiffies = 0;
+
+	if (lock != 0) {
+		lock_jiffies = lock->time;
+	}
+#endif
 #ifndef CONFIG_DEBUG_LOCK_ALLOC
 	if (__mutex_unlock_fast(lock))
 		return;
 #endif
 	__mutex_unlock_slowpath(lock, _RET_IP_);
+#ifdef CONFIG_KPERFMON
+	if (lock != 0 && lock_jiffies > 0 && jiffies > lock_jiffies) {
+		unsigned long diff_jiffies = jiffies - lock_jiffies;
+
+		if (diff_jiffies > PERFLOG_MUTEX_THRESHOLD) {
+			perflog_evt(PERFLOG_UNKNOWN, diff_jiffies);
+		}
+	}
+#endif
 }
 EXPORT_SYMBOL(mutex_unlock);
 
@@ -745,6 +770,12 @@ __mutex_lock_common(struct mutex *lock, long state, unsigned int subclass,
 	int ret;
 
 	might_sleep();
+
+#ifdef CONFIG_KPERFMON
+	if(lock != 0) {
+		lock->time = jiffies;
+	}
+#endif
 
 	ww = container_of(lock, struct ww_mutex, base);
 	if (use_ww_ctx && ww_ctx) {

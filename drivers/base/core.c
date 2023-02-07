@@ -3005,9 +3005,36 @@ int dev_printk_emit(int level, const struct device *dev, const char *fmt, ...)
 }
 EXPORT_SYMBOL(dev_printk_emit);
 
+static const char *const loglevel_message[] = {
+	"EMERG",
+	"ALERT",
+	"CRIT",
+	"ERROR",
+	"WARN",
+	"NOTICE",
+	"INFO",
+	"DEBUG",
+};
+
+static void __dev_printk_with_socdata(const char *level, const struct device *dev,
+			struct va_format *vaf)
+{
+	dev_printk_emit(level[1] - '0', dev, "[%s][%s][%6s]: %pV",
+			dev->socdata.soc,
+			dev->socdata.ip,
+			loglevel_message[level[1] - '0'],
+			vaf);
+}
+
 static void __dev_printk(const char *level, const struct device *dev,
 			struct va_format *vaf)
 {
+	/* To reduce side-effect to mainline code */
+	if (dev && dev->socdata.magic == DEV_SOCDATA_MAGIC) {
+		__dev_printk_with_socdata(level, dev, vaf);
+		return;
+	}
+
 	if (dev)
 		dev_printk_emit(level[1] - '0', dev, "%s %s: %pV",
 				dev_driver_string(dev), dev_name(dev), vaf);

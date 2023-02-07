@@ -90,8 +90,11 @@
 /* max length to print of cmdline/proctitle value during audit */
 #define MAX_PROCTITLE_AUDIT_LEN 128
 
+// [ SEC_SELINUX_PORTING_COMMON
+// Enable AUDIT_PROCTITLE, AUDIT_PATH
 /* number of audit rules */
-int audit_n_rules;
+int audit_n_rules = 1;
+// ] SEC_SELINUX_PORTING_COMMON
 
 /* determines whether we collect data for signals sent */
 int audit_signals;
@@ -1348,6 +1351,9 @@ static void audit_log_exit(struct audit_context *context, struct task_struct *ts
 	/* tsk == current */
 	context->personality = tsk->personality;
 
+// [ SEC_SELINUX_PORTING_COMMON
+	if (context->major != __NR_setsockopt) {
+// ] SEC_SELINUX_PORTING_COMMON
 	ab = audit_log_start(context, GFP_KERNEL, AUDIT_SYSCALL);
 	if (!ab)
 		return;		/* audit_panic has been called */
@@ -1441,7 +1447,9 @@ static void audit_log_exit(struct audit_context *context, struct task_struct *ts
 				  context->target_sessionid,
 				  context->target_sid, context->target_comm))
 			call_panic = 1;
-
+// [ SEC_SELINUX_PORTING_COMMON
+// Disable AUDIT_CWD
+/*
 	if (context->pwd.dentry && context->pwd.mnt) {
 		ab = audit_log_start(context, GFP_KERNEL, AUDIT_CWD);
 		if (ab) {
@@ -1449,6 +1457,8 @@ static void audit_log_exit(struct audit_context *context, struct task_struct *ts
 			audit_log_end(ab);
 		}
 	}
+*/
+// ] SEC_SELINUX_PORTING_COMMON
 
 	i = 0;
 	list_for_each_entry(n, &context->names_list, list) {
@@ -1458,6 +1468,9 @@ static void audit_log_exit(struct audit_context *context, struct task_struct *ts
 	}
 
 	audit_log_proctitle(tsk, context);
+// [ SEC_SELINUX_PORTING_COMMON
+	} // End of context->major != __NR_setsockopt
+// ] SEC_SELINUX_PORTING_COMMON
 
 	/* Send end of event record to help user space know we are finished */
 	ab = audit_log_start(context, GFP_KERNEL, AUDIT_EOE);

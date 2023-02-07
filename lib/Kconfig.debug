@@ -30,6 +30,13 @@ config CONSOLE_LOGLEVEL_DEFAULT
 	  usage in the kernel. That is controlled by the MESSAGE_LOGLEVEL_DEFAULT
 	  option.
 
+config PRINTK_PROCESS
+	bool "Show process information on printks"
+	depends on PRINTK
+	help
+	  Selecting this option causes process to be
+	  included in printk output. Or add printk.process=1 at boot-time.
+
 config MESSAGE_LOGLEVEL_DEFAULT
 	int "Default message log level (1-7)"
 	range 1 7
@@ -67,7 +74,7 @@ config DYNAMIC_DEBUG
 	bool "Enable dynamic printk() support"
 	default n
 	depends on PRINTK
-	depends on DEBUG_FS
+	depends on (DEBUG_FS || PROC_FS)
 	help
 
 	  Compiles debug level messages into the kernel, which would not
@@ -85,8 +92,9 @@ config DYNAMIC_DEBUG
 	  Usage:
 
 	  Dynamic debugging is controlled via the 'dynamic_debug/control' file,
-	  which is contained in the 'debugfs' filesystem. Thus, the debugfs
-	  filesystem must first be mounted before making use of this feature.
+	  which is contained in the 'debugfs' filesystem or procfs.
+	  Thus, the debugfs or procfs filesystem must first be mounted before
+	  making use of this feature.
 	  We refer the control file as: <debugfs>/dynamic_debug/control. This
 	  file contains a list of the debug statements that can be enabled. The
 	  format for each line of the file is:
@@ -217,7 +225,6 @@ config ENABLE_MUST_CHECK
 config FRAME_WARN
 	int "Warn for stack frames larger than (needs gcc 4.4)"
 	range 0 8192
-	default 3072 if KASAN_EXTRA
 	default 2048 if GCC_PLUGIN_LATENT_ENTROPY
 	default 1280 if (!64BIT && PARISC)
 	default 1024 if (!64BIT && !PARISC)
@@ -737,16 +744,21 @@ endmenu # "Memory Debugging"
 config ARCH_HAS_KCOV
 	bool
 	help
-	  KCOV does not have any arch-specific code, but currently it is enabled
-	  only for x86_64. KCOV requires testing on other archs, and most likely
-	  disabling of instrumentation for some early boot code.
+	  An architecture should select this when it can successfully
+	  build and run with CONFIG_KCOV. This typically requires
+	  disabling instrumentation for some early boot code.
+
+# Upstream uses $(cc-option, -fsanitize-coverage=trace-pc), which requires
+# cc-option support. Here we instead check CC in scripts/Makefile.kcov.
+config CC_HAS_SANCOV_TRACE_PC
+	def_bool ARCH_HAS_KCOV
 
 config KCOV
 	bool "Code coverage for fuzzing"
 	depends on ARCH_HAS_KCOV
+	depends on CC_HAS_SANCOV_TRACE_PC || GCC_PLUGINS
 	select DEBUG_FS
-	select GCC_PLUGINS if !COMPILE_TEST
-	select GCC_PLUGIN_SANCOV if !COMPILE_TEST
+	select GCC_PLUGIN_SANCOV if !CC_HAS_SANCOV_TRACE_PC
 	help
 	  KCOV exposes kernel code coverage information in a form suitable
 	  for coverage-guided fuzzing (randomized testing).
@@ -757,10 +769,21 @@ config KCOV
 
 	  For more details, see Documentation/dev-tools/kcov.rst.
 
+# Upstream uses $(cc-option, -fsanitize-coverage=trace-cmp), which requires
+# cc-option support. Here we instead check CC in scripts/Makefile.kcov.
+config KCOV_ENABLE_COMPARISONS
+	bool "Enable comparison operands collection by KCOV"
+	depends on KCOV
+	help
+	  KCOV also exposes operands of every comparison in the instrumented
+	  code along with operand sizes and PCs of the comparison instructions.
+	  These operands can be used by fuzzing engines to improve the quality
+	  of fuzzing coverage.
+
 config KCOV_INSTRUMENT_ALL
 	bool "Instrument all code by default"
 	depends on KCOV
-	default y if KCOV
+	default y
 	help
 	  If you are doing generic system call fuzzing (like e.g. syzkaller),
 	  then you will want to instrument the whole kernel and you should
@@ -826,9 +849,14 @@ config HARDLOCKUP_DETECTOR
 	  chance to run.  The current stack trace is displayed upon detection
 	  and the system will stay locked up.
 
+config HARDLOCKUP_DETECTOR_OTHER_CPU
+	def_bool y
+	depends on LOCKUP_DETECTOR && !HAVE_NMI_WATCHDOG
+	depends on !HARDLOCKUP_DETECTOR
+
 config BOOTPARAM_HARDLOCKUP_PANIC
 	bool "Panic (Reboot) On Hard Lockups"
-	depends on HARDLOCKUP_DETECTOR
+	depends on HARDLOCKUP_DETECTOR || HARDLOCKUP_DETECTOR_OTHER_CPU
 	help
 	  Say Y here to enable the kernel to panic on "hard lockups",
 	  which are bugs that cause the kernel to loop in kernel
@@ -839,7 +867,7 @@ config BOOTPARAM_HARDLOCKUP_PANIC
 
 config BOOTPARAM_HARDLOCKUP_PANIC_VALUE
 	int
-	depends on HARDLOCKUP_DETECTOR
+	depends on HARDLOCKUP_DETECTOR || HARDLOCKUP_DETECTOR_OTHER_CPU
 	range 0 1
 	default 0 if !BOOTPARAM_HARDLOCKUP_PANIC
 	default 1 if BOOTPARAM_HARDLOCKUP_PANIC
@@ -1916,6 +1944,24 @@ config TEST_DEBUG_VIRTUAL
 
 	  If unsure, say N.
 
+config TEST_MEMINIT
+	tristate "Test heap/page initialization"
+	help
+	  Test if the kernel is zero-initializing heap and page allocations.
+	  This can be useful to test init_on_alloc and init_on_free features.
+
+	  If unsure, say N.
+
+config TEST_STACKINIT
+	tristate "Test level of stack variable initialization"
+	help
+	  Test if the kernel is zero-initializing stack variables and
+	  padding. Coverage is controlled by compiler flags,
+	  CONFIG_GCC_PLUGIN_STRUCTLEAK, CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF,
+	  or CONFIG_GCC_PLUGIN_STRUCTLEAK_BYREF_ALL.
+
+	  If unsure, say N.
+
 endmenu # runtime tests
 
 config MEMTEST
@@ -1984,3 +2030,113 @@ config IO_STRICT_DEVMEM
 	  if the driver using a given range cannot be disabled.
 
 	  If in doubt, say Y.
+
+menuconfig DEBUG_SNAPSHOT
+	bool "Debug SnapShot Support"
+	default n
+
+config DEBUG_SNAPSHOT_LINUX_BUILD
+	bool "May be built in LINUX environment"
+	depends on DEBUG_SNAPSHOT
+	default y
+
+config DEBUG_SNAPSHOT_USER_MODE
+	bool "Enable User Mode, Most of debug feature are disabled"
+	depends on DEBUG_SNAPSHOT
+	default n
+
+config DEBUG_SNAPSHOT_CALLSTACK
+	int "shown callstack level"
+	depends on DEBUG_SNAPSHOT
+	range 1 4
+	default 4
+
+config DEBUG_SNAPSHOT_IRQ_DISABLED
+	bool "Enable debugging of interrupt disable event by kevent(EXPERIMENTAL)"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default n
+
+config DEBUG_SNAPSHOT_SPINLOCK
+	bool "Enable debugging of spinlock event by kevent(EXPERIMENTAL)"
+	depends on DEBUG_SNAPSHOT && DEBUG_SPINLOCK && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_CLK
+	bool "Enable debugging of clock event by kevent(EXPERIMENTAL)"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_PMU
+	bool "Enable debugging of pmu event by kevent(EXPERIMENTAL)"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_FREQ
+	bool "Enable debugging of frequence event by kevent(EXPERIMENTAL)"
+	depends on DEBUG_SNAPSHOT && PM_DEVFREQ && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_DM
+	bool "Enable debugging of dvfs manager event by kevent(EXPERIMENTAL)"
+	depends on DEBUG_SNAPSHOT && EXYNOS_DVFS_MANAGER && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_HRTIMER
+	bool "Enable debugging of hrtimer by kevent"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_REG
+	bool "Enable debugging of accessing register by kevent"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default n
+
+config DEBUG_SNAPSHOT_REGULATOR
+	bool "Enable debugging of regulator and pmic driver"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_ACPM
+	bool "Enable debugging of acpm framework"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_THERMAL
+	bool "Enable debugging of thermal driver"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE && EXYNOS_THERMAL
+	default y
+
+config DEBUG_SNAPSHOT_I2C
+	bool "Enable debugging of i2c driver"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_SPI
+	bool "Enable debugging of spi driver"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_BINDER
+	bool "Enable debugging of binder driver"
+	depends on DEBUG_SNAPSHOT && !DEBUG_SNAPSHOT_MINIMIZED_MODE
+	default y
+
+config DEBUG_SNAPSHOT_PANIC_REBOOT
+	bool "Enable forced reboot after panic for ramdump"
+	depends on DEBUG_SNAPSHOT
+	default y
+
+config DEBUG_SNAPSHOT_WATCHDOG_RESET
+	bool "Support watchdog reset when hardlockup detect"
+	depends on DEBUG_SNAPSHOT && DEBUG_SNAPSHOT_PANIC_REBOOT
+	default y
+
+config DEBUG_SNAPSHOT_CRASH_KEY
+	bool "Support Crash Key to artificial panic for debugging"
+	depends on DEBUG_SNAPSHOT && KEYBOARD_GPIO
+	default y
+
+config DEBUG_SNAPSHOT_MINIMIZED_MODE
+	bool "Support minimized feature configuration"
+	depends on DEBUG_SNAPSHOT_USER_MODE
+	default y

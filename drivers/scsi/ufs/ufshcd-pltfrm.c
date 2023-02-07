@@ -362,6 +362,20 @@ out:
 }
 EXPORT_SYMBOL_GPL(ufshcd_pltfrm_init);
 
+/**
+ * ufshcd_pltfrm_exit - exit common routine for platform driver
+ * @pdev: pointer to platform device handle
+ */
+void ufshcd_pltfrm_exit(struct platform_device *pdev)
+{
+	struct ufs_hba *hba =  platform_get_drvdata(pdev);
+
+	disable_irq(hba->irq);
+
+	ufshcd_remove(hba);
+}
+EXPORT_SYMBOL_GPL(ufshcd_pltfrm_exit);
+
 MODULE_AUTHOR("Santosh Yaragnavi <santosh.sy@samsung.com>");
 MODULE_AUTHOR("Vinayak Holikatti <h.vinayak@samsung.com>");
 MODULE_DESCRIPTION("UFS host controller Platform bus based glue driver");

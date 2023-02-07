@@ -1,48 +1,34 @@
 # SPDX-License-Identifier: GPL-2.0
-dts-dirs += actions
-dts-dirs += al
-dts-dirs += allwinner
-dts-dirs += altera
-dts-dirs += amd
-dts-dirs += amlogic
-dts-dirs += apm
-dts-dirs += arm
-dts-dirs += broadcom
-dts-dirs += cavium
-dts-dirs += exynos
-dts-dirs += freescale
-dts-dirs += hisilicon
-dts-dirs += marvell
-dts-dirs += mediatek
-dts-dirs += nvidia
-dts-dirs += qcom
-dts-dirs += realtek
-dts-dirs += renesas
-dts-dirs += rockchip
-dts-dirs += socionext
-dts-dirs += sprd
-dts-dirs += xilinx
-dts-dirs += lg
-dts-dirs += zte
-
-subdir-y	:= $(dts-dirs)
-
-dtstree		:= $(srctree)/$(src)
-
-dtb-$(CONFIG_OF_ALL_DTBS) := $(patsubst $(dtstree)/%.dts,%.dtb, $(foreach d,$(dts-dirs), $(wildcard $(dtstree)/$(d)/*.dts)))
-
-always		:= $(dtb-y)
+dtbo-y += samsung/exynos9825-m62_eur_open_03.dtbo
+dtbo-y += samsung/exynos9825-m62_eur_open_01.dtbo
+dtbo-y += samsung/exynos9825-m62_eur_open_00.dtbo
+dtbo-y += samsung/exynos9825-m62_eur_open_02.dtbo
+dtb-y += exynos/exynos5433-tm2e.dtb
+dtbo-y += exynos/exynos9820-smdk9820.dtbo
+dtbo-y += exynos/exynos9825-universal9825_rev5.dtbo
+dtbo-y += exynos/exynos9825-universal9825_revC03.dtbo
+dtbo-y += exynos/exynos9820-universal9820_revC06.dtbo
+dtb-y += exynos/exynos9825.dtb
+dtbo-y += exynos/exynos9825-universal9825_revC01.dtbo
+dtbo-y += exynos/exynos9820-universal9820_revC03.dtbo
+dtbo-y += exynos/exynos9825-universal9825_5g.dtbo
+dtbo-y += exynos/exynos9825-universal9825_s5100_rev1.dtbo
+dtb-y += exynos/exynos7-espresso.dtb
+dtbo-y += exynos/exynos9825-universal9825_revC04.dtbo
+dtbo-y += exynos/exynos9820-universal9820_5g.dtbo
+dtb-y += exynos/exynos5433-tm2.dtb
+dtbo-y += exynos/exynos9820-universal9820_s5100_rev1.dtbo
+dtbo-y += exynos/exynos9820-universal9820_revC01.dtbo
+dtbo-y += exynos/exynos9820-universal9820_revC04.dtbo
+dtb-y += exynos/exynos9820.dtb
+dtbo-y += exynos/exynos9820-universal9820_rev5.dtbo
+dtbo-y += exynos/exynos9825-universal9825_revC06.dtbo
+dtbo-y += exynos/exynos9825-smdk9825.dtbo
 
 targets += dtbs
-
-DTB_NAMES := $(subst $\",,$(CONFIG_BUILD_ARM64_APPENDED_DTB_IMAGE_NAMES))
-ifneq ($(DTB_NAMES),)
-DTB_LIST := $(addsuffix .dtb,$(DTB_NAMES))
-else
-DTB_LIST := $(dtb-y)
-endif
-targets += $(DTB_LIST)
+DTB_LIST  := $(dtb-y) $(dtbo-y)
+always    := $(DTB_LIST)
 
 dtbs: $(addprefix $(obj)/, $(DTB_LIST))
 
-clean-files := dts/*.dtb *.dtb
+clean-files := *.dtb*

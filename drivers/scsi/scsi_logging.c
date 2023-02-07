@@ -13,8 +13,14 @@
 #include <scsi/scsi.h>
 #include <scsi/scsi_cmnd.h>
 #include <scsi/scsi_device.h>
+#include <scsi/scsi_host.h>
 #include <scsi/scsi_eh.h>
 #include <scsi/scsi_dbg.h>
+
+#if defined(CONFIG_SEC_ABC)
+#include <linux/sti/abc_common.h>
+#endif
+#include <linux/sec_debug.h>
 
 static char *scsi_log_reserve_buffer(size_t *len)
 {
@@ -325,6 +331,7 @@ scsi_log_print_sense_hdr(const struct scsi_device *sdev, const char *name,
 {
 	char *logbuf;
 	size_t off, logbuf_len;
+	struct scsi_host_template *sht = sdev->host->hostt;
 
 	logbuf = scsi_log_reserve_buffer(&logbuf_len);
 	if (!logbuf)
@@ -342,6 +349,27 @@ scsi_log_print_sense_hdr(const struct scsi_device *sdev, const char *name,
 				      sshdr->asc, sshdr->ascq);
 	dev_printk(KERN_INFO, &sdev->sdev_gendev, "%s", logbuf);
 	scsi_log_release_buffer(logbuf);
+
+	if (!strncmp(sht->name, "ufshcd", 6)) {
+		if (sshdr->sense_key == 0x03) {
+			sdev->host->medium_err_cnt++;
+#if defined(CONFIG_SEC_ABC)
+			sec_abc_send_event("MODULE=storage@ERROR=ufs_medium_err");
+#endif
+#ifdef CONFIG_SEC_DEBUG
+			/* only work for debug level mid */
+			if ((sec_debug_get_debug_level() & 0x1) == 0x1)
+				panic("ufs medium error\n");
+#endif
+		} else if (sshdr->sense_key == 0x04) {
+			sdev->host->hw_err_cnt++;
+#ifdef CONFIG_SEC_DEBUG
+			/* only work for debug level mid */
+			if ((sec_debug_get_debug_level() & 0x1) == 0x1)
+				panic("ufs hardware error\n");
+#endif
+		}
+	}
 }
 
 static void

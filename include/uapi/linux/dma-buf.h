@@ -35,7 +35,29 @@ struct dma_buf_sync {
 #define DMA_BUF_SYNC_VALID_FLAGS_MASK \
 	(DMA_BUF_SYNC_RW | DMA_BUF_SYNC_END)
 
+#define DMA_BUF_NAME_LEN	32
+
 #define DMA_BUF_BASE		'b'
 #define DMA_BUF_IOCTL_SYNC	_IOW(DMA_BUF_BASE, 0, struct dma_buf_sync)
+#define DMA_BUF_SET_NAME	_IOW(DMA_BUF_BASE, 1, const char *)
+
+/*
+ * create a dma-buf that is a container of the given dma-bufs.
+ * The result dma-buf, dmabuf-container has dma_buf_merge.count+1 buffers
+ * that includes the dma-buf that is the first argument to ioctl and the
+ * dma-bufs given by dma_buf_merge.dma_bufs.
+ */
+struct dma_buf_merge {
+	int   *dma_bufs;
+	__s32 count;
+	__s32 dmabuf_container;	/* output: result dmabuf of dmabuf_container */
+	__u32 reserved[2];
+};
+#define DMA_BUF_IOCTL_MERGE	_IOWR(DMA_BUF_BASE, 13, struct dma_buf_merge)
+#define DMA_BUF_IOCTL_CONTAINER_SET_MASK	_IOW(DMA_BUF_BASE, 14, __u32)
+#define DMA_BUF_IOCTL_CONTAINER_GET_MASK	_IOR(DMA_BUF_BASE, 14, __u32)
+
+#define DMA_BUF_IOCTL_TRACK			_IO(DMA_BUF_BASE, 8)
+#define DMA_BUF_IOCTL_UNTRACK			_IO(DMA_BUF_BASE, 9)
 
 #endif

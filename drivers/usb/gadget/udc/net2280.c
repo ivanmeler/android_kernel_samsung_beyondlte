@@ -870,6 +870,9 @@ static void start_queue(struct net2280_ep *ep, u32 dmactl, u32 td_dma)
 	(void) readl(&ep->dev->pci->pcimstctl);
 
 	writel(BIT(DMA_START), &dma->dmastat);
+
+	if (!ep->is_in)
+		stop_out_naking(ep);
 }
 
 static void start_dma(struct net2280_ep *ep, struct net2280_request *req)
@@ -908,7 +911,6 @@ static void start_dma(struct net2280_ep *ep, struct net2280_request *req)
 			writel(BIT(DMA_START), &dma->dmastat);
 			return;
 		}
-		stop_out_naking(ep);
 	}
 
 	tmp = dmactl_default;
@@ -1277,9 +1279,9 @@ static int net2280_dequeue(struct usb_ep *_ep, struct usb_request *_req)
 			break;
 	}
 	if (&req->req != _req) {
-		ep->stopped = stopped;
 		spin_unlock_irqrestore(&ep->dev->lock, flags);
-		ep_dbg(ep->dev, "%s: Request mismatch\n", __func__);
+		dev_err(&ep->dev->pdev->dev, "%s: Request mismatch\n",
+								__func__);
 		return -EINVAL;
 	}
 

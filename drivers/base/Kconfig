@@ -248,7 +248,6 @@ source "drivers/base/regmap/Kconfig"
 config DMA_SHARED_BUFFER
 	bool
 	default n
-	select ANON_INODES
 	select IRQ_WORK
 	help
 	  This option enables the framework for buffer-sharing between
@@ -349,5 +348,11 @@ config GENERIC_ARCH_TOPOLOGY
 	  CPU capacity information from DT, usage of such information for
 	  appropriate scaling, sysfs interface for changing capacity values at
 	  runtime.
+
+config CPU_CAPACITY_FIXUP
+	bool
+	default y
+	help
+     Enable to avoid that unity set cpuset of its client task to big core only.
 
 endmenu

@@ -2,6 +2,10 @@
 #ifndef _SCSI_DISK_H
 #define _SCSI_DISK_H
 
+#if defined(CONFIG_UFS_SRPMB)
+#include "scsi_srpmb.h"
+#endif
+
 /*
  * More than enough for everybody ;)  The huge number of majors
  * is a leftover from 16bit dev_t days, we don't really need that

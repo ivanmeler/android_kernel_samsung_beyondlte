@@ -27,6 +27,7 @@
 #include <linux/ratelimit.h>
 #include <linux/uidgid.h>
 #include <linux/gfp.h>
+#include <linux/slab.h>
 #include <asm/device.h>
 
 struct device;
@@ -945,6 +946,9 @@ struct device {
 	/* arch specific additions */
 	struct dev_archdata	archdata;
 
+	/* soc specific additions */
+	struct dev_socdata	socdata;
+
 	struct device_node	*of_node; /* associated device tree node */
 	struct fwnode_handle	*fwnode; /* firmware device node */
 
@@ -1032,6 +1036,31 @@ static inline void dev_set_drvdata(struct device *dev, void *data)
 	dev->driver_data = data;
 }
 
+#define DEV_SOCDATA_MAGIC	(0xCAFEDEAD)
+static inline void dev_set_socdata(struct device *dev,
+					const char *soc, const char *ip)
+{
+	if (dev && soc && ip) {
+		dev->socdata.magic = DEV_SOCDATA_MAGIC;
+		dev->socdata.soc = soc;
+		dev->socdata.ip = ip;
+	}
+}
+
+static inline struct device *create_empty_device(void)
+{
+	struct device *dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+
+	return dev;
+}
+
+static inline struct device *create_fake_device(void)
+{
+	struct dev_socdata *dev = kzalloc(sizeof(*dev), GFP_KERNEL);
+
+	return (struct device *)dev;
+}
+
 static inline struct pm_subsys_data *dev_to_psd(struct device *dev)
 {
 	return dev ? dev->power.subsys_data : NULL;
@@ -1069,11 +1098,31 @@ static inline bool device_async_suspend_enabled(struct device *dev)
 	return !!dev->power.async_suspend;
 }
 
+static inline bool device_pm_not_required(struct device *dev)
+{
+	return dev->power.no_pm;
+}
+
+static inline void device_set_pm_not_required(struct device *dev)
+{
+	dev->power.no_pm = true;
+}
+
 static inline void dev_pm_syscore_device(struct device *dev, bool val)
 {
 #ifdef CONFIG_PM_SLEEP
 	dev->power.syscore = val;
 #endif
+}
+
+static inline void dev_pm_set_driver_flags(struct device *dev, u32 flags)
+{
+	dev->power.driver_flags = flags;
+}
+
+static inline bool dev_pm_test_driver_flags(struct device *dev, u32 flags)
+{
+	return !!(dev->power.driver_flags & flags);
 }
 
 static inline void device_lock(struct device *dev)

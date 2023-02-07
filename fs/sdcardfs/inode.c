@@ -23,6 +23,10 @@
 #include <linux/ratelimit.h>
 #include <linux/sched/task.h>
 
+#ifdef CONFIG_KDP_CRED
+#include <linux/kdp.h>
+#endif
+
 const struct cred *override_fsids(struct sdcardfs_sb_info *sbi,
 		struct sdcardfs_inode_data *data)
 {
@@ -55,6 +59,10 @@ void revert_fsids(const struct cred *old_cred)
 	const struct cred *cur_cred;
 
 	cur_cred = current->cred;
+#ifdef CONFIG_KDP_CRED
+	if(is_kdp_protect_addr((unsigned long)cur_cred))
+		cur_cred = (const struct cred *)GET_REFLECTED_CRED(cur_cred);
+#endif
 	revert_creds(old_cred);
 	put_cred(cur_cred);
 }
@@ -86,6 +94,9 @@ static int sdcardfs_create(struct inode *dir, struct dentry *dentry,
 	lower_dentry = lower_path.dentry;
 	lower_dentry_mnt = lower_path.mnt;
 	lower_parent_dentry = lock_parent(lower_dentry);
+
+	if (d_is_positive(lower_dentry))
+		return -EEXIST;
 
 	/* set last 16bytes of mode field to 0664 */
 	mode = (mode & S_IFMT) | 00664;

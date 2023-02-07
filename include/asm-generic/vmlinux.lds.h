@@ -65,11 +65,11 @@
  * .data. We don't want to pull in .data..other sections, which Linux
  * has defined. Same for text and bss.
  */
-#ifdef CONFIG_LD_DEAD_CODE_DATA_ELIMINATION
+#if defined(CONFIG_LD_DEAD_CODE_DATA_ELIMINATION) || defined(CONFIG_LTO_CLANG)
 #define TEXT_MAIN .text .text.[0-9a-zA-Z_]*
 #define TEXT_CFI_MAIN .text.cfi .text.[0-9a-zA-Z_]*.cfi
-#define DATA_MAIN .data .data.[0-9a-zA-Z_]*
-#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]*
+#define DATA_MAIN .data .data.[0-9a-zA-Z_]* .data..compoundliteral* .data..L*
+#define BSS_MAIN .bss .bss.[0-9a-zA-Z_]* .bss..compoundliteral* .bss..L*
 #else
 #define TEXT_MAIN .text
 #define TEXT_CFI_MAIN .text.cfi
@@ -281,6 +281,61 @@
 	VMLINUX_SYMBOL(__end_ro_after_init) = .;
 #endif
 
+#define PG_IDMAP							\
+	. = ALIGN(PAGE_SIZE);					\
+		idmap_pg_dir = .;					\
+	. += IDMAP_DIR_SIZE;
+
+#define PG_SWAP								\
+	. = ALIGN(PAGE_SIZE);					\
+		swapper_pg_dir = .;					\
+	. += SWAPPER_DIR_SIZE;					\
+		swapper_pg_end = .;
+#ifdef CONFIG_ARM64_SW_TTBR0_PAN
+#define PG_RESERVED							\
+	. = ALIGN(PAGE_SIZE);					\
+	reserved_ttbr0 = .;						\
+	. += RESERVED_TTBR0_SIZE;
+#else
+#define PG_RESERVED
+#endif
+
+#ifdef CONFIG_UNMAP_KERNEL_AT_EL0
+#define PG_TRAMP							\
+	. = ALIGN(PAGE_SIZE);					\
+	tramp_pg_dir = .;						\
+	. += PAGE_SIZE;
+#else
+#define PG_TRAMP
+#endif
+
+#ifdef CONFIG_RKP
+#define RKP_RO_DATA							\
+	PG_IDMAP								\
+	PG_SWAP									\
+	PG_RESERVED								\
+	PG_TRAMP
+#else
+#define RKP_RO_DATA
+#endif
+
+#ifdef CONFIG_UH
+#define UH_RO_SECTION						\
+	. = ALIGN(4096);						\
+	.uh_bss       : AT(ADDR(.uh_bss) - LOAD_OFFSET) {	\
+		*(.uh_bss.page_aligned)				\
+		*(.uh_bss)						\
+	} = 0								\
+									\
+	.uh_ro        : AT(ADDR(.uh_ro) - LOAD_OFFSET) {	\
+		*(.rkp_ro)						\
+		*(.kdp_ro)						\
+		RKP_RO_DATA						\
+	}
+#else
+#define UH_RO_SECTION
+#endif
+
 /*
  * Read only Data
  */
@@ -301,6 +356,9 @@
 	.rodata1          : AT(ADDR(.rodata1) - LOAD_OFFSET) {		\
 		*(.rodata1)						\
 	}								\
+									\
+	/* uH */							\
+	UH_RO_SECTION							\
 									\
 	/* PCI quirks */						\
 	.pci_fixup        : AT(ADDR(.pci_fixup) - LOAD_OFFSET) {	\
@@ -413,6 +471,8 @@
         __ksymtab_strings : AT(ADDR(__ksymtab_strings) - LOAD_OFFSET) {	\
 		*(__ksymtab_strings)					\
 	}								\
+									\
+	SECDBG_MEMBERS							\
 									\
 	/* __*init sections */						\
 	__init_rodata : AT(ADDR(__init_rodata) - LOAD_OFFSET) {		\
@@ -715,6 +775,19 @@
 	}
 #else
 #define ORC_UNWIND_TABLE
+#endif
+
+#ifdef CONFIG_SEC_DEBUG
+#define SECDBG_MEMBERS							\
+	/* Secdbg member table: offsets */				\
+	. = ALIGN(8);							\
+	__secdbg_member_table : AT(ADDR(__secdbg_member_table) - LOAD_OFFSET) { \
+		__start__secdbg_member_table = .;			\
+		KEEP(*(SORT(.secdbg_mbtab.*))) 				\
+		__stop__secdbg_member_table = .;			\
+	}
+#else
+#define SECDBG_MEMBERS
 #endif
 
 #ifdef CONFIG_PM_TRACE

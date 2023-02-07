@@ -200,6 +200,7 @@ usb_find_last_int_out_endpoint(struct usb_host_interface *alt,
  * @dev: driver model's view of this device
  * @usb_dev: if an interface is bound to the USB major, this will point
  *	to the sysfs representation for that device.
+ * @pm_usage_cnt: PM usage counter for this interface
  * @reset_ws: Used for scheduling resets from atomic context.
  * @resetting_device: USB core reset the device, so use alt setting 0 as
  *	current; needs bandwidth alloc after reset.
@@ -256,6 +257,7 @@ struct usb_interface {
 
 	struct device dev;		/* interface specific device info */
 	struct device *usb_dev;
+	atomic_t pm_usage_cnt;		/* usage counter for autosuspend */
 	struct work_struct reset_ws;	/* for resets in atomic context */
 };
 #define	to_usb_interface(d) container_of(d, struct usb_interface, dev)
@@ -542,6 +544,37 @@ struct usb3_lpm_parameters {
 	int timeout;
 };
 
+struct hcd_hw_info {
+	/* for XHCI */
+	int slot_id;
+	dma_addr_t erst_addr;
+	dma_addr_t dcbaa_dma;
+	dma_addr_t in_ctx;
+	dma_addr_t out_ctx;
+	dma_addr_t save_dma;
+	u64 cmd_ring;
+	/* Data Stream EP */
+	u64 old_out_deq;
+	u64 old_in_deq;
+	u64 out_deq;
+	u64 in_deq;
+	int in_ep;
+	int out_ep;
+	/* feedback ep */
+	int fb_in_ep;
+	int fb_out_ep;
+	u64 fb_old_out_deq;
+	u64 fb_old_in_deq;
+	u64 fb_out_deq;
+	u64 fb_in_deq;
+	/* Device Common Information */
+	int speed;
+	void *out_buf;
+	u64 out_dma;
+	void *in_buf;
+	u64 in_dma;
+};
+
 /**
  * struct usb_device - kernel's representation of a USB device
  * @devnum: device number; address on a USB bus
@@ -639,6 +672,9 @@ struct usb_device {
 	struct usb_host_endpoint *ep_out[16];
 
 	char **rawdescriptors;
+	int rawdesc_length;
+
+	struct hcd_hw_info hwinfo;
 
 	unsigned short bus_mA;
 	u8 portnum;
@@ -1952,6 +1988,8 @@ static inline int usb_translate_errors(int error_code)
 	}
 }
 
+int usb_parse_configuration(struct usb_device *dev, int cfgidx,
+		struct usb_host_config *config, unsigned char *buffer, int size);
 /* Events from the usb core */
 #define USB_DEVICE_ADD		0x0001
 #define USB_DEVICE_REMOVE	0x0002

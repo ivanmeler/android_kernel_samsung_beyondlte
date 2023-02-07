@@ -143,7 +143,23 @@ struct dma_buf_ops {
 	void (*unmap_dma_buf)(struct dma_buf_attachment *,
 			      struct sg_table *,
 			      enum dma_data_direction);
-
+	/**
+	 * @[un]map_dma_buf_area:
+	 *
+	 * This is called by dma_buf_[un]map_attachment_area().
+	 * This is the same as [un]map_dma_buf, but this can pass the size
+	 * to the exporter additionally. This size is actually accssed by DMA,
+	 * so the exporter might try to optmize mapping or cache maintenance.
+	 *
+	 * This callback is optional.
+	 */
+	struct sg_table * (*map_dma_buf_area)(struct dma_buf_attachment *,
+					      enum dma_data_direction,
+					      size_t size);
+	void (*unmap_dma_buf_area)(struct dma_buf_attachment *,
+				   struct sg_table *,
+				   enum dma_data_direction,
+				   size_t size);
 	/* TODO: Add try_map_dma_buf version, to return immed with -EBUSY
 	 * if the call would block.
 	 */
@@ -250,6 +266,20 @@ struct dma_buf_ops {
 
 	void *(*vmap)(struct dma_buf *);
 	void (*vunmap)(struct dma_buf *, void *vaddr);
+
+	/**
+	 * @get_flags:
+	 *
+	 * This is called by dma_buf_get_flags and is used to get the buffer's
+	 * flags.
+	 * This callback is optional.
+	 *
+	 * Returns:
+	 *
+	 * 0 on success or a negative error code on failure. On success flags
+	 * will be populated with the buffer's flags.
+	 */
+	int (*get_flags)(struct dma_buf *dmabuf, unsigned long *flags);
 };
 
 /**
@@ -258,10 +288,12 @@ struct dma_buf_ops {
  * @file: file pointer used for sharing buffers across, and for refcounting.
  * @attachments: list of dma_buf_attachment that denotes all devices attached.
  * @ops: dma_buf_ops associated with this buffer object.
- * @lock: used internally to serialize list manipulation, attach/detach and vmap/unmap
+ * @lock: used internally to serialize list manipulation, attach/detach and
+ *        vmap/unmap, and accesses to name
  * @vmapping_counter: used internally to refcnt the vmaps
  * @vmap_ptr: the current vmap ptr if vmapping_counter > 0
  * @exp_name: name of the exporter; useful for debugging.
+ * @name: userspace-provided name; useful for accounting and debugging.
  * @owner: pointer to exporter module; used for refcounting when exporter is a
  *         kernel module.
  * @list_node: node for dma_buf accounting and debugging.
@@ -289,6 +321,7 @@ struct dma_buf {
 	unsigned vmapping_counter;
 	void *vmap_ptr;
 	const char *exp_name;
+	const char *name;
 	struct module *owner;
 	struct list_head list_node;
 	void *priv;
@@ -387,6 +420,13 @@ int dma_buf_fd(struct dma_buf *dmabuf, int flags);
 struct dma_buf *dma_buf_get(int fd);
 void dma_buf_put(struct dma_buf *dmabuf);
 
+struct sg_table *dma_buf_map_attachment_area(struct dma_buf_attachment *attach,
+					     enum dma_data_direction direction,
+					     size_t size);
+void dma_buf_unmap_attachment_area(struct dma_buf_attachment *attach,
+				   struct sg_table *sg_table,
+				   enum dma_data_direction direction,
+				   size_t size);
 struct sg_table *dma_buf_map_attachment(struct dma_buf_attachment *,
 					enum dma_data_direction);
 void dma_buf_unmap_attachment(struct dma_buf_attachment *, struct sg_table *,
@@ -404,4 +444,17 @@ int dma_buf_mmap(struct dma_buf *, struct vm_area_struct *,
 		 unsigned long);
 void *dma_buf_vmap(struct dma_buf *);
 void dma_buf_vunmap(struct dma_buf *, void *vaddr);
+
+int dma_buf_get_flags(struct dma_buf *dmabuf, unsigned long *flags);
+
+#ifdef CONFIG_DMA_BUF_CONTAINER
+struct dma_buf *dma_buf_get_any(int fd);
+#else
+static inline struct dma_buf *dma_buf_get_any(int fd)
+{
+	return dma_buf_get(fd);
+}
+#endif
+
+
 #endif /* __DMA_BUF_H__ */

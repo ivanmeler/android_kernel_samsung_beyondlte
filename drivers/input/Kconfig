@@ -151,6 +151,7 @@ config INPUT_JOYDEV
 
 config INPUT_EVDEV
 	tristate "Event interface"
+	select SEC_INPUT_BOOSTER
 	help
 	  Say Y here if you want your input device events be accessible
 	  under char device 13:64+ - /dev/input/eventX in a generic way.
@@ -197,6 +198,25 @@ config INPUT_KEYCOMBO
 	---help---
 	  Say Y here if you want to take action when some keys are pressed;
 
+config SEC_INPUT_BOOSTER
+	bool "SEC INPUT BOOSTER"
+	depends on INPUT_EVDEV
+	default y
+	help
+	  Say Y here if you need to enable Input Booster.
+
+	  It's triggered in evdev module.
+
+config SEC_AUTO_INPUT
+	tristate "Samsung auto input"
+	depends on !SAMSUNG_PRODUCT_SHIP
+	default y
+	help
+	  Say Y here if you use auto input function.
+	  If unsure, say N
+	  To compile this driver as a module, choose M here: the
+	  module will be called autoinput.
+
 comment "Input Device Drivers"
 
 source "drivers/input/keyboard/Kconfig"
@@ -204,6 +224,8 @@ source "drivers/input/keyboard/Kconfig"
 source "drivers/input/mouse/Kconfig"
 
 source "drivers/input/joystick/Kconfig"
+
+source "drivers/input/sec_input/Kconfig"
 
 source "drivers/input/tablet/Kconfig"
 

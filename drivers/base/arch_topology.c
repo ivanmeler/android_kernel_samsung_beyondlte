@@ -24,6 +24,12 @@
 #include <linux/sched/energy.h>
 #include <linux/cpuset.h>
 
+#if IS_ENABLED(CONFIG_CPU_CAPACITY_FIXUP)
+#include <linux/proc_fs.h>
+#include <linux/seq_file.h>
+#include <linux/uaccess.h>
+#endif
+
 DEFINE_PER_CPU(unsigned long, freq_scale) = SCHED_CAPACITY_SCALE;
 DEFINE_PER_CPU(unsigned long, max_cpu_freq);
 DEFINE_PER_CPU(unsigned long, max_freq_scale) = SCHED_CAPACITY_SCALE;
@@ -69,17 +75,79 @@ void topology_set_cpu_scale(unsigned int cpu, unsigned long capacity)
 	per_cpu(cpu_scale, cpu) = capacity;
 }
 
+#if IS_ENABLED(CONFIG_CPU_CAPACITY_FIXUP)
+static char cpu_cap_fixup_target[TASK_COMM_LEN];
+
+static int proc_cpu_capacity_fixup_target_show(struct seq_file *m, void *data)
+{
+	seq_printf(m, "%s\n", cpu_cap_fixup_target);
+	return 0;
+}
+
+static int proc_cpu_capacity_fixup_target_open(struct inode *inode,
+		struct file *file)
+{
+	return single_open(file, proc_cpu_capacity_fixup_target_show, NULL);
+}
+
+static ssize_t proc_cpu_capacity_fixup_target_write(struct file *file,
+		const char __user *buf, size_t count, loff_t *offs)
+{
+	char temp[TASK_COMM_LEN];
+	const size_t maxlen = sizeof(temp) - 1;
+
+	memset(temp, 0, sizeof(temp));
+	if (copy_from_user(temp, buf, count > maxlen ? maxlen : count))
+		return -EFAULT;
+
+	if (temp[strlen(temp) - 1] == '\n')
+		temp[strlen(temp) - 1] = '\0';
+
+	strlcpy(cpu_cap_fixup_target, temp, sizeof(cpu_cap_fixup_target));
+
+	return count;
+}
+
+static const struct file_operations proc_cpu_capacity_fixup_target_op = {
+	.open    = proc_cpu_capacity_fixup_target_open,
+	.read    = seq_read,
+	.llseek  = seq_lseek,
+	.write   = proc_cpu_capacity_fixup_target_write,
+	.release = single_release,
+};
+#endif
+
 static ssize_t cpu_capacity_show(struct device *dev,
 				 struct device_attribute *attr,
 				 char *buf)
 {
 	struct cpu *cpu = container_of(dev, struct cpu, dev);
 
+#if IS_ENABLED(CONFIG_CPU_CAPACITY_FIXUP)
+	if (strncmp(current->comm, cpu_cap_fixup_target,
+			strnlen(current->comm, TASK_COMM_LEN)) == 0) {
+		unsigned long curr, left, right;
+
+		curr = topology_get_cpu_scale(NULL, cpu->dev.id);
+		left = topology_get_cpu_scale(NULL, 0);
+		right = topology_get_cpu_scale(NULL, num_possible_cpus() - 1);
+
+		if (curr != left && curr != right)
+			return sprintf(buf, "%lu\n", left > right ? left : right);
+	}
+#endif
+
 	return sprintf(buf, "%lu\n", topology_get_cpu_scale(NULL, cpu->dev.id));
 }
 
 static void update_topology_flags_workfn(struct work_struct *work);
 static DECLARE_WORK(update_topology_flags_work, update_topology_flags_workfn);
+
+void topology_update(void)
+{
+	if (topology_detect_flags())
+		schedule_work(&update_topology_flags_work);
+}
 
 static ssize_t cpu_capacity_store(struct device *dev,
 				  struct device_attribute *attr,
@@ -158,13 +226,20 @@ static int register_cpu_capacity_sysctl(void)
 		device_create_file(cpu, &dev_attr_cpu_capacity);
 	}
 
+#if IS_ENABLED(CONFIG_CPU_CAPACITY_FIXUP)
+	memset(cpu_cap_fixup_target, 0, sizeof(cpu_cap_fixup_target));
+	if (!proc_create("cpu_capacity_fixup_target",
+			0660, NULL, &proc_cpu_capacity_fixup_target_op))
+		pr_err("Failed to register 'cpu_capacity_fixup_target'\n");
+#endif
+
 	return 0;
 }
 subsys_initcall(register_cpu_capacity_sysctl);
 
-enum asym_cpucap_type { no_asym, asym_thread, asym_core, asym_die };
+enum asym_cpucap_type { no_asym, asym_thread, asym_core, asym_cluster, asym_die };
 static enum asym_cpucap_type asym_cpucap = no_asym;
-enum share_cap_type { no_share_cap, share_cap_thread, share_cap_core, share_cap_die};
+enum share_cap_type { no_share_cap, share_cap_thread, share_cap_core, share_cap_cluster, share_cap_die};
 static enum share_cap_type share_cap = no_share_cap;
 
 #ifdef CONFIG_CPU_FREQ
@@ -184,25 +259,26 @@ int detect_share_cap_flag(void)
 			cpumask_equal(topology_sibling_cpumask(cpu),
 				  policy->related_cpus)) {
 			share_cap_level = share_cap_thread;
-			cpufreq_cpu_put(policy);
 			continue;
 		}
 
 		if (cpumask_equal(topology_core_cpumask(cpu),
 				  policy->related_cpus)) {
 			share_cap_level = share_cap_core;
-			cpufreq_cpu_put(policy);
+			continue;
+		}
+
+		if (cpumask_equal(topology_cluster_cpumask(cpu),
+				  policy->related_cpus)) {
+			share_cap_level = share_cap_cluster;
 			continue;
 		}
 
 		if (cpumask_equal(cpu_cpu_mask(cpu),
 				  policy->related_cpus)) {
 			share_cap_level = share_cap_die;
-			cpufreq_cpu_put(policy);
 			continue;
 		}
-
-		cpufreq_cpu_put(policy);
 	}
 
 	if (share_cap != share_cap_level) {
@@ -251,7 +327,7 @@ int topology_detect_flags(void)
 
 check_core:
 		if (asym_level >= asym_core)
-			goto check_die;
+			goto check_cluster;
 
 		for_each_cpu(core, topology_core_cpumask(cpu)) {
 			capacity = topology_get_cpu_scale(NULL, core);
@@ -259,6 +335,20 @@ check_core:
 			if (capacity > max_capacity) {
 				if (max_capacity != 0)
 					asym_level = asym_core;
+
+				max_capacity = capacity;
+			}
+		}
+check_cluster:
+		if (asym_level >= asym_cluster)
+			goto check_die;
+
+		for_each_cpu(core, topology_cluster_cpumask(cpu)) {
+			capacity = topology_get_cpu_scale(NULL, core);
+
+			if (capacity > max_capacity) {
+				if (max_capacity != 0)
+					asym_level = asym_cluster;
 
 				max_capacity = capacity;
 			}
@@ -315,12 +405,19 @@ int topology_core_flags(void)
 	return flags;
 }
 
+int topology_cluster_flags(void)
+{
+	int flags = SD_ASYM_CPUCAPACITY;
+
+	if (share_cap == share_cap_cluster)
+		flags |= SD_SHARE_CAP_STATES;
+
+	return flags;
+}
+
 int topology_cpu_flags(void)
 {
-	int flags = 0;
-
-	if (asym_cpucap == asym_die)
-		flags |= SD_ASYM_CPUCAPACITY;
+	int flags = SD_ASYM_CPUCAPACITY;
 
 	if (share_cap == share_cap_die)
 		flags |= SD_SHARE_CAP_STATES;
@@ -485,11 +582,13 @@ static int __init register_cpufreq_notifier(void)
 
 	cpumask_copy(cpus_to_visit, cpu_possible_mask);
 
+#ifndef CONFIG_SIMPLIFIED_ENERGY_MODEL
 	ret = cpufreq_register_notifier(&init_cpu_capacity_notifier,
 					CPUFREQ_POLICY_NOTIFIER);
 
 	if (ret)
 		free_cpumask_var(cpus_to_visit);
+#endif
 
 	return ret;
 }
